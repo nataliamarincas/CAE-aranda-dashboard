@@ -62,6 +62,9 @@
       <button class="nav-link" data-view="responsables">
         <i class="bi bi-people-fill"></i><span>Gestión de Responsables</span>
       </button>
+      <button class="nav-link" data-view="grupos">
+        <i class="bi bi-diagram-3"></i><span>Comparativa por Grupos</span>
+      </button>
       <button class="nav-link nav-link--alert" data-view="atencion">
         <i class="bi bi-exclamation-triangle"></i><span>Atención Prioritaria</span>
         <span class="nav-badge" id="navBadgeAtencion">0</span>
@@ -126,7 +129,7 @@
         <div class="grid-2col">
           <div class="panel">
             <div class="panel-header">
-              <h2><i class="bi bi-graph-up-arrow"></i> Tendencia de creación de casos</h2>
+              <h2><i class="bi bi-graph-up-arrow"></i> Tendencia de creación: Casos y Tareas</h2>
               <div id="execTendPeriod"></div>
             </div>
             <div class="chart-wrap chart-tall chart-wrap--hscroll">
@@ -177,9 +180,10 @@
 
         <div class="panel-header" style="margin-bottom:10px">
           <h2><i class="bi bi-collection"></i> Categorías principales</h2>
-          <span class="panel-sub">Clic en una tarjeta para filtrar por esa categoría</span>
+          <span class="panel-sub">Navegue por categoría, o use las tarjetas para filtrar la misma vista</span>
         </div>
-        <div class="kpi-grid kpi-grid--categorias" id="kpiCategoriasGrid"></div>
+        <div id="casosCatTabsWrap"></div>
+        <div class="kpi-grid kpi-grid--categorias" id="kpiCategoriasGrid" style="margin-top:14px"></div>
 
         <div class="global-filter-bar" id="casosFilterBar"></div>
 
@@ -195,7 +199,8 @@
               <thead>
                 <tr>
                   <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Categoría (Nivel 1)</th>
-                  <th>Subcategoría (Nivel 2)</th><th>Responsable</th><th>Grupo</th><th>Progreso</th>
+                  <th>Subcategoría (Nivel 2)</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
+                  <th>Tipo de registro</th><th>Fecha modificación</th><th>Progreso</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -236,7 +241,7 @@
           <div class="table-responsive">
             <table class="table data-table" id="tableTareas" style="width:100%">
               <thead>
-                <tr><th>Fecha</th><th>Asunto</th><th>Estado</th><th>Ciclo</th><th>Canal</th><th>Causa</th><th>Responsable</th></tr>
+                <tr><th>ID Tarea</th><th>Fecha</th><th>Asunto</th><th>Estado</th><th>Ciclo</th><th>Canal</th><th>Causa</th><th>Criterios</th><th>Responsable</th></tr>
               </thead>
               <tbody></tbody>
             </table>
@@ -313,6 +318,42 @@
             </table>
           </div>
         </div>
+      </section>
+
+      <!-- ============ VISTA: COMPARATIVA POR GRUPOS ============ -->
+      <section class="view" id="view-grupos" data-view="grupos">
+
+        <div class="global-filter-bar" id="gruposFilterBar"></div>
+
+        <div class="kpi-grid" id="kpiGruposGrid" style="margin-top:20px"></div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-table"></i> Comparativo por grupo responsable</h2>
+            <span class="panel-sub">Ordenado por total de casos · clic en encabezados para ordenar</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableGrupos" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Grupo</th><th>Total casos</th><th>Vencidos</th><th>Críticos</th><th>Riesgo</th>
+                  <th>% Vencidos</th><th>Tiempo promedio</th><th>Responsables</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-bar-chart-steps"></i> Top 10 grupos por volumen y clasificación</h2>
+          </div>
+          <div class="chart-wrap chart-tall">
+            <canvas id="chartGruposStack" class="chart-skeleton"></canvas>
+          </div>
+        </div>
+
       </section>
 
       <!-- ============ VISTA: GESTIÓN DE RESPONSABLES ============ -->

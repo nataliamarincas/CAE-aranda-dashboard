@@ -51,6 +51,7 @@
     casos: "Casos",
     tareas: "Tareas",
     responsables: "Gestión de Responsables",
+    grupos: "Comparativa por Grupos",
     atencion: "Atención Prioritaria",
     solucionados: "Solucionados"
   };
@@ -74,9 +75,12 @@
     lastUpdated: null, firstLoadDone: false
   };
 
-  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], fechaDesde: "", fechaHasta: "" };
-  const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
+  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], fechaDesde: "", fechaHasta: "" };
+  const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
   const RESP_FILTER = { responsable: [], grupo: [], fechaDesde: "", fechaHasta: "" };
+  const GRUPO_FILTER = { grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
+
+  const ESTADOS_CERRADOS = ["Solucionado", "Cerrado", "Anulado"];
 
   const chartRegistry = {};
   const dtRegistry = {};
@@ -344,11 +348,19 @@
       const n1 = nivel1Effective(r);
       if (CASOS_FILTER.nivel1.length && CASOS_FILTER.nivel1.indexOf(n1) === -1) return false;
       if (CASOS_FILTER.nivel2.length && CASOS_FILTER.nivel2.indexOf(r.nivel2) === -1) return false;
-      if (CASOS_FILTER.nivel3.length && CASOS_FILTER.nivel3.indexOf(r.nivel3) === -1) return false;
+      // Nivel 3 se alimenta de 'categoria' (el nivel más específico que ya calcula Aranda),
+      // no del nivel3 parseado de Jerarquía: éste queda vacío cuando la Jerarquía solo tiene
+      // 2 niveles (ej. "Académicos.Grados" -> categoria="Grados", nivel3="N/A").
+      if (CASOS_FILTER.nivel3.length && CASOS_FILTER.nivel3.indexOf(r.categoria) === -1) return false;
       if (CASOS_FILTER.grupo.length && CASOS_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (CASOS_FILTER.responsable.length && CASOS_FILTER.responsable.indexOf(r.responsable) === -1) return false;
       if (CASOS_FILTER.estado.length && CASOS_FILTER.estado.indexOf(r.estado) === -1) return false;
       if (CASOS_FILTER.fuente.length && CASOS_FILTER.fuente.indexOf(r.fuente) === -1) return false;
+      if (CASOS_FILTER.tipoRegistro.length && CASOS_FILTER.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
+      if (CASOS_FILTER.condicion.length) {
+        const cond = ESTADOS_CERRADOS.indexOf(r.estado) !== -1 ? "Cerrados" : "Abiertos";
+        if (CASOS_FILTER.condicion.indexOf(cond) === -1) return false;
+      }
       if (CASOS_FILTER.fechaDesde && (r.fecha_registro || "") < CASOS_FILTER.fechaDesde) return false;
       if (CASOS_FILTER.fechaHasta && (r.fecha_registro || "") > CASOS_FILTER.fechaHasta) return false;
       if (_casosActiveCat && n1 !== _casosActiveCat) return false;
@@ -360,6 +372,7 @@
       if (TAREAS_FILTER.tipoServicio.length && TAREAS_FILTER.tipoServicio.indexOf(t.tipo_servicio) === -1) return false;
       if (TAREAS_FILTER.linea.length && TAREAS_FILTER.linea.indexOf(t.linea_atencion) === -1) return false;
       if (TAREAS_FILTER.causa.length && TAREAS_FILTER.causa.indexOf(t.causa) === -1) return false;
+      if (TAREAS_FILTER.criterios.length && TAREAS_FILTER.criterios.indexOf(t.criterios) === -1) return false;
       if (TAREAS_FILTER.responsable.length && TAREAS_FILTER.responsable.indexOf(t.responsable) === -1) return false;
       if (TAREAS_FILTER.estado.length && TAREAS_FILTER.estado.indexOf(t.estado) === -1) return false;
       if (TAREAS_FILTER.fechaDesde && (t.fecha_creacion || "") < TAREAS_FILTER.fechaDesde) return false;
@@ -550,6 +563,7 @@
     renderTareasView();
     renderSolucionados();
     renderResponsables();
+    renderGrupos();
   }
 
   function updateSidebarBadges() {
@@ -585,15 +599,22 @@
     const periodContainer = document.getElementById("execTendPeriod");
     if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
 
-    const buckets = getTendenciaCounts(STATE.casos, TENDENCY_PERIOD, "fecha_registro", CASOS_FILTER);
-    const labels = buckets.map(function (b) { return b.label; });
+    // Vista unificada: Casos y Tareas sobre el mismo periodo (rango por defecto, sin
+    // heredar los filtros de fecha propios de cada pestaña, para que ambas series
+    // queden alineadas en las mismas etiquetas de tiempo).
+    const casosBuckets = getTendenciaCounts(STATE.casos, TENDENCY_PERIOD, "fecha_registro", {});
+    const tareasBuckets = getTendenciaCounts(STATE.tareas, TENDENCY_PERIOD, "fecha_creacion", {});
+    const labels = casosBuckets.map(function (b) { return b.label; });
     const execTendInner = document.getElementById("execTendInner");
     if (execTendInner) {
       execTendInner.dataset.pts = labels.length;
       const pW = execTendInner.parentElement ? execTendInner.parentElement.clientWidth : 0;
       execTendInner.style.width = (pW > 0 ? Math.max(labels.length * 38, pW) : Math.max(labels.length * 38, 300)) + "px";
     }
-    renderChart("chartExecTendencia", "line", { labels: labels, datasets: [{ label: "Casos creados", data: buckets.map(function (b) { return b.count; }), borderColor: "#8C0F13", backgroundColor: "#8C0F1322", fill: true }] }, lineOpts({ plugins: { legend: { display: false } } }));
+    renderChart("chartExecTendencia", "line", { labels: labels, datasets: [
+      { label: "Casos creados", data: casosBuckets.map(function (b) { return b.count; }), borderColor: "#8C0F13", backgroundColor: "#8C0F1322", fill: true },
+      { label: "Tareas creadas", data: tareasBuckets.map(function (b) { return b.count; }), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }
+    ] }, lineOpts());
 
     const s = STATE.statsCasos;
     const counts = { Normal: s.normal, Riesgo: s.riesgo, Critico: s.criticos, Vencido: s.vencidos };
@@ -687,10 +708,12 @@
     function uniqueVals(field) { return Array.from(new Set(STATE.rawCasos.map(function (r) { return r[field] || ""; }).filter(Boolean))).sort(); }
     const fields = [
       { key: "nivel2", label: "Nivel 2", icon: "bi-diagram-2", opts: uniqueVals("nivel2") },
-      { key: "nivel3", label: "Nivel 3", icon: "bi-diagram-3", opts: uniqueVals("nivel3") },
+      { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", opts: uniqueVals("categoria") },
       { key: "grupo", label: "Grupo", icon: "bi-building", optsField: "grupo_responsable" },
       { key: "responsable", label: "Responsable", icon: "bi-person", opts: uniqueVals("responsable") },
       { key: "estado", label: "Estado", icon: "bi-circle-half", opts: uniqueVals("estado") },
+      { key: "condicion", label: "Condición", icon: "bi-toggle2-on", opts: ["Abiertos", "Cerrados"] },
+      { key: "tipoRegistro", label: "Tipo de registro", icon: "bi-tag", optsField: "tipo_registro" },
       { key: "fuente", label: "Origen", icon: "bi-database", opts: uniqueVals("fuente") }
     ];
     const dropsHtml = fields.map(function (f) { return buildMsDropHTML(f.key, f.label, f.icon, f.optsField ? uniqueVals(f.optsField) : f.opts, CASOS_FILTER); }).join("");
@@ -705,14 +728,36 @@
     const clearBtn = document.getElementById("casosFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
       CASOS_FILTER.nivel2 = []; CASOS_FILTER.nivel3 = []; CASOS_FILTER.grupo = []; CASOS_FILTER.responsable = [];
-      CASOS_FILTER.fuente = []; CASOS_FILTER.fechaDesde = ""; CASOS_FILTER.fechaHasta = "";
+      CASOS_FILTER.fuente = []; CASOS_FILTER.tipoRegistro = []; CASOS_FILTER.condicion = [];
+      CASOS_FILTER.fechaDesde = ""; CASOS_FILTER.fechaHasta = "";
       initEstadoFilterCasos(); _casosActiveCat = null; populateCasosFilterBar(); renderAll();
+    });
+  }
+
+  function buildCasosTabsHTML() {
+    const cats = ["Todas"].concat(NIVEL1_CATS);
+    return '<div class="resp-tab-btns" id="casosCatTabs">' + cats.map(function (c) {
+      const active = (c === "Todas" && !_casosActiveCat) || c === _casosActiveCat ? " is-active" : "";
+      return '<button class="resp-tab-btn' + active + '" data-cat="' + esc(c === "Todas" ? "" : c) + '">' + esc(c) + '</button>';
+    }).join("") + '</div>';
+  }
+  function wireCasosTabs() {
+    const tabsEl = document.getElementById("casosCatTabs"); if (!tabsEl) return;
+    tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        _casosActiveCat = this.getAttribute("data-cat") || null;
+        renderAll();
+      });
     });
   }
 
   function renderCasosView() {
     const s = STATE.statsCasos;
     const cats = NIVEL1_CATS.concat([NIVEL1_OTROS]);
+
+    const tabsWrap = document.getElementById("casosCatTabsWrap");
+    if (tabsWrap) { tabsWrap.innerHTML = buildCasosTabsHTML(); wireCasosTabs(); }
+
     const catGrid = document.getElementById("kpiCategoriasGrid");
     if (catGrid) {
       catGrid.innerHTML = cats.map(function (c) {
@@ -754,11 +799,12 @@
         return ('<tr class="' + rowClass + '">' +
           '<td>' + esc(r.caso) + '</td>' + '<td>' + esc(r.fecha_registro) + '</td>' + '<td>' + esc(r.estado) + '</td>' +
           '<td>' + nivel1ChipHTML(nivel1Effective(r)) + '</td>' + '<td>' + esc(r.nivel2) + '</td>' +
-          '<td>' + esc(r.responsable) + '</td>' + '<td>' + esc(r.grupo_responsable) + '</td>' +
+          '<td>' + esc(r.autor) + '</td>' + '<td>' + esc(r.responsable) + '</td>' + '<td>' + esc(r.grupo_responsable) + '</td>' +
+          '<td>' + esc(r.tipo_registro) + '</td>' + '<td>' + esc(r.fecha_modificacion) + '</td>' +
           '<td data-order="' + prog + '">' + progressCellHTML(prog, cls) + '</td></tr>');
       }).join("");
     }
-    dtRegistry[selAll] = $(selAll).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[7, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
+    dtRegistry[selAll] = $(selAll).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[10, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
   }
 
   /* ---------------------- PESTAÑA TAREAS ---------------------- */
@@ -770,6 +816,7 @@
       { key: "tipoServicio", label: "Ciclo", icon: "bi-diagram-3", field: "tipo_servicio" },
       { key: "linea", label: "Canal", icon: "bi-headset", field: "linea_atencion" },
       { key: "causa", label: "Causa", icon: "bi-tags", field: "causa" },
+      { key: "criterios", label: "Criterios", icon: "bi-list-check", field: "criterios" },
       { key: "responsable", label: "Responsable", icon: "bi-person", field: "responsable" },
       { key: "estado", label: "Estado", icon: "bi-circle-half", field: "estado" }
     ];
@@ -784,7 +831,7 @@
     wireFilterBar("tareasFilterBar", "tareasFilterDrops", TAREAS_FILTER, function () { renderAll(); }, ["tareasFechaDesde", "tareasFechaHasta"]);
     const clearBtn = document.getElementById("tareasFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      TAREAS_FILTER.tipoServicio = []; TAREAS_FILTER.linea = []; TAREAS_FILTER.causa = []; TAREAS_FILTER.responsable = [];
+      TAREAS_FILTER.tipoServicio = []; TAREAS_FILTER.linea = []; TAREAS_FILTER.causa = []; TAREAS_FILTER.criterios = []; TAREAS_FILTER.responsable = [];
       TAREAS_FILTER.fechaDesde = ""; TAREAS_FILTER.fechaHasta = "";
       initEstadoFilterTareas(); populateTareasFilterBar(); renderAll();
     });
@@ -816,8 +863,8 @@
     if (tbody) {
       tbody.innerHTML = STATE.tareas.slice().sort(function (a, b) { return (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""); }).map(function (t) {
         const rowClass = t.estado === "Completada" ? "" : "row--critico";
-        return ('<tr class="' + rowClass + '"><td>' + esc(t.fecha_creacion) + '</td><td>' + esc(t.asunto) + '</td><td>' + esc(t.estado) + '</td>' +
-          '<td>' + esc(t.tipo_servicio) + '</td><td>' + esc(t.linea_atencion) + '</td><td>' + esc(t.causa) + '</td><td>' + esc(t.responsable) + '</td></tr>');
+        return ('<tr class="' + rowClass + '"><td>' + esc(t.tarea_id) + '</td><td>' + esc(t.fecha_creacion) + '</td><td>' + esc(t.asunto) + '</td><td>' + esc(t.estado) + '</td>' +
+          '<td>' + esc(t.tipo_servicio) + '</td><td>' + esc(t.linea_atencion) + '</td><td>' + esc(t.causa) + '</td><td>' + esc(t.criterios) + '</td><td>' + esc(t.responsable) + '</td></tr>');
       }).join("");
     }
     dtRegistry[selT] = $(selT).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [], dom: "frtipB", buttons: DT_BUTTONS }));
@@ -1022,6 +1069,100 @@
     dtRegistry[selTareasResp] = $(selTareasResp).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [], dom: "frtip" }));
 
     if (panel && typeof panel.scrollIntoView === "function") panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /* ---------------------- COMPARATIVA POR GRUPOS ---------------------- */
+
+  function computeGrupoStats() {
+    const filtered = STATE.rawCasos.filter(function (r) {
+      if (GRUPO_FILTER.grupo.length && GRUPO_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
+      if (GRUPO_FILTER.nivel1.length && GRUPO_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
+      if (GRUPO_FILTER.fechaDesde && (r.fecha_registro || "") < GRUPO_FILTER.fechaDesde) return false;
+      if (GRUPO_FILTER.fechaHasta && (r.fecha_registro || "") > GRUPO_FILTER.fechaHasta) return false;
+      return true;
+    });
+    const byGrupo = {};
+    filtered.forEach(function (r) {
+      const g = r.grupo_responsable || "Sin grupo";
+      if (!byGrupo[g]) byGrupo[g] = { grupo: g, total: 0, vencidos: 0, criticos: 0, riesgo: 0, normal: 0, sumTiempo: 0, solucionados: 0, responsables: {} };
+      const d = byGrupo[g];
+      d.total++;
+      d.sumTiempo += (r.tiempo_transcurrido_dias || 0);
+      if (r.estado === "Solucionado") d.solucionados++;
+      d.responsables[r.responsable || "Sin asignar"] = true;
+      const cls = effectiveClass(r);
+      if (cls === "Vencido") d.vencidos++; else if (cls === "Critico") d.criticos++; else if (cls === "Riesgo") d.riesgo++; else d.normal++;
+    });
+    Object.keys(byGrupo).forEach(function (g) {
+      const d = byGrupo[g];
+      d.avgTiempo = d.total ? +(d.sumTiempo / d.total).toFixed(1) : 0;
+      d.pctVencidos = pct(d.vencidos, d.total);
+      d.nResponsables = Object.keys(d.responsables).length;
+    });
+    return byGrupo;
+  }
+
+  function populateGrupoFilterBar() {
+    const bar = document.getElementById("gruposFilterBar"); if (!bar) return;
+    const grupoSet = new Set();
+    STATE.rawCasos.forEach(function (r) { if (r.grupo_responsable) grupoSet.add(r.grupo_responsable); });
+    const dropsHtml = buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), GRUPO_FILTER) +
+      buildMsDropHTML("nivel1", "Categoría", "bi-diagram-2", NIVEL1_CATS.concat([NIVEL1_OTROS]), GRUPO_FILTER);
+    bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
+      '<div class="gfb-drops" id="gruposFilterDrops">' + dropsHtml + '</div>' +
+      '<div class="gfb-dates"><div class="filter-group"><label for="gruposFechaDesde">Desde</label>' +
+      '<input type="date" id="gruposFechaDesde" class="filter-select filter-select--sm"' + (GRUPO_FILTER.fechaDesde ? ' value="' + GRUPO_FILTER.fechaDesde + '"' : '') + '></div>' +
+      '<div class="filter-group"><label for="gruposFechaHasta">Hasta</label>' +
+      '<input type="date" id="gruposFechaHasta" class="filter-select filter-select--sm"' + (GRUPO_FILTER.fechaHasta ? ' value="' + GRUPO_FILTER.fechaHasta + '"' : '') + '></div></div>' +
+      '<button class="gfb-clear" id="gruposFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
+    wireFilterBar("gruposFilterBar", "gruposFilterDrops", GRUPO_FILTER, function () { renderGruposContent(); }, ["gruposFechaDesde", "gruposFechaHasta"]);
+    const clearBtn = document.getElementById("gruposFilterClear");
+    if (clearBtn) clearBtn.addEventListener("click", function () {
+      GRUPO_FILTER.grupo = []; GRUPO_FILTER.nivel1 = []; GRUPO_FILTER.fechaDesde = ""; GRUPO_FILTER.fechaHasta = "";
+      populateGrupoFilterBar(); renderGruposContent();
+    });
+  }
+
+  function renderGrupos() { populateGrupoFilterBar(); renderGruposContent(); }
+
+  function renderGruposContent() {
+    const byGrupo = computeGrupoStats();
+    const grupos = Object.values(byGrupo).sort(function (a, b) { return b.total - a.total; });
+
+    const kpiGrid = document.getElementById("kpiGruposGrid");
+    if (kpiGrid) {
+      const topVencidos = grupos.reduce(function (m, g) { return g.vencidos > m.vencidos ? g : m; }, { grupo: "—", vencidos: 0 });
+      kpiGrid.innerHTML =
+        kpi("Grupos en la vista", grupos.length, "info", "bi-building", "según filtros aplicados") +
+        kpi("Grupo con más vencidos", topVencidos.grupo, "vencido", "bi-x-octagon", topVencidos.vencidos + " vencidos") +
+        kpi("Total de casos", grupos.reduce(function (s, g) { return s + g.total; }, 0), "info", "bi-collection", "en los grupos filtrados");
+    }
+
+    const selG = "#tableGrupos";
+    if (dtRegistry[selG]) { try { dtRegistry[selG].destroy(); } catch (e) {} delete dtRegistry[selG]; }
+    const tbody = document.querySelector(selG + " tbody");
+    if (tbody) {
+      tbody.innerHTML = grupos.map(function (g) {
+        const rowCls = g.vencidos > 0 ? "row--vencido" : (g.criticos > 0 ? "row--critico" : "");
+        return ('<tr class="' + rowCls + '">' +
+          '<td><strong>' + esc(g.grupo) + '</strong></td>' +
+          '<td data-order="' + g.total + '">' + g.total + '</td>' +
+          '<td data-order="' + g.vencidos + '">' + g.vencidos + '</td>' +
+          '<td data-order="' + g.criticos + '">' + g.criticos + '</td>' +
+          '<td data-order="' + g.riesgo + '">' + g.riesgo + '</td>' +
+          '<td data-order="' + g.pctVencidos + '">' + g.pctVencidos + '%</td>' +
+          '<td data-order="' + g.avgTiempo + '">' + g.avgTiempo + ' días</td>' +
+          '<td data-order="' + g.nResponsables + '">' + g.nResponsables + '</td></tr>');
+      }).join("");
+    }
+    dtRegistry[selG] = $(selG).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[2, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
+
+    const top10 = grupos.slice(0, 10);
+    const datasets = ["Normal", "Riesgo", "Critico", "Vencido"].map(function (cls) {
+      return { label: STATUS_LABELS[cls], backgroundColor: STATUS_COLORS[cls],
+        data: top10.map(function (g) { return cls === "Normal" ? g.normal : (cls === "Riesgo" ? g.riesgo : (cls === "Critico" ? g.criticos : g.vencidos)); }) };
+    });
+    renderChart("chartGruposStack", "bar", { labels: top10.map(function (g) { return g.grupo; }), datasets: datasets }, stackedBarOpts());
   }
 
   /* ====================== BÚSQUEDA GLOBAL ====================== */
