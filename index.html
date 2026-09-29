@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro de Monitoreo Operativo · Aranda Service Desk · Punto UAO</title>
+
+<!--
+  ============================================================================
+  FLUJO DE DATOS
+  ============================================================================
+  Google Drive (Casos.xlsx, Tareas.csv) → GitHub Actions (repo
+  CAE-data-pipeline) → data/casos.json y data/tareas.json publicados en ESTE
+  repo → este dashboard los consume con fetch (cache-busting), 3 veces al día
+  (9am, 11am, 4pm hora Colombia) o al pulsar "Sincronizar ahora".
+
+  MODELO DE DATOS (post-reestructuración de Aranda, sep-2026): ver la cabecera
+  de app.js para el detalle de Nivel1/2/3 (Jerarquía), la escala de Progreso,
+  y cómo se cruzan Casos y Tareas por responsable.
+  ============================================================================
+-->
+
+<!-- Bootstrap 5 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<!-- DataTables (Bootstrap 5 theme) + Buttons extension (export Excel/CSV) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/css/buttons.bootstrap5.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">UAO</div>
+      <div class="brand-text">
+        <span class="brand-title">Centro de Monitoreo</span>
+        <span class="brand-sub">Aranda Service Desk</span>
+      </div>
+      <button class="sidebar-toggle d-lg-none" id="sidebarClose" aria-label="Cerrar menú">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-link active" data-view="resumen">
+        <i class="bi bi-grid-1x2"></i><span>Resumen ejecutivo</span>
+      </button>
+      <button class="nav-link" data-view="casos">
+        <i class="bi bi-folder2-open"></i><span>Casos</span>
+        <span class="nav-badge" id="navBadgeCasos">0</span>
+      </button>
+      <button class="nav-link" data-view="tareas">
+        <i class="bi bi-list-check"></i><span>Tareas</span>
+        <span class="nav-badge" id="navBadgeTareas">0</span>
+      </button>
+      <button class="nav-link" data-view="responsables">
+        <i class="bi bi-people-fill"></i><span>Gestión de Responsables</span>
+      </button>
+      <button class="nav-link nav-link--alert" data-view="atencion">
+        <i class="bi bi-exclamation-triangle"></i><span>Atención Prioritaria</span>
+        <span class="nav-badge" id="navBadgeAtencion">0</span>
+      </button>
+      <button class="nav-link nav-link--solucionado" data-view="solucionados">
+        <i class="bi bi-check2-circle"></i><span>Solucionados</span>
+        <span class="nav-badge nav-badge--ok" id="navBadgeSolucionados">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sync-pill" id="syncPill">
+        <i class="bi bi-arrow-repeat" id="syncIcon"></i>
+        <span id="syncText">Sincronizando…</span>
+      </div>
+      <div class="sidebar-footer-meta">Actualización automática: 9am, 11am, 4pm</div>
+      <div class="sidebar-footer-meta sidebar-footer-credit">Elaborado por: Natalia Marín</div>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main-content">
+
+    <header class="topbar">
+      <button class="icon-btn d-lg-none" id="sidebarOpen" aria-label="Abrir menú">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <div class="breadcrumb-block">
+        <div class="breadcrumb" id="breadcrumb">
+          <span>Centro de Monitoreo</span><i class="bi bi-chevron-right"></i><span id="breadcrumbCurrent">Resumen ejecutivo</span>
+        </div>
+        <h1 class="view-title" id="viewTitle">Resumen ejecutivo</h1>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="global-search">
+          <i class="bi bi-search"></i>
+          <input type="text" id="globalSearch" placeholder="Buscar caso, tarea o responsable…" autocomplete="off">
+        </div>
+        <div class="last-update">
+          <span class="last-update-label">Última sincronización</span>
+          <span class="last-update-value" id="lastUpdateValue">—</span>
+        </div>
+        <button class="icon-btn" id="refreshNowBtn" title="Sincronizar ahora">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="error-banner-stack" id="errorBannerStack"></div>
+
+    <main class="view-container" id="viewContainer">
+
+      <!-- ============ VISTA: RESUMEN EJECUTIVO ============ -->
+      <section class="view active" id="view-resumen" data-view="resumen">
+
+        <div class="kpi-grid" id="kpiExecGrid"></div>
+
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-graph-up-arrow"></i> Tendencia de creación de casos</h2>
+              <div id="execTendPeriod"></div>
+            </div>
+            <div class="chart-wrap chart-tall chart-wrap--hscroll">
+              <div class="chart-scroll-inner" id="execTendInner">
+                <canvas id="chartExecTendencia" class="chart-skeleton"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-pie-chart"></i> Distribución por clasificación</h2>
+              <span class="panel-sub">Normal · Riesgo · Crítico · Vencido</span>
+            </div>
+            <div class="chart-wrap chart-tall">
+              <canvas id="chartExecClasificacion" class="chart-skeleton"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-bar-chart-steps"></i> Comparativo por categoría (Jerarquía nivel 1)</h2>
+            <span class="panel-sub">Financiero · Tecnologías · Académicos · Bienestar</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableComparativo" style="width:100%">
+              <thead>
+                <tr><th>Categoría</th><th>Casos</th><th>Vencidos</th><th>Críticos</th><th>Riesgo</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-bricks"></i> Casos por categoría y clasificación</h2>
+          </div>
+          <div class="chart-wrap chart-tall">
+            <canvas id="chartComparativoStack" class="chart-skeleton"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============ VISTA: CASOS ============ -->
+      <section class="view" id="view-casos" data-view="casos">
+
+        <div class="panel-header" style="margin-bottom:10px">
+          <h2><i class="bi bi-collection"></i> Categorías principales</h2>
+          <span class="panel-sub">Clic en una tarjeta para filtrar por esa categoría</span>
+        </div>
+        <div class="kpi-grid kpi-grid--categorias" id="kpiCategoriasGrid"></div>
+
+        <div class="global-filter-bar" id="casosFilterBar"></div>
+
+        <div class="kpi-grid" id="kpiCasosGrid" style="margin-top:20px"></div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-table"></i> Todos los casos</h2>
+            <span class="panel-sub">Información general de todas las categorías · según filtros aplicados</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableCasosAll" style="width:100%">
+              <thead>
+                <tr>
+                  <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Categoría (Nivel 1)</th>
+                  <th>Subcategoría (Nivel 2)</th><th>Responsable</th><th>Grupo</th><th>Progreso</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============ VISTA: TAREAS ============ -->
+      <section class="view" id="view-tareas" data-view="tareas">
+
+        <div class="global-filter-bar" id="tareasFilterBar"></div>
+
+        <div class="kpi-grid" id="kpiTareasGrid" style="margin-top:20px"></div>
+
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-headset"></i> Canal de atención</h2></div>
+            <div class="chart-wrap chart-tall"><canvas id="chartTareasCanal" class="chart-skeleton"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-tags"></i> Causas más frecuentes</h2></div>
+            <div class="chart-wrap chart-tall"><canvas id="chartTareasCausa" class="chart-skeleton"></canvas></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia de creación de tareas</h2></div>
+          <div class="chart-wrap chart-tall"><canvas id="chartTareasTendencia" class="chart-skeleton"></canvas></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-table"></i> Todas las tareas</h2>
+            <span class="panel-sub">Reporte de Tareas/Eventos · según filtros aplicados</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableTareas" style="width:100%">
+              <thead>
+                <tr><th>Fecha</th><th>Asunto</th><th>Estado</th><th>Ciclo</th><th>Canal</th><th>Causa</th><th>Responsable</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============ VISTA: ATENCIÓN PRIORITARIA ============ -->
+      <section class="view" id="view-atencion" data-view="atencion">
+        <div class="attention-hero">
+          <div class="attention-hero-title">
+            <i class="bi bi-exclamation-octagon-fill"></i>
+            <div>
+              <h2>Atención Prioritaria</h2>
+              <p>Casos críticos y vencidos del proyecto Punto UAO</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-grid kpi-grid--attention" id="kpiAttentionGrid"></div>
+
+        <div class="grid-3col">
+          <div class="panel panel--highlight">
+            <div class="panel-header"><h2><i class="bi bi-person-exclamation"></i> Responsable con más vencidos</h2></div>
+            <div class="spotlight" id="spotlightResponsable">—</div>
+          </div>
+          <div class="panel panel--highlight">
+            <div class="panel-header"><h2><i class="bi bi-tags"></i> Categoría con más vencidos</h2></div>
+            <div class="spotlight" id="spotlightCategoria">—</div>
+          </div>
+          <div class="panel panel--highlight">
+            <div class="panel-header"><h2><i class="bi bi-diagram-2"></i> Nivel 1 con más vencidos</h2></div>
+            <div class="spotlight" id="spotlightArea">—</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-list-ul"></i> Listado de casos vencidos y críticos</h2>
+            <span class="panel-sub">Ordenados por progreso descendente</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableAtencion" style="width:100%">
+              <thead>
+                <tr>
+                  <th>No. Caso</th><th>Categoría</th><th>Fecha de registro</th><th>Estado</th><th>Categoría (detalle)</th>
+                  <th>Responsable</th><th>Fecha Est. Solución</th><th>Tiempo transcurrido</th><th>Progreso</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISTA: SOLUCIONADOS ============ -->
+      <section class="view" id="view-solucionados" data-view="solucionados">
+        <div class="kpi-grid" id="kpiSolucionadosGrid"></div>
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-check2-circle"></i> Casos solucionados</h2>
+            <span class="panel-sub">Clasificación basada en el Progreso al momento de la solución · respeta los filtros de la pestaña Casos</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableSolucionados" style="width:100%">
+              <thead>
+                <tr>
+                  <th>No. Caso</th><th>Categoría</th><th>Fecha de registro</th><th>Estado</th><th>Categoría (detalle)</th>
+                  <th>Responsable</th><th>Fecha Est. Solución</th><th>Tiempo transcurrido</th><th>Progreso (al resolver)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISTA: GESTIÓN DE RESPONSABLES ============ -->
+      <section class="view" id="view-responsables" data-view="responsables">
+
+        <div class="global-filter-bar" id="respFilterBar"></div>
+
+        <div class="kpi-grid" id="kpiResponsablesGrid" style="margin-top:20px"></div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-table"></i> Desempeño por responsable</h2>
+            <span class="panel-sub">Combina Casos y Tareas · haga clic en una fila para ver el detalle</span>
+          </div>
+          <table class="table data-table resp-resumen-table" id="tableRespResumen" style="width:100%">
+            <thead>
+              <tr>
+                <th>Responsable</th><th>Casos abiertos</th><th>Vencidos activos</th><th>Críticos activos</th>
+                <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="panel resp-detail-panel" id="panelRespDetalle" style="display:none">
+          <div class="panel-header resp-detail-header">
+            <h2 id="respDetalleNombre" style="margin:0"><i class="bi bi-person-circle"></i> —</h2>
+            <button class="icon-btn" id="btnCerrarRespDetalle" title="Cerrar detalle">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="kpi-grid" id="kpiRespDetalle"></div>
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-tags"></i> Categorías más frecuentes (casos)</h2></div>
+            <div class="chart-wrap"><canvas id="chartRespCategorias" class="chart-skeleton"></canvas></div>
+          </div>
+
+          <div class="resp-tab-btns" id="respDetalleTabs">
+            <button class="resp-tab-btn is-active" data-tab="casos"><i class="bi bi-folder2-open"></i> Casos</button>
+            <button class="resp-tab-btn" data-tab="tareas"><i class="bi bi-list-check"></i> Tareas</button>
+          </div>
+
+          <div class="resp-subview is-active" id="respSub-casos">
+            <div class="table-responsive">
+              <table class="table data-table" id="tableRespCasos" style="width:100%">
+                <thead>
+                  <tr>
+                    <th>No. Caso</th><th>Categoría</th><th>Fecha Reg.</th><th>Estado</th><th>Categoría (detalle)</th>
+                    <th>Responsable</th><th>Fecha Est. Solución</th><th>Tiempo transcurrido</th><th>Progreso</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="resp-subview" id="respSub-tareas">
+            <div class="table-responsive">
+              <table class="table data-table" id="tableRespTareas" style="width:100%">
+                <thead><tr><th>Fecha</th><th>Asunto</th><th>Estado</th><th>Canal</th><th>Causa</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="toastStack" class="toast-stack"></div>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/js/buttons.html5.min.js"></script>
+
+<script src="app.js?v=1"></script>
+</body>
+</html>
