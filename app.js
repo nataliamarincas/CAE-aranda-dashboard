@@ -523,6 +523,8 @@
   function renderErrorBanners() {
     const stack = document.getElementById("errorBannerStack"); if (!stack) return;
     let html = "";
+    if (STATE.errorLibs) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Librerías:</strong> ' + esc(STATE.errorLibs) + '</div>';
+    if (STATE.errorRender && STATE.errorRender.length) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Error al dibujar:</strong> ' + esc(STATE.errorRender.join(" · ")) + ' — el resto del tablero sí se actualizó.</div>';
     if (STATE.errorCasos) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Casos:</strong> ' + esc(STATE.errorCasos) + ' — mostrando los últimos datos disponibles.</div>';
     if (STATE.errorTareas) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Tareas:</strong> ' + esc(STATE.errorTareas) + ' — mostrando los últimos datos disponibles.</div>';
     stack.innerHTML = html;
@@ -557,13 +559,16 @@
     STATE.statsTareas = computeTareasStats(STATE.tareas);
     updateLastUpdatedUI();
     updateSidebarBadges();
-    renderExecutive();
-    renderAttention();
-    renderCasosView();
-    renderTareasView();
-    renderSolucionados();
-    renderResponsables();
-    renderGrupos();
+    // Cada sección en su propio try/catch: si una falla (p.ej. falta Chart.js o
+    // DataTables), las demás igual se dibujan.
+    STATE.errorRender = [];
+    [["Resumen ejecutivo", renderExecutive], ["Atención Prioritaria", renderAttention],
+     ["Casos", renderCasosView], ["Tareas", renderTareasView], ["Solucionados", renderSolucionados],
+     ["Gestión de Responsables", renderResponsables], ["Comparativa por Grupos", renderGrupos]
+    ].forEach(function (sec) {
+      try { sec[1](); } catch (e) { console.error("[renderAll] " + sec[0] + ":", e); STATE.errorRender.push(sec[0] + " (" + e.message + ")"); }
+    });
+    renderErrorBanners();
   }
 
   function updateSidebarBadges() {
@@ -1197,6 +1202,15 @@
   /* ============================== INICIO ============================== */
 
   document.addEventListener("DOMContentLoaded", function () {
+    const faltantes = [];
+    if (!window.jQuery) faltantes.push("jQuery");
+    else if (!window.jQuery.fn || !window.jQuery.fn.DataTable) faltantes.push("DataTables");
+    if (!window.Chart) faltantes.push("Chart.js");
+    if (faltantes.length) {
+      STATE.errorLibs = "No se cargó " + faltantes.join(", ") + " (revise la carpeta lib/). Tablas y/o gráficos no se mostrarán.";
+      console.error("[init] " + STATE.errorLibs);
+      renderErrorBanners();
+    }
     setChartDefaults();
     wireNav(); wireSidebarMobile(); wireRefreshButton(); wireGlobalSearch();
     loadAllData(true).then(function () { setInterval(function () { loadAllData(false); }, CONFIG.refreshIntervalMs); });

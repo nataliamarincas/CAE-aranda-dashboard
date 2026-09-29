@@ -21,12 +21,12 @@
 -->
 
 <!-- Bootstrap 5 -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="lib/bootstrap.min.css" rel="stylesheet">
 <!-- DataTables (Bootstrap 5 theme) + Buttons extension (export Excel/CSV) -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/css/buttons.bootstrap5.min.css" rel="stylesheet">
+<link href="lib/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="lib/buttons.bootstrap5.min.css" rel="stylesheet">
 <!-- Bootstrap Icons -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -428,18 +428,21 @@
 
 <div id="toastStack" class="toast-stack"></div>
 
-<!-- ===================== SCRIPTS ===================== -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<!-- ===================== SCRIPTS =====================
+     Librerías servidas desde lib/ (no CDN): las rutas de cdnjs para DataTables
+     y Chart.js daban 404 y dejaban las tablas vacías. Versiones: jQuery 3.7.1,
+     Bootstrap 5.3.3, Chart.js 4.4.4, DataTables 1.13.11, Buttons 2.4.3. -->
+<script src="lib/jquery.min.js"></script>
+<script src="lib/bootstrap.bundle.min.js"></script>
+<script src="lib/chart.umd.min.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/js/dataTables.buttons.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/js/buttons.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-buttons/2.4.3/js/buttons.html5.min.js"></script>
+<script src="lib/jquery.dataTables.min.js"></script>
+<script src="lib/dataTables.bootstrap5.min.js"></script>
+<script src="lib/dataTables.buttons.min.js"></script>
+<script src="lib/buttons.bootstrap5.min.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
