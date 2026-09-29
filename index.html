@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -62,19 +62,9 @@
         <i class="bi bi-list-check"></i><span>Tareas</span>
         <span class="nav-badge" id="navBadgeTareas">0</span>
       </button>
-      <button class="nav-link" data-view="responsables">
-        <i class="bi bi-people-fill"></i><span>Gestión de Responsables</span>
-      </button>
-      <button class="nav-link" data-view="grupos">
-        <i class="bi bi-diagram-3"></i><span>Comparativa por Grupos</span>
-      </button>
-      <button class="nav-link nav-link--alert" data-view="atencion">
-        <i class="bi bi-exclamation-triangle"></i><span>Atención Prioritaria</span>
+      <button class="nav-link nav-link--alert" data-view="gestion" title="Casos vencidos + críticos">
+        <i class="bi bi-people-fill"></i><span>Seguimiento operativo</span>
         <span class="nav-badge" id="navBadgeAtencion">0</span>
-      </button>
-      <button class="nav-link nav-link--solucionado" data-view="solucionados">
-        <i class="bi bi-check2-circle"></i><span>Solucionados</span>
-        <span class="nav-badge nav-badge--ok" id="navBadgeSolucionados">0</span>
       </button>
     </nav>
 
@@ -183,12 +173,14 @@
       <!-- ============ VISTA: CASOS ============ -->
       <section class="view" id="view-casos" data-view="casos">
 
-        <div class="panel-header" style="margin-bottom:10px">
-          <h2><i class="bi bi-collection"></i> Categorías principales</h2>
-          <span class="panel-sub">Navegue por categoría, o use las tarjetas para filtrar la misma vista</span>
+        <!-- Solo en "Todas": resumen por categoría. Dentro de una categoría se oculta. -->
+        <div id="casosCatOverview">
+          <div class="panel-header" style="margin-bottom:10px">
+            <h2><i class="bi bi-collection"></i> Categorías principales</h2>
+            <span class="panel-sub">Haga clic en una tarjeta o use el menú lateral para entrar a la categoría</span>
+          </div>
+          <div class="kpi-grid kpi-grid--categorias" id="kpiCategoriasGrid" style="margin-bottom:14px"></div>
         </div>
-        <div id="casosCatTabsWrap"></div>
-        <div class="kpi-grid kpi-grid--categorias" id="kpiCategoriasGrid" style="margin-top:14px"></div>
 
         <div class="global-filter-bar" id="casosFilterBar"></div>
 
@@ -196,7 +188,7 @@
 
         <div class="panel" style="margin-bottom:18px">
           <div class="panel-header">
-            <h2><i class="bi bi-graph-up-arrow"></i> Casos registrados por categoría</h2>
+            <h2><i class="bi bi-graph-up-arrow"></i> <span id="casosTendTitle">Casos registrados por categoría</span></h2>
             <div id="casosTendPeriod"></div>
           </div>
           <div class="chart-wrap chart-tall chart-wrap--hscroll">
@@ -225,7 +217,7 @@
 
         <div class="grid-2col">
           <div class="panel">
-            <div class="panel-header"><h2><i class="bi bi-bar-chart-steps"></i> Cumplimiento de ANS por categoría</h2></div>
+            <div class="panel-header"><h2><i class="bi bi-bar-chart-steps"></i> <span id="casosAnsCatTitle">Cumplimiento de ANS por categoría</span></h2></div>
             <div class="chart-wrap chart-tall"><canvas id="chartCasosAnsCat" class="chart-skeleton"></canvas></div>
           </div>
           <div class="panel">
@@ -250,8 +242,8 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-table"></i> Todos los casos</h2>
-            <span class="panel-sub">Información general de todas las categorías · según filtros aplicados</span>
+            <h2><i class="bi bi-table"></i> <span id="casosTablaTitle">Todos los casos</span></h2>
+            <span class="panel-sub">Según filtros aplicados</span>
           </div>
           <div class="table-responsive">
             <table class="table data-table" id="tableCasosAll" style="width:100%">
@@ -309,14 +301,25 @@
 
       </section>
 
-      <!-- ============ VISTA: ATENCIÓN PRIORITARIA ============ -->
-      <section class="view" id="view-atencion" data-view="atencion">
+      <!-- ============ VISTA: SEGUIMIENTO OPERATIVO ============
+           Reúne Atención Prioritaria, Gestión de Responsables y Comparativa por
+           Grupos como sub-pestañas de una misma vista. -->
+      <section class="view" id="view-gestion" data-view="gestion">
+
+        <div class="resp-tab-btns gestion-tabs" id="gestionTabs">
+          <button class="resp-tab-btn is-active" data-tab="atencion"><i class="bi bi-exclamation-triangle"></i> Atención prioritaria</button>
+          <button class="resp-tab-btn" data-tab="responsables"><i class="bi bi-people-fill"></i> Responsables</button>
+          <button class="resp-tab-btn" data-tab="grupos"><i class="bi bi-diagram-3"></i> Grupos</button>
+        </div>
+
+      <!-- ---- Sub-vista: ATENCIÓN PRIORITARIA ---- -->
+      <div class="gestion-sub is-active" id="gestionSub-atencion">
         <div class="attention-hero">
           <div class="attention-hero-title">
             <i class="bi bi-exclamation-octagon-fill"></i>
             <div>
               <h2>Atención Prioritaria</h2>
-              <p>Casos críticos y vencidos del proyecto Punto UAO</p>
+              <p>Casos abiertos críticos y vencidos, de todas las categorías</p>
             </div>
           </div>
         </div>
@@ -355,32 +358,10 @@
             </table>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- ============ VISTA: SOLUCIONADOS ============ -->
-      <section class="view" id="view-solucionados" data-view="solucionados">
-        <div class="kpi-grid" id="kpiSolucionadosGrid"></div>
-        <div class="panel">
-          <div class="panel-header">
-            <h2><i class="bi bi-check2-circle"></i> Casos solucionados</h2>
-            <span class="panel-sub">Clasificación basada en el Progreso al momento de la solución · respeta los filtros de la pestaña Casos</span>
-          </div>
-          <div class="table-responsive">
-            <table class="table data-table" id="tableSolucionados" style="width:100%">
-              <thead>
-                <tr>
-                  <th>No. Caso</th><th>Categoría</th><th>Fecha de registro</th><th>Estado</th><th>Categoría (detalle)</th>
-                  <th>Responsable</th><th>Fecha Est. Solución</th><th>Tiempo transcurrido</th><th>Progreso (al resolver)</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============ VISTA: COMPARATIVA POR GRUPOS ============ -->
-      <section class="view" id="view-grupos" data-view="grupos">
+      <!-- ---- Sub-vista: COMPARATIVA POR GRUPOS ---- -->
+      <div class="gestion-sub" id="gestionSub-grupos">
 
         <div class="global-filter-bar" id="gruposFilterBar"></div>
 
@@ -413,10 +394,10 @@
           </div>
         </div>
 
-      </section>
+      </div>
 
-      <!-- ============ VISTA: GESTIÓN DE RESPONSABLES ============ -->
-      <section class="view" id="view-responsables" data-view="responsables">
+      <!-- ---- Sub-vista: GESTIÓN DE RESPONSABLES ---- -->
+      <div class="gestion-sub" id="gestionSub-responsables">
 
         <div class="global-filter-bar" id="respFilterBar"></div>
 
@@ -479,6 +460,8 @@
           </div>
         </div>
 
+      </div>
+
       </section>
 
     </main>
@@ -502,6 +485,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

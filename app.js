@@ -55,10 +55,7 @@
     resumen: "Resumen ejecutivo",
     casos: "Casos",
     tareas: "Tareas",
-    responsables: "Gestión de Responsables",
-    grupos: "Comparativa por Grupos",
-    atencion: "Atención Prioritaria",
-    solucionados: "Solucionados"
+    gestion: "Seguimiento operativo"
   };
 
   const DT_LANG_ES = {
@@ -92,7 +89,8 @@
 
   const chartRegistry = {};
   const dtRegistry = {};
-  let _casosActiveCat = null;     // nivel1 seleccionado por tarjeta en la pestaña Casos
+  let _casosActiveCat = null;     // categoría (nivel1) activa en Casos; null = todas
+  let _vistaActual = "resumen";
   let _respDetalleActual = null;
   let _respDetalleTab = "casos";  // "casos" | "tareas" dentro del panel de detalle
   let TENDENCY_PERIOD = "mes";  // por meses se ve el año de histórico completo
@@ -592,13 +590,42 @@
   function switchView(key) {
     document.querySelectorAll(".nav-link[data-view]").forEach(function (btn) { btn.classList.toggle("active", btn.getAttribute("data-view") === key); });
     document.querySelectorAll(".view[data-view]").forEach(function (sec) { sec.classList.toggle("active", sec.getAttribute("data-view") === key); });
-    const title = VIEW_TITLES[key] || key;
-    const titleEl = document.getElementById("viewTitle"), crumbEl = document.getElementById("breadcrumbCurrent");
-    if (titleEl) titleEl.textContent = title; if (crumbEl) crumbEl.textContent = title;
+    _vistaActual = key;
+    updateViewTitle();
     document.body.classList.remove("sidebar-is-open");
     const sidebar = document.getElementById("sidebar"), overlay = document.getElementById("sidebarOverlay");
     if (sidebar) sidebar.classList.remove("is-open"); if (overlay) overlay.classList.remove("is-open");
     setTimeout(function () { Object.keys(chartRegistry).forEach(function (id) { if (chartRegistry[id]) { try { chartRegistry[id].resize(); } catch (e) {} } }); }, 60);
+  }
+
+  // En Casos el título incluye la categoría activa ("Casos · Financiero").
+  function updateViewTitle() {
+    let title = VIEW_TITLES[_vistaActual] || _vistaActual;
+    if (_vistaActual === "casos" && _casosActiveCat) title += " · " + _casosActiveCat;
+    const titleEl = document.getElementById("viewTitle"), crumbEl = document.getElementById("breadcrumbCurrent");
+    if (titleEl) titleEl.textContent = title; if (crumbEl) crumbEl.textContent = title;
+  }
+
+  // Enlace directo a una vista: #casos/Financiero, #gestion, #tareas…
+  function abrirDesdeHash() {
+    const partes = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
+    if (!VIEW_TITLES[partes[0]]) return;
+    switchView(partes[0]);
+    if (partes[0] === "casos" && partes[1] && NIVEL1_CATS.indexOf(partes[1]) !== -1) setCasosCat(partes[1]);
+  }
+
+  function wireGestionTabs() {
+    const tabsEl = document.getElementById("gestionTabs"); if (!tabsEl) return;
+    tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const tab = this.getAttribute("data-tab");
+        tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (b) { b.classList.toggle("is-active", b === btn); });
+        document.querySelectorAll(".gestion-sub").forEach(function (sv) { sv.classList.toggle("is-active", sv.id === "gestionSub-" + tab); });
+        closeAllDropdowns();
+        // Los gráficos dibujados con la sub-vista oculta quedan en 0×0: se reajustan al mostrarla.
+        setTimeout(function () { Object.keys(chartRegistry).forEach(function (id) { try { chartRegistry[id].resize(); } catch (e) {} }); }, 60);
+      });
+    });
   }
 
   /* ============================ RENDERIZADO ============================ */
@@ -607,6 +634,7 @@
     applyCasosFilter(); applyTareasFilter();
     STATE.statsCasos = computeCasosStats(STATE.casos);
     STATE.statsTareas = computeTareasStats(STATE.tareas);
+    STATE.statsAtencion = computeCasosStats(STATE.rawCasos);
     STATE.execCasos = filtrarCasosExec(); STATE.execTareas = filtrarTareasExec();
     STATE.statsExec = computeCasosStats(STATE.execCasos);
     STATE.statsExecTareas = computeTareasStats(STATE.execTareas);
@@ -617,8 +645,8 @@
     // DataTables), las demás igual se dibujan.
     STATE.errorRender = [];
     [["Resumen ejecutivo", renderExecutive], ["Atención Prioritaria", renderAttention],
-     ["Casos", renderCasosView], ["Tareas", renderTareasView], ["Solucionados", renderSolucionados],
-     ["Gestión de Responsables", renderResponsables], ["Comparativa por Grupos", renderGrupos]
+     ["Casos", renderCasosView], ["Tareas", renderTareasView],
+     ["Responsables", renderResponsables], ["Grupos", renderGrupos]
     ].forEach(function (sec) {
       try { sec[1](); } catch (e) { console.error("[renderAll] " + sec[0] + ":", e); STATE.errorRender.push(sec[0] + " (" + e.message + ")"); }
     });
@@ -627,13 +655,11 @@
 
   function updateSidebarBadges() {
     const navAtencion = document.getElementById("navBadgeAtencion");
-    if (navAtencion) navAtencion.textContent = STATE.statsCasos.vencidos + STATE.statsCasos.criticos;
+    if (navAtencion) navAtencion.textContent = STATE.statsAtencion.vencidos + STATE.statsAtencion.criticos;
     const navCasos = document.getElementById("navBadgeCasos");
     if (navCasos) navCasos.textContent = STATE.statsCasos.abiertos;
     const navTareas = document.getElementById("navBadgeTareas");
     if (navTareas) navTareas.textContent = STATE.statsTareas.pendientes;
-    const solEl = document.getElementById("navBadgeSolucionados");
-    if (solEl) solEl.textContent = STATE.rawCasos.filter(function (r) { return r.estado === "Solucionado"; }).length;
   }
 
   /* ---------------------- RESUMEN EJECUTIVO ---------------------- */
@@ -747,8 +773,9 @@
 
   /* ---------------------- ATENCIÓN PRIORITARIA ---------------------- */
 
+  // Atención Prioritaria mira todos los casos: no depende de los filtros de Casos.
   function renderAttention() {
-    const s = STATE.statsCasos;
+    const s = STATE.statsAtencion;
     const grid = document.getElementById("kpiAttentionGrid");
     if (grid) {
       grid.innerHTML =
@@ -761,7 +788,7 @@
     Object.keys(s.porNivel1).forEach(function (n1) { if (s.porNivel1[n1].vencidos > n1Top.count) n1Top = { key: n1, count: s.porNivel1[n1].vencidos }; });
     setSpotlight("spotlightResponsable", respTop); setSpotlight("spotlightCategoria", catTop); setSpotlight("spotlightArea", n1Top);
 
-    const atencionCases = STATE.casos.filter(function (r) { const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico"; })
+    const atencionCases = STATE.rawCasos.filter(function (r) { const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico"; })
       .sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
 
     const selAt = "#tableAtencion";
@@ -798,20 +825,20 @@
 
   function populateCasosFilterBar() {
     const bar = document.getElementById("casosFilterBar"); if (!bar) return;
-    // Nivel 2 y categoría específica solo ofrecen valores de la categoría activa.
+    // Dentro de una categoría, cada filtro solo ofrece los valores de esa categoría.
     const base = _casosActiveCat ? STATE.rawCasos.filter(function (r) { return nivel1Effective(r) === _casosActiveCat; }) : STATE.rawCasos;
-    function uniqueVals(field, records) { return Array.from(new Set((records || STATE.rawCasos).map(function (r) { return r[field] || ""; }).filter(function (v) { return v && v !== "N/A"; }))).sort(); }
+    function uniqueVals(field) { return Array.from(new Set(base.map(function (r) { return r[field] || ""; }).filter(function (v) { return v && v !== "N/A"; }))).sort(); }
     const fields = [
-      { key: "nivel2", label: "Subcategoría (Nivel 2)", icon: "bi-diagram-2", opts: uniqueVals("nivel2", base) },
-      { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", opts: uniqueVals("categoria", base) },
-      { key: "grupo", label: "Grupo", icon: "bi-building", optsField: "grupo_responsable" },
-      { key: "responsable", label: "Responsable", icon: "bi-person", opts: uniqueVals("responsable") },
-      { key: "estado", label: "Estado", icon: "bi-circle-half", opts: uniqueVals("estado") },
+      { key: "nivel2", label: "Subcategoría", icon: "bi-diagram-2", field: "nivel2" },
+      { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", field: "categoria" },
+      { key: "grupo", label: "Grupo", icon: "bi-building", field: "grupo_responsable" },
+      { key: "responsable", label: "Responsable", icon: "bi-person", field: "responsable" },
+      { key: "estado", label: "Estado", icon: "bi-circle-half", field: "estado" },
       { key: "condicion", label: "Condición", icon: "bi-toggle2-on", opts: ["Abiertos", "Cerrados"] },
-      { key: "tipoRegistro", label: "Tipo de registro", icon: "bi-tag", optsField: "tipo_registro" },
-      { key: "fuente", label: "Origen", icon: "bi-database", opts: uniqueVals("fuente") }
+      { key: "tipoRegistro", label: "Tipo de registro", icon: "bi-tag", field: "tipo_registro" },
+      { key: "fuente", label: "Origen", icon: "bi-database", field: "fuente" }
     ];
-    const dropsHtml = fields.map(function (f) { return buildMsDropHTML(f.key, f.label, f.icon, f.optsField ? uniqueVals(f.optsField) : f.opts, CASOS_FILTER); }).join("");
+    const dropsHtml = fields.map(function (f) { return buildMsDropHTML(f.key, f.label, f.icon, f.field ? uniqueVals(f.field) : f.opts, CASOS_FILTER); }).join("");
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="casosFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="casosFechaDesde">Desde</label>' +
@@ -821,22 +848,23 @@
       '<button class="gfb-clear" id="casosFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
     wireFilterBar("casosFilterBar", "casosFilterDrops", CASOS_FILTER, function () { renderAll(); }, ["casosFechaDesde", "casosFechaHasta"]);
     const clearBtn = document.getElementById("casosFilterClear");
-    if (clearBtn) clearBtn.addEventListener("click", function () {
-      CASOS_FILTER.nivel2 = []; CASOS_FILTER.nivel3 = []; CASOS_FILTER.grupo = []; CASOS_FILTER.responsable = [];
-      CASOS_FILTER.fuente = []; CASOS_FILTER.tipoRegistro = []; CASOS_FILTER.condicion = [];
-      CASOS_FILTER.fechaDesde = ""; CASOS_FILTER.fechaHasta = "";
-      initEstadoFilterCasos(); _casosActiveCat = null; populateCasosFilterBar(); renderAll();
-    });
+    // "Limpiar" deja los filtros en blanco pero se queda en la categoría actual.
+    if (clearBtn) clearBtn.addEventListener("click", function () { resetCasosFilter(); populateCasosFilterBar(); renderAll(); });
+  }
+  function resetCasosFilter() {
+    Object.keys(CASOS_FILTER).forEach(function (k) { CASOS_FILTER[k] = Array.isArray(CASOS_FILTER[k]) ? [] : ""; });
   }
 
-  // Único punto para cambiar la categoría activa de Casos. La usan el select, las
-  // pestañas, las tarjetas y el submenú del sidebar, así todos quedan sincronizados.
-  // Las subcategorías elegidas se limpian porque pertenecen a la categoría anterior.
+  // Único punto para cambiar la categoría activa de Casos (submenú del sidebar y
+  // tarjetas de "Todas"). Cada categoría es su propio espacio: al entrar, los
+  // filtros empiezan en blanco y solo ofrecen valores de esa categoría.
   function setCasosCat(cat) {
     _casosActiveCat = cat || null;
-    CASOS_FILTER.nivel2 = []; CASOS_FILTER.nivel3 = [];
+    resetCasosFilter();
     populateCasosFilterBar();
+    updateViewTitle();
     renderAll();
+    window.scrollTo(0, 0);
   }
 
   function renderNavCasosSub() {
@@ -858,51 +886,30 @@
     });
   }
 
-  function buildCasosTabsHTML() {
-    const cats = ["Todas"].concat(catsPresentes());
-    const selectHTML = '<select class="form-select form-select-sm casos-cat-select" id="casosCatSelect" aria-label="Categoría">' +
-      cats.map(function (c) {
-        const val = c === "Todas" ? "" : c;
-        return '<option value="' + esc(val) + '"' + ((_casosActiveCat || "") === val ? " selected" : "") + '>' + esc(c) + '</option>';
-      }).join("") + '</select>';
-    return '<div class="casos-cat-nav">' + selectHTML + '<div class="resp-tab-btns" id="casosCatTabs">' + cats.map(function (c) {
-      const active = (c === "Todas" && !_casosActiveCat) || c === _casosActiveCat ? " is-active" : "";
-      return '<button class="resp-tab-btn' + active + '" data-cat="' + esc(c === "Todas" ? "" : c) + '">' + esc(c) + '</button>';
-    }).join("") + '</div></div>';
-  }
-  function wireCasosTabs() {
-    const sel = document.getElementById("casosCatSelect");
-    if (sel) sel.addEventListener("change", function () { setCasosCat(this.value); });
-    const tabsEl = document.getElementById("casosCatTabs"); if (!tabsEl) return;
-    tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () { setCasosCat(this.getAttribute("data-cat")); });
-    });
-  }
-
   function renderCasosView() {
     const s = STATE.statsCasos;
     const cats = catsPresentes();
 
-    const tabsWrap = document.getElementById("casosCatTabsWrap");
-    if (tabsWrap) { tabsWrap.innerHTML = buildCasosTabsHTML(); wireCasosTabs(); }
+    // Tarjetas por categoría: solo en "Todas". Dentro de una categoría no se ven las demás.
+    const overview = document.getElementById("casosCatOverview");
+    if (overview) overview.style.display = _casosActiveCat ? "none" : "";
+    const tablaTitle = document.getElementById("casosTablaTitle");
+    if (tablaTitle) tablaTitle.textContent = _casosActiveCat ? "Casos de " + _casosActiveCat : "Todos los casos";
 
     const catGrid = document.getElementById("kpiCategoriasGrid");
-    if (catGrid) {
+    if (catGrid && !_casosActiveCat) {
       catGrid.innerHTML = cats.map(function (c) {
         const d = s.porNivel1[c] || { total: 0, vencidos: 0, criticos: 0, riesgo: 0 };
         const key = NIVEL1_KEY[c] || "otro";
         const icon = NIVEL1_ICON[c] || "bi-collection";
         const active = _casosActiveCat === c ? " is-active" : "";
-        return ('<div class="kpi-card kpi-card--cat-' + key + active + '" data-cat="' + esc(c) + '">' +
+        return ('<div class="kpi-card kpi-card--cat-' + key + active + '" data-cat="' + esc(c) + '" style="cursor:pointer">' +
           '<div class="kpi-label"><i class="bi ' + icon + '"></i> ' + esc(c) + '</div>' +
           '<div class="kpi-value">' + d.total + '</div>' +
           '<div class="kpi-foot">' + d.vencidos + ' vencidos · ' + d.criticos + ' críticos</div></div>');
       }).join("");
       catGrid.querySelectorAll(".kpi-card").forEach(function (card) {
-        card.addEventListener("click", function () {
-          const c = this.getAttribute("data-cat");
-          setCasosCat(_casosActiveCat === c ? null : c);
-        });
+        card.addEventListener("click", function () { setCasosCat(this.getAttribute("data-cat")); });
       });
     }
 
@@ -943,6 +950,8 @@
     const periodContainer = document.getElementById("casosTendPeriod");
     if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
     const series = _casosActiveCat ? [_casosActiveCat] : cats;
+    const tendTitle = document.getElementById("casosTendTitle");
+    if (tendTitle) tendTitle.textContent = _casosActiveCat ? "Casos registrados" : "Casos registrados por categoría";
     let labels = [];
     const datasets = series.map(function (c, i) {
       const buckets = getTendenciaCounts(recs.filter(function (r) { return nivel1Effective(r) === c; }), TENDENCY_PERIOD, "fecha_registro", CASOS_FILTER);
@@ -965,7 +974,23 @@
     });
     renderChart("chartCasosNivel2", "bar", toChartDataBar(porNivel2, "#8C0F13", 12), horizontalBarOpts());
     renderChart("chartCasosAns", "doughnut", toChartDataDoughnut(s.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
-    renderAnsPorCategoria("chartCasosAnsCat", s, _casosActiveCat ? [_casosActiveCat] : cats);
+    // En "Todas": ANS por categoría. Dentro de una categoría: ANS por subcategoría (top 10).
+    const ansTitle = document.getElementById("casosAnsCatTitle");
+    if (ansTitle) ansTitle.textContent = _casosActiveCat ? "Cumplimiento de ANS por subcategoría" : "Cumplimiento de ANS por categoría";
+    if (_casosActiveCat) {
+      const topSub = sortedEntries(porNivel2, 10).map(function (e) { return e[0]; });
+      const ansSub = {};
+      recs.forEach(function (r) {
+        if (topSub.indexOf(r.nivel2) === -1) return;
+        if (!ansSub[r.nivel2]) ansSub[r.nivel2] = { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 };
+        ansSub[r.nivel2][ansResultado(r)]++;
+      });
+      renderChart("chartCasosAnsCat", "bar", { labels: topSub, datasets: ["Normal", "Riesgo", "Critico", "Vencido"].map(function (cls) {
+        return { label: ANS_LABELS[cls], backgroundColor: ANS_COLORS[cls], data: topSub.map(function (n2) { return ansSub[n2][cls]; }) };
+      }) }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
+    } else {
+      renderAnsPorCategoria("chartCasosAnsCat", s, cats);
+    }
     renderChart("chartCasosEstado", "doughnut", toChartDataDoughnut(countBy(recs, "estado"), null, null), doughnutOpts());
     renderChart("chartCasosResponsables", "bar", toChartDataBar(porResp, "#4A6B8C", 10), horizontalBarOpts());
     renderChart("chartCasosCanal", "doughnut", toChartDataDoughnut(countBy(recs, "tipo_registro"), null, null), doughnutOpts());
@@ -1032,39 +1057,6 @@
       }).join("");
     }
     dtRegistry[selT] = $(selT).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [], dom: "frtipB", buttons: DT_BUTTONS }));
-  }
-
-  /* ---------------------- SOLUCIONADOS ---------------------- */
-
-  function renderSolucionados() {
-    const sol = STATE.rawCasos.filter(function (r) {
-      if (r.estado !== "Solucionado") return false;
-      if (CASOS_FILTER.nivel2.length && CASOS_FILTER.nivel2.indexOf(r.nivel2) === -1) return false;
-      if (CASOS_FILTER.grupo.length && CASOS_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
-      if (CASOS_FILTER.responsable.length && CASOS_FILTER.responsable.indexOf(r.responsable) === -1) return false;
-      if (CASOS_FILTER.fechaDesde && (r.fecha_registro || "") < CASOS_FILTER.fechaDesde) return false;
-      if (CASOS_FILTER.fechaHasta && (r.fecha_registro || "") > CASOS_FILTER.fechaHasta) return false;
-      return true;
-    });
-    let vencidos = 0, criticos = 0, riesgo = 0, aTiempo = 0;
-    sol.forEach(function (r) { const cls = classify(effectiveProgreso(r));
-      if (cls === "Vencido") vencidos++; else if (cls === "Critico") criticos++; else if (cls === "Riesgo") riesgo++; else aTiempo++; });
-
-    const grid = document.getElementById("kpiSolucionadosGrid");
-    if (grid) {
-      grid.innerHTML =
-        kpi("Total solucionados", sol.length, "sla", "bi-check2-circle", "según filtros de Casos") +
-        kpi("A tiempo", aTiempo, "normal", "bi-patch-check", "Progreso < 90% al resolver") +
-        kpi("Resueltos en riesgo", riesgo, "riesgo", "bi-shield-exclamation", "Progreso 90–95%") +
-        kpi("Resueltos críticos", criticos, "critico", "bi-exclamation-triangle", "Progreso 95–98%") +
-        kpi("Resueltos vencidos", vencidos, "vencido", "bi-x-octagon", "Progreso ≥ 98%");
-    }
-    const sorted = sol.slice().sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
-    const selSol = "#tableSolucionados";
-    if (dtRegistry[selSol]) { try { dtRegistry[selSol].destroy(); } catch (e) {} delete dtRegistry[selSol]; }
-    const tbody = document.querySelector(selSol + " tbody");
-    if (tbody) tbody.innerHTML = sorted.map(function (r) { return buildCaseRow(r, true); }).join("");
-    dtRegistry[selSol] = $(selSol).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [], dom: "frtipB", buttons: DT_BUTTONS }));
   }
 
   /* ---------------------- RESPONSABLES (Casos + Tareas combinados) ---------------------- */
@@ -1382,8 +1374,11 @@
       renderErrorBanners();
     }
     setChartDefaults();
-    wireNav(); wireSidebarMobile(); wireRefreshButton(); wireGlobalSearch();
-    loadAllData(true).then(function () { setInterval(function () { loadAllData(false); }, CONFIG.refreshIntervalMs); });
+    wireNav(); wireGestionTabs(); wireSidebarMobile(); wireRefreshButton(); wireGlobalSearch();
+    loadAllData(true).then(function () {
+      abrirDesdeHash();
+      setInterval(function () { loadAllData(false); }, CONFIG.refreshIntervalMs);
+    });
   });
 
 })();
