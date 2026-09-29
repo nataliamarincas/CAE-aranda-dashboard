@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 
@@ -279,9 +279,24 @@
           </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia de creación de tareas</h2></div>
-          <div class="chart-wrap chart-tall"><canvas id="chartTareasTendencia" class="chart-skeleton"></canvas></div>
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-header">
+            <h2><i class="bi bi-graph-up-arrow"></i> Tendencia de creación de tareas</h2>
+            <div id="tareasTendPeriod"></div>
+          </div>
+          <div class="chart-wrap chart-tall chart-wrap--hscroll">
+            <div class="chart-scroll-inner" id="tareasTendInner">
+              <canvas id="chartTareasTendencia" class="chart-skeleton"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-header">
+            <h2><i class="bi bi-person-lines-fill"></i> Tareas por responsable</h2>
+            <span class="panel-sub">Hasta 15 · completadas y pendientes · según filtros aplicados</span>
+          </div>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartTareasResponsable" class="chart-skeleton"></canvas></div>
         </div>
 
         <div class="panel">
@@ -413,7 +428,7 @@
           <table class="table data-table resp-resumen-table" id="tableRespResumen" style="width:100%">
             <thead>
               <tr>
-                <th>Responsable</th><th>Casos abiertos</th><th>Vencidos activos</th><th>Críticos activos</th>
+                <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos activos</th><th>Críticos activos</th>
                 <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
               </tr>
             </thead>
@@ -487,6 +502,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

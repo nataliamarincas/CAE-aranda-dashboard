@@ -209,7 +209,8 @@
     if (!desde) {
       const d = new Date();
       if (period === "día") d.setDate(d.getDate() - 29);
-      else if (period === "mes") { d.setMonth(d.getMonth() - 11); d.setDate(1); }
+      // 13 meses: incluye el mismo mes del año anterior para comparar.
+      else if (period === "mes") { d.setDate(1); d.setMonth(d.getMonth() - 12); }
       else d.setDate(d.getDate() - 83);
       desde = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     }
@@ -1135,10 +1136,35 @@
     renderChart("chartTareasCanal", "doughnut", toChartDataDoughnut(s.porLinea, null, null), doughnutOpts());
     renderChart("chartTareasCausa", "bar", toChartDataBar(s.porCausa, "#8C0F13", 10), horizontalBarOpts());
 
+    // Tendencia con selector de periodo (días, semanas, meses, años), igual que en Casos.
+    const periodContainer = document.getElementById("tareasTendPeriod");
+    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
     const buckets = getTendenciaCounts(STATE.tareas, TENDENCY_PERIOD, "fecha_creacion", TAREAS_FILTER);
+    const inner = document.getElementById("tareasTendInner");
+    if (inner) {
+      const pW = inner.parentElement ? inner.parentElement.clientWidth : 0;
+      inner.style.width = (pW > 0 ? Math.max(buckets.length * 38, pW) : Math.max(buckets.length * 38, 300)) + "px";
+    }
     renderChart("chartTareasTendencia", "line", { labels: buckets.map(function (b) { return b.label; }),
       datasets: [{ label: "Tareas creadas", data: buckets.map(function (b) { return b.count; }), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }] },
       lineOpts({ plugins: { legend: { display: false } } }));
+
+    // Tareas por responsable (top 15 por total), apiladas en completadas y pendientes.
+    const porResp = {};
+    STATE.tareas.forEach(function (t) {
+      const r = t.responsable && t.responsable !== "N/A" ? t.responsable : "Sin asignar";
+      if (!porResp[r]) porResp[r] = { completadas: 0, pendientes: 0 };
+      porResp[r][tareaCompletada(t) ? "completadas" : "pendientes"]++;
+    });
+    const topResp = Object.keys(porResp).sort(function (a, b) {
+      return (porResp[b].completadas + porResp[b].pendientes) - (porResp[a].completadas + porResp[a].pendientes);
+    }).slice(0, 15);
+    const wrapResp = document.getElementById("chartTareasResponsable");
+    if (wrapResp && wrapResp.parentElement) wrapResp.parentElement.style.height = Math.max(200, topResp.length * 34 + 70) + "px";
+    renderChart("chartTareasResponsable", "bar", { labels: topResp, datasets: [
+      { label: "Completadas", data: topResp.map(function (r) { return porResp[r].completadas; }), backgroundColor: "#2a7a3b" },
+      { label: "Pendientes", data: topResp.map(function (r) { return porResp[r].pendientes; }), backgroundColor: "#D9A441" }
+    ] }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
 
     const selT = "#tableTareas";
     if (dtRegistry[selT]) { try { dtRegistry[selT].destroy(); } catch (e) {} delete dtRegistry[selT]; }
@@ -1253,6 +1279,7 @@
         const cBadge = r.criticosActivos > 0 ? '<span class="resp-badge resp-badge--critico">' + r.criticosActivos + '</span>' : "0";
         return ('<tr class="resp-row ' + rowCls + '" data-resp="' + esc(r.nombre) + '">' +
           '<td><strong>' + esc(r.nombre) + '</strong></td>' +
+          '<td data-order="' + r.totalCasos + '">' + r.totalCasos.toLocaleString("es-CO") + '</td>' +
           '<td data-order="' + r.abiertos + '">' + r.abiertos + '</td>' +
           '<td data-order="' + r.vencidosActivos + '">' + vBadge + '</td>' +
           '<td data-order="' + r.criticosActivos + '">' + cBadge + '</td>' +
@@ -1261,6 +1288,7 @@
           '<td data-order="' + r.tareasPendientes + '">' + r.tareasPendientes + '</td></tr>');
       }).join("");
     }
+    // Orden por defecto: columna 1 = Total casos.
     dtRegistry[selSum] = $(selSum).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
 
     $(selSum + " tbody").off("click.resp").on("click.resp", "tr.resp-row", function () {
@@ -1476,6 +1504,7 @@
     wireNav(); wireGestionTabs(); wireSidebarMobile(); wireRefreshButton(); wireGlobalSearch();
     loadAllData(true).then(function () {
       abrirDesdeHash();
+      window.addEventListener("hashchange", abrirDesdeHash);
       setInterval(function () { loadAllData(false); }, CONFIG.refreshIntervalMs);
     });
   });
