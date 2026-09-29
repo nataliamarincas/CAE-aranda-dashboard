@@ -86,6 +86,8 @@
   // Resumen ejecutivo: filtros propios (independientes de la pestaña Casos).
   // Las fechas también recortan las Tareas.
   const EXEC_FILTER = { nivel1: [], nivel2: [], grupo: [], condicion: [], fuente: [], fechaDesde: "", fechaHasta: "" };
+  // Atención Prioritaria: filtros propios sobre los casos abiertos vencidos o críticos.
+  const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
 
   const ESTADOS_CERRADOS = ["Solucionado", "Cerrado", "Anulado"];
 
@@ -809,9 +811,62 @@
 
   /* ---------------------- ATENCIÓN PRIORITARIA ---------------------- */
 
-  // Atención Prioritaria mira todos los casos: no depende de los filtros de Casos.
-  function renderAttention() {
-    const s = STATE.statsAtencion = computeCasosStats(STATE.rawCasos);
+  // Atención Prioritaria mira todos los casos (no depende de los filtros de Casos)
+  // y tiene su propia barra de filtros sobre los casos abiertos vencidos o críticos.
+  function casosEnAtencion() {
+    return STATE.rawCasos.filter(function (r) {
+      if (!esAbierto(r)) return false;
+      const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico";
+    });
+  }
+  function populateAtencionFilterBar() {
+    const bar = document.getElementById("atencionFilterBar"); if (!bar) return;
+    const base = casosEnAtencion();
+    const enCat = base.filter(function (r) { return !ATENCION_FILTER.nivel1.length || ATENCION_FILTER.nivel1.indexOf(nivel1Effective(r)) !== -1; });
+    function uniqueVals(records, field) { return Array.from(new Set(records.map(function (r) { return r[field] || ""; }).filter(function (v) { return v && v !== "N/A"; }))).sort(); }
+    const dropsHtml =
+      buildMsDropHTML("clasificacion", "Clasificación", "bi-exclamation-triangle", ["Vencido", "Crítico"], ATENCION_FILTER) +
+      buildMsDropHTML("nivel1", "Categoría", "bi-collection", catsPresentes().filter(function (c) { return base.some(function (r) { return nivel1Effective(r) === c; }); }), ATENCION_FILTER) +
+      buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", uniqueVals(enCat, "nivel2"), ATENCION_FILTER) +
+      buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals(base, "grupo_responsable"), ATENCION_FILTER) +
+      buildMsDropHTML("responsable", "Responsable", "bi-person", uniqueVals(base, "responsable"), ATENCION_FILTER) +
+      buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals(base, "estado"), ATENCION_FILTER);
+    bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
+      '<div class="gfb-drops" id="atencionFilterDrops">' + dropsHtml + '</div>' +
+      '<div class="gfb-dates"><div class="filter-group"><label for="atencionFechaDesde">Desde</label>' +
+      '<input type="date" id="atencionFechaDesde" class="filter-select filter-select--sm"' + (ATENCION_FILTER.fechaDesde ? ' value="' + ATENCION_FILTER.fechaDesde + '"' : '') + '></div>' +
+      '<div class="filter-group"><label for="atencionFechaHasta">Hasta</label>' +
+      '<input type="date" id="atencionFechaHasta" class="filter-select filter-select--sm"' + (ATENCION_FILTER.fechaHasta ? ' value="' + ATENCION_FILTER.fechaHasta + '"' : '') + '></div></div>' +
+      '<button class="gfb-clear" id="atencionFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
+    const nivel1Previo = ATENCION_FILTER.nivel1.join("|");
+    wireFilterBar("atencionFilterBar", "atencionFilterDrops", ATENCION_FILTER, function () {
+      // Si cambió la categoría, las subcategorías disponibles cambian: se rearma la barra.
+      if (ATENCION_FILTER.nivel1.join("|") !== nivel1Previo) { ATENCION_FILTER.nivel2 = []; populateAtencionFilterBar(); }
+      renderAttentionContent();
+    }, ["atencionFechaDesde", "atencionFechaHasta"]);
+    const clearBtn = document.getElementById("atencionFilterClear");
+    if (clearBtn) clearBtn.addEventListener("click", function () {
+      Object.keys(ATENCION_FILTER).forEach(function (k) { ATENCION_FILTER[k] = Array.isArray(ATENCION_FILTER[k]) ? [] : ""; });
+      populateAtencionFilterBar(); renderAttentionContent();
+    });
+  }
+  function renderAttention() { populateAtencionFilterBar(); renderAttentionContent(); }
+
+  function renderAttentionContent() {
+    const f = ATENCION_FILTER;
+    const filtrados = casosEnAtencion().filter(function (r) {
+      const n1 = nivel1Effective(r);
+      if (f.clasificacion.length && f.clasificacion.indexOf(STATUS_LABELS[effectiveClass(r)]) === -1) return false;
+      if (f.nivel1.length && f.nivel1.indexOf(n1) === -1) return false;
+      if (f.nivel2.length && f.nivel2.indexOf(r.nivel2) === -1) return false;
+      if (f.grupo.length && f.grupo.indexOf(r.grupo_responsable) === -1) return false;
+      if (f.responsable.length && f.responsable.indexOf(r.responsable) === -1) return false;
+      if (f.estado.length && f.estado.indexOf(r.estado) === -1) return false;
+      if (f.fechaDesde && (r.fecha_registro || "") < f.fechaDesde) return false;
+      if (f.fechaHasta && (r.fecha_registro || "") > f.fechaHasta) return false;
+      return true;
+    });
+    const s = computeCasosStats(filtrados);
     const grid = document.getElementById("kpiAttentionGrid");
     if (grid) {
       grid.innerHTML =
@@ -824,8 +879,7 @@
     Object.keys(s.porNivel1).forEach(function (n1) { if (s.porNivel1[n1].vencidos > n1Top.count) n1Top = { key: n1, count: s.porNivel1[n1].vencidos }; });
     setSpotlight("spotlightResponsable", respTop); setSpotlight("spotlightCategoria", catTop); setSpotlight("spotlightArea", n1Top);
 
-    const atencionCases = STATE.rawCasos.filter(function (r) { const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico"; })
-      .sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
+    const atencionCases = filtrados.slice().sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
 
     const selAt = "#tableAtencion";
     if (dtRegistry[selAt]) { try { dtRegistry[selAt].destroy(); } catch (e) {} delete dtRegistry[selAt]; }
