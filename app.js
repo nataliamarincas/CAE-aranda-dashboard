@@ -10,10 +10,12 @@
      Todos los casos vienen bajo un único Proyecto ("Punto UAO").
    - La clasificación temática ahora es 'Jerarquía' = Nivel1.Nivel2[.Nivel3][.Nivel4],
      ej. "Financiero.Matrícula financiera.Reliquidación de Matrícula Financiera".
-     Nivel1 ∈ {Financiero, Tecnologías, Académicos, Bienestar} (confirmado con
-     Natalia el 2026-sep); cualquier otro valor cae en "Otros / Histórico".
+     Nivel1 ∈ {Financiero, Académicos, PQRS, Tecnologías, Bienestar} (confirmado
+     con Natalia el 2026-sep); cualquier otro valor cae en "Otros / Histórico".
      Los casos históricos toman nivel1 de 'TIPO SERVICIO' y nivel2 de 'CATEGORÍA
-     NUEVA (TIPO DE SERVICIO)' (lo calcula el pipeline).
+     NUEVA (TIPO DE SERVICIO)', salvo los del proyecto PQRS, que van a PQRS con
+     el tipo (Petición, Queja…) como nivel2. Lo calcula el pipeline, que además
+     une los casos migrados al Aranda nuevo con su fecha de registro original.
    - ANS: el histórico trae el resultado en 'cumplimiento_ans' (A TIEMPO, EN
      RIESGO, CRITICO, VENCIDO); para el nuevo se deriva del Progreso (ver ansResultado).
    - Tareas es una fuente independiente (sin Progreso/SLA), con sus propios
@@ -38,10 +40,10 @@
     refreshIntervalMs: 5 * 60 * 1000
   };
 
-  const NIVEL1_CATS = ["Financiero", "Tecnologías", "Académicos", "Bienestar"];
+  const NIVEL1_CATS = ["Financiero", "Académicos", "PQRS", "Tecnologías", "Bienestar"];
   const NIVEL1_OTROS = "Otros / Histórico";
-  const NIVEL1_KEY = { "Financiero": "financiero", "Tecnologías": "tecnologias", "Académicos": "academicos", "Bienestar": "bienestar" };
-  const NIVEL1_ICON = { "Financiero": "bi-cash-coin", "Tecnologías": "bi-cpu", "Académicos": "bi-mortarboard", "Bienestar": "bi-heart-pulse" };
+  const NIVEL1_KEY = { "Financiero": "financiero", "Tecnologías": "tecnologias", "Académicos": "academicos", "Bienestar": "bienestar", "PQRS": "pqrs" };
+  const NIVEL1_ICON = { "Financiero": "bi-cash-coin", "Tecnologías": "bi-cpu", "Académicos": "bi-mortarboard", "Bienestar": "bi-heart-pulse", "PQRS": "bi-chat-left-text" };
 
   const STATUS_COLORS = { "Normal": "#9C8C7E", "Riesgo": "#D9A441", "Critico": "#C0151A", "Vencido": "#4A0608" };
   const STATUS_LABELS = { "Normal": "Normal", "Riesgo": "Riesgo", "Critico": "Crítico", "Vencido": "Vencido" };

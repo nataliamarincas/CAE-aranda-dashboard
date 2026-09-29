@@ -168,6 +168,7 @@ button{ font-family:inherit; }
 .kpi-card--cat-tecnologias{ --accent:#4A6B8C; }
 .kpi-card--cat-academicos{ --accent:#C0151A; }
 .kpi-card--cat-bienestar{ --accent:#D9A441; }
+.kpi-card--cat-pqrs{ --accent:#6B4E8C; }
 .kpi-card--cat-otro{ --accent:#9C8C7E; }
 
 /* ============================== PANELS / LAYOUT GRIDS ============================== */
@@ -253,6 +254,7 @@ button{ font-family:inherit; }
 .chip-nivel1--tecnologias{ background:#4A6B8C; }
 .chip-nivel1--academicos{ background:#C0151A; }
 .chip-nivel1--bienestar{ background:#B5842A; }
+.chip-nivel1--pqrs{ background:#6B4E8C; }
 .chip-nivel1--otro{ background:#9C8C7E; }
 
 /* ============================== TABLES / DATATABLES OVERRIDES ============================== */
