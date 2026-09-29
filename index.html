@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -51,10 +51,13 @@
       <button class="nav-link active" data-view="resumen">
         <i class="bi bi-grid-1x2"></i><span>Resumen ejecutivo</span>
       </button>
-      <button class="nav-link" data-view="casos">
+      <button class="nav-link" data-view="casos" title="Casos abiertos en la vista">
         <i class="bi bi-folder2-open"></i><span>Casos</span>
         <span class="nav-badge" id="navBadgeCasos">0</span>
+        <i class="bi bi-chevron-down nav-caret" id="navCasosCaret"></i>
       </button>
+      <!-- Submenú de categorías principales (Nivel 1): lo llena app.js -->
+      <div class="nav-sub" id="navCasosSub"></div>
       <button class="nav-link" data-view="tareas">
         <i class="bi bi-list-check"></i><span>Tareas</span>
         <span class="nav-badge" id="navBadgeTareas">0</span>
@@ -124,7 +127,9 @@
       <!-- ============ VISTA: RESUMEN EJECUTIVO ============ -->
       <section class="view active" id="view-resumen" data-view="resumen">
 
-        <div class="kpi-grid" id="kpiExecGrid"></div>
+        <div class="global-filter-bar" id="execFilterBar"></div>
+
+        <div class="kpi-grid" id="kpiExecGrid" style="margin-top:20px"></div>
 
         <div class="grid-2col">
           <div class="panel">
@@ -140,8 +145,8 @@
           </div>
           <div class="panel">
             <div class="panel-header">
-              <h2><i class="bi bi-pie-chart"></i> Distribución por clasificación</h2>
-              <span class="panel-sub">Normal · Riesgo · Crítico · Vencido</span>
+              <h2><i class="bi bi-pie-chart"></i> Cumplimiento de ANS</h2>
+              <span class="panel-sub">A tiempo · Riesgo · Crítico · Vencido</span>
             </div>
             <div class="chart-wrap chart-tall">
               <canvas id="chartExecClasificacion" class="chart-skeleton"></canvas>
@@ -151,13 +156,13 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-bar-chart-steps"></i> Comparativo por categoría (Jerarquía nivel 1)</h2>
-            <span class="panel-sub">Financiero · Tecnologías · Académicos · Bienestar</span>
+            <h2><i class="bi bi-bar-chart-steps"></i> Comparativo por categoría (Nivel 1)</h2>
+            <span class="panel-sub">Vencidos, críticos y riesgo: solo casos abiertos</span>
           </div>
           <div class="table-responsive">
             <table class="table data-table" id="tableComparativo" style="width:100%">
               <thead>
-                <tr><th>Categoría</th><th>Casos</th><th>Vencidos</th><th>Críticos</th><th>Riesgo</th></tr>
+                <tr><th>Categoría</th><th>Casos</th><th>Abiertos</th><th>ANS a tiempo</th><th>Vencidos</th><th>Críticos</th><th>Riesgo</th></tr>
               </thead>
               <tbody></tbody>
             </table>
@@ -166,7 +171,7 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-bricks"></i> Casos por categoría y clasificación</h2>
+            <h2><i class="bi bi-bricks"></i> Cumplimiento de ANS por categoría</h2>
           </div>
           <div class="chart-wrap chart-tall">
             <canvas id="chartComparativoStack" class="chart-skeleton"></canvas>
@@ -188,6 +193,60 @@
         <div class="global-filter-bar" id="casosFilterBar"></div>
 
         <div class="kpi-grid" id="kpiCasosGrid" style="margin-top:20px"></div>
+
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-header">
+            <h2><i class="bi bi-graph-up-arrow"></i> Casos registrados por categoría</h2>
+            <div id="casosTendPeriod"></div>
+          </div>
+          <div class="chart-wrap chart-tall chart-wrap--hscroll">
+            <div class="chart-scroll-inner" id="casosTendInner">
+              <canvas id="chartCasosTendencia" class="chart-skeleton"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-diagram-2"></i> Subcategorías más frecuentes</h2>
+              <span class="panel-sub">Nivel 2 · top 12</span>
+            </div>
+            <div class="chart-wrap chart-tall"><canvas id="chartCasosNivel2" class="chart-skeleton"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-stopwatch"></i> Cumplimiento de ANS</h2>
+              <span class="panel-sub">A tiempo · Riesgo · Crítico · Vencido</span>
+            </div>
+            <div class="chart-wrap chart-tall"><canvas id="chartCasosAns" class="chart-skeleton"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-bar-chart-steps"></i> Cumplimiento de ANS por categoría</h2></div>
+            <div class="chart-wrap chart-tall"><canvas id="chartCasosAnsCat" class="chart-skeleton"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-circle-half"></i> Estado de los casos</h2></div>
+            <div class="chart-wrap chart-tall"><canvas id="chartCasosEstado" class="chart-skeleton"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-person-lines-fill"></i> Responsables con más casos</h2>
+              <span class="panel-sub">top 10</span>
+            </div>
+            <div class="chart-wrap chart-tall"><canvas id="chartCasosResponsables" class="chart-skeleton"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-headset"></i> Canal de registro</h2></div>
+            <div class="chart-wrap chart-tall"><canvas id="chartCasosCanal" class="chart-skeleton"></canvas></div>
+          </div>
+        </div>
 
         <div class="panel">
           <div class="panel-header">
@@ -443,6 +502,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
