@@ -403,12 +403,16 @@
       vencidosPorResponsable: vencidosPorResponsable, vencidosPorCategoria: vencidosPorCategoria, porNivel1: porNivel1 };
   }
 
+  // Una tarea cuenta como completada si su estado es Completada, Aprobado o Atendido.
+  const ESTADOS_TAREA_COMPLETADA = ["Completada", "Aprobado", "Atendido"];
+  function tareaCompletada(t) { return ESTADOS_TAREA_COMPLETADA.indexOf(t.estado) !== -1; }
+
   function computeTareasStats(records) {
     const total = records.length;
     let completadas = 0;
     const porCausa = {}, porLinea = {}, porResponsable = {};
     records.forEach(function (t) {
-      if (t.estado === "Completada") completadas++;
+      if (tareaCompletada(t)) completadas++;
       porCausa[t.causa || "Sin causa"] = (porCausa[t.causa || "Sin causa"] || 0) + 1;
       porLinea[t.linea_atencion || "Sin canal"] = (porLinea[t.linea_atencion || "Sin canal"] || 0) + 1;
       porResponsable[t.responsable || "Sin asignar"] = (porResponsable[t.responsable || "Sin asignar"] || 0) + 1;
@@ -740,13 +744,22 @@
   }
 
   function buildCasosTabsHTML() {
-    const cats = ["Todas"].concat(NIVEL1_CATS);
-    return '<div class="resp-tab-btns" id="casosCatTabs">' + cats.map(function (c) {
+    // Tres controles sincronizados (select, pestañas, tarjetas KPI): todos leen y
+    // escriben _casosActiveCat y re-renderizan, así cambiar uno refleja los otros.
+    const cats = ["Todas"].concat(NIVEL1_CATS, [NIVEL1_OTROS]);
+    const selectHTML = '<select class="form-select form-select-sm casos-cat-select" id="casosCatSelect" aria-label="Categoría">' +
+      cats.map(function (c) {
+        const val = c === "Todas" ? "" : c;
+        return '<option value="' + esc(val) + '"' + ((_casosActiveCat || "") === val ? " selected" : "") + '>' + esc(c) + '</option>';
+      }).join("") + '</select>';
+    return '<div class="casos-cat-nav">' + selectHTML + '<div class="resp-tab-btns" id="casosCatTabs">' + cats.map(function (c) {
       const active = (c === "Todas" && !_casosActiveCat) || c === _casosActiveCat ? " is-active" : "";
       return '<button class="resp-tab-btn' + active + '" data-cat="' + esc(c === "Todas" ? "" : c) + '">' + esc(c) + '</button>';
-    }).join("") + '</div>';
+    }).join("") + '</div></div>';
   }
   function wireCasosTabs() {
+    const sel = document.getElementById("casosCatSelect");
+    if (sel) sel.addEventListener("change", function () { _casosActiveCat = this.value || null; renderAll(); });
     const tabsEl = document.getElementById("casosCatTabs"); if (!tabsEl) return;
     tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -867,7 +880,7 @@
     const tbody = document.querySelector(selT + " tbody");
     if (tbody) {
       tbody.innerHTML = STATE.tareas.slice().sort(function (a, b) { return (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""); }).map(function (t) {
-        const rowClass = t.estado === "Completada" ? "" : "row--critico";
+        const rowClass = tareaCompletada(t) ? "" : "row--critico";
         return ('<tr class="' + rowClass + '"><td>' + esc(t.tarea_id) + '</td><td>' + esc(t.fecha_creacion) + '</td><td>' + esc(t.asunto) + '</td><td>' + esc(t.estado) + '</td>' +
           '<td>' + esc(t.tipo_servicio) + '</td><td>' + esc(t.linea_atencion) + '</td><td>' + esc(t.causa) + '</td><td>' + esc(t.criterios) + '</td><td>' + esc(t.responsable) + '</td></tr>');
       }).join("");
@@ -946,7 +959,7 @@
       }
       const d = ensure(nombre);
       d.totalTareas++;
-      if (t.estado !== "Completada") d.tareasPendientes++;
+      if (!tareaCompletada(t)) d.tareasPendientes++;
     });
     Object.keys(byResp).forEach(function (k) {
       const d = byResp[k];
