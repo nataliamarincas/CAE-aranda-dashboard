@@ -363,6 +363,7 @@
   /* ====================== APLICAR FILTROS ====================== */
 
   function applyCasosFilter() {
+    STATE.conteoCats = {};
     STATE.casos = STATE.rawCasos.filter(function (r) {
       const n1 = nivel1Effective(r);
       if (CASOS_FILTER.nivel1.length && CASOS_FILTER.nivel1.indexOf(n1) === -1) return false;
@@ -382,6 +383,8 @@
       }
       if (CASOS_FILTER.fechaDesde && (r.fecha_registro || "") < CASOS_FILTER.fechaDesde) return false;
       if (CASOS_FILTER.fechaHasta && (r.fecha_registro || "") > CASOS_FILTER.fechaHasta) return false;
+      // Conteo por categoría para el submenú (con los filtros, sin la categoría activa).
+      STATE.conteoCats[n1] = (STATE.conteoCats[n1] || 0) + 1;
       if (_casosActiveCat && n1 !== _casosActiveCat) return false;
       return true;
     });
@@ -516,26 +519,38 @@
 
   /* ========================= CARGA DE DATOS ========================= */
 
+  // cache "no-cache": el navegador siempre pregunta al servidor, pero si el archivo
+  // no cambió recibe un 304 y no vuelve a descargar los ~10 MB de casos.
+  // 'generado_en' (lo pone el pipeline) indica si hay datos nuevos que dibujar.
   function loadCasos() {
-    const url = CONFIG.casosSource + "?_=" + Date.now();
-    return fetch(url, { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (json) { STATE.rawCasos = (json && Array.isArray(json.casos)) ? json.casos : []; STATE.errorCasos = null; })
+    return fetch(CONFIG.casosSource, { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        const gen = json && json.generado_en;
+        if (!gen || gen !== STATE.genCasos) { STATE.rawCasos = (json && Array.isArray(json.casos)) ? json.casos : []; STATE.genCasos = gen; STATE.datosCambiaron = true; }
+        STATE.errorCasos = null;
+      })
       .catch(function (err) { STATE.errorCasos = "Origen no disponible (" + err.message + ")"; if (!STATE.rawCasos.length) STATE.rawCasos = []; });
   }
   function loadTareas() {
-    const url = CONFIG.tareasSource + "?_=" + Date.now();
-    return fetch(url, { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (json) { STATE.rawTareas = (json && Array.isArray(json.tareas)) ? json.tareas : []; STATE.errorTareas = null; })
+    return fetch(CONFIG.tareasSource, { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        const gen = json && json.generado_en;
+        if (!gen || gen !== STATE.genTareas) { STATE.rawTareas = (json && Array.isArray(json.tareas)) ? json.tareas : []; STATE.genTareas = gen; STATE.datosCambiaron = true; }
+        STATE.errorTareas = null;
+      })
       .catch(function (err) { STATE.errorTareas = "Origen no disponible (" + err.message + ")"; if (!STATE.rawTareas.length) STATE.rawTareas = []; });
   }
   function loadAllData(isManual) {
     setSyncStatus("syncing");
+    STATE.datosCambiaron = false;
     return Promise.all([loadCasos(), loadTareas()]).then(function () {
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
       const allError = !!(STATE.errorCasos && STATE.errorTareas);
       setSyncStatus(allError ? "error" : (hasError ? "partial" : "ok"));
       renderErrorBanners();
+      // Sin datos nuevos no hay nada que redibujar (evita congelar la página cada 5 min).
+      if (STATE.firstLoadDone && !STATE.datosCambiaron) return;
       if (!STATE.firstLoadDone) { initEstadoFilterCasos(); initEstadoFilterTareas(); }
       populateCasosFilterBar(); populateTareasFilterBar(); populateExecFilterBar();
       renderAll();
@@ -594,6 +609,7 @@
     document.querySelectorAll(".view[data-view]").forEach(function (sec) { sec.classList.toggle("active", sec.getAttribute("data-view") === key); });
     _vistaActual = key;
     updateViewTitle();
+    renderVista(key);
     document.body.classList.remove("sidebar-is-open");
     const sidebar = document.getElementById("sidebar"), overlay = document.getElementById("sidebarOverlay");
     if (sidebar) sidebar.classList.remove("is-open"); if (overlay) overlay.classList.remove("is-open");
@@ -632,32 +648,47 @@
 
   /* ============================ RENDERIZADO ============================ */
 
+  // Qué dibuja cada vista. Solo se dibuja la vista visible; las demás quedan
+  // pendientes y se dibujan al entrar (switchView). Así un cambio de filtro no
+  // redibuja tablas y gráficos ocultos, y los gráficos nunca se crean en 0×0.
+  const VIEW_RENDERERS = {
+    resumen: [["Resumen ejecutivo", renderExecutive]],
+    casos: [["Casos", renderCasosView]],
+    tareas: [["Tareas", renderTareasView]],
+    gestion: [["Atención Prioritaria", renderAttention], ["Responsables", renderResponsables], ["Grupos", renderGrupos]]
+  };
+  let _vistasPendientes = {};
+
   function renderAll() {
     applyCasosFilter(); applyTareasFilter();
     STATE.statsCasos = computeCasosStats(STATE.casos);
     STATE.statsTareas = computeTareasStats(STATE.tareas);
-    STATE.statsAtencion = computeCasosStats(STATE.rawCasos);
-    STATE.execCasos = filtrarCasosExec(); STATE.execTareas = filtrarTareasExec();
-    STATE.statsExec = computeCasosStats(STATE.execCasos);
-    STATE.statsExecTareas = computeTareasStats(STATE.execTareas);
     updateLastUpdatedUI();
     updateSidebarBadges();
     renderNavCasosSub();
+    STATE.errorRender = [];
+    Object.keys(VIEW_RENDERERS).forEach(function (k) { _vistasPendientes[k] = true; });
+    renderVista(_vistaActual);
+  }
+
+  function renderVista(key) {
+    if (!_vistasPendientes[key]) return;
+    delete _vistasPendientes[key];
     // Cada sección en su propio try/catch: si una falla (p.ej. falta Chart.js o
     // DataTables), las demás igual se dibujan.
-    STATE.errorRender = [];
-    [["Resumen ejecutivo", renderExecutive], ["Atención Prioritaria", renderAttention],
-     ["Casos", renderCasosView], ["Tareas", renderTareasView],
-     ["Responsables", renderResponsables], ["Grupos", renderGrupos]
-    ].forEach(function (sec) {
-      try { sec[1](); } catch (e) { console.error("[renderAll] " + sec[0] + ":", e); STATE.errorRender.push(sec[0] + " (" + e.message + ")"); }
+    (VIEW_RENDERERS[key] || []).forEach(function (sec) {
+      try { sec[1](); } catch (e) { console.error("[render] " + sec[0] + ":", e); STATE.errorRender.push(sec[0] + " (" + e.message + ")"); }
     });
     renderErrorBanners();
   }
 
   function updateSidebarBadges() {
     const navAtencion = document.getElementById("navBadgeAtencion");
-    if (navAtencion) navAtencion.textContent = STATE.statsAtencion.vencidos + STATE.statsAtencion.criticos;
+    // Vencidos + críticos: solo pueden ser casos abiertos, así que basta con recorrer esos.
+    if (navAtencion) navAtencion.textContent = STATE.rawCasos.filter(function (r) {
+      if (!esAbierto(r)) return false;
+      const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico";
+    }).length;
     const navCasos = document.getElementById("navBadgeCasos");
     if (navCasos) navCasos.textContent = STATE.statsCasos.abiertos;
     const navTareas = document.getElementById("navBadgeTareas");
@@ -699,6 +730,9 @@
   }
 
   function renderExecutive() {
+    STATE.execCasos = filtrarCasosExec(); STATE.execTareas = filtrarTareasExec();
+    STATE.statsExec = computeCasosStats(STATE.execCasos);
+    STATE.statsExecTareas = computeTareasStats(STATE.execTareas);
     const s = STATE.statsExec, st = STATE.statsExecTareas;
     const grid = document.getElementById("kpiExecGrid");
     if (grid) {
@@ -777,7 +811,7 @@
 
   // Atención Prioritaria mira todos los casos: no depende de los filtros de Casos.
   function renderAttention() {
-    const s = STATE.statsAtencion;
+    const s = STATE.statsAtencion = computeCasosStats(STATE.rawCasos);
     const grid = document.getElementById("kpiAttentionGrid");
     if (grid) {
       grid.innerHTML =
@@ -871,12 +905,8 @@
 
   function renderNavCasosSub() {
     const sub = document.getElementById("navCasosSub"); if (!sub) return;
-    // Conteo por categoría con los filtros de Casos pero sin la categoría activa.
-    const counts = {};
-    const prev = _casosActiveCat; _casosActiveCat = null;
-    applyCasosFilter();
-    STATE.casos.forEach(function (r) { const n1 = nivel1Effective(r); counts[n1] = (counts[n1] || 0) + 1; });
-    _casosActiveCat = prev; applyCasosFilter();
+    // Conteo por categoría con los filtros de Casos pero sin la categoría activa (lo arma applyCasosFilter).
+    const counts = STATE.conteoCats || {};
     const items = [["", "Todas", "bi-collection"]].concat(catsPresentes().map(function (c) { return [c, c, NIVEL1_ICON[c] || "bi-folder"]; }));
     sub.innerHTML = items.map(function (it) {
       const active = (_casosActiveCat || "") === it[0] ? " active" : "";
@@ -927,22 +957,30 @@
     }
     renderCasosCharts(s, cats);
 
+    // Tabla alimentada con datos (no con HTML): con deferRender solo se crean las
+    // filas de la página visible, y al filtrar se reemplazan los datos sin reconstruirla.
     const selAll = "#tableCasosAll";
-    if (dtRegistry[selAll]) { try { dtRegistry[selAll].destroy(); } catch (e) {} delete dtRegistry[selAll]; }
-    const tbody = document.querySelector(selAll + " tbody");
-    if (tbody) {
-      tbody.innerHTML = STATE.casos.map(function (r) {
-        const cls = effectiveClass(r); const rowClass = cls === "Vencido" ? "row--vencido" : (cls === "Critico" ? "row--critico" : "");
-        const prog = effectiveProgreso(r);
-        return ('<tr class="' + rowClass + '">' +
-          '<td>' + esc(r.caso) + '</td>' + '<td>' + esc(r.fecha_registro) + '</td>' + '<td>' + esc(r.estado) + '</td>' +
-          '<td>' + nivel1ChipHTML(nivel1Effective(r)) + '</td>' + '<td>' + esc(r.nivel2) + '</td>' +
-          '<td>' + esc(r.autor) + '</td>' + '<td>' + esc(r.responsable) + '</td>' + '<td>' + esc(r.grupo_responsable) + '</td>' +
-          '<td>' + esc(r.tipo_registro) + '</td>' + '<td>' + esc(r.fecha_modificacion) + '</td>' +
-          '<td data-order="' + prog + '">' + progressCellHTML(prog, cls) + '</td></tr>');
-      }).join("");
+    if (dtRegistry[selAll]) {
+      dtRegistry[selAll].clear().rows.add(STATE.casos).draw();
+    } else {
+      const txt = function (d) { return esc(d); };
+      dtRegistry[selAll] = $(selAll).DataTable({
+        language: DT_LANG_ES, data: STATE.casos, deferRender: true,
+        columns: [
+          { data: "caso", render: txt }, { data: "fecha_registro", render: txt }, { data: "estado", render: txt },
+          { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
+          { data: "nivel2", render: txt }, { data: "autor", render: txt }, { data: "responsable", render: txt },
+          { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt }, { data: "fecha_modificacion", render: txt },
+          { data: null, render: function (d, type, r) { const p = effectiveProgreso(r); return type === "display" ? progressCellHTML(p, effectiveClass(r)) : p; } }
+        ],
+        columnDefs: [{ targets: "_all", defaultContent: "" }],
+        createdRow: function (row, r) {
+          const cls = effectiveClass(r);
+          if (cls === "Vencido") row.classList.add("row--vencido"); else if (cls === "Critico") row.classList.add("row--critico");
+        },
+        paging: true, pageLength: 15, order: [[10, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
+      });
     }
-    dtRegistry[selAll] = $(selAll).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[10, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
   }
 
   function renderCasosCharts(s, cats) {
@@ -1087,16 +1125,21 @@
         if (r.tiempo_transcurrido_dias != null) d.tiemposSol.push(r.tiempo_transcurrido_dias);
       }
     });
+    // Hay pocos responsables distintos en Tareas: se cruza cada nombre una sola vez.
+    const cruce = {};
     STATE.rawTareas.forEach(function (t) {
       const f = t.fecha_creacion || "";
       if (RESP_FILTER.fechaDesde && f < RESP_FILTER.fechaDesde) return;
       if (RESP_FILTER.fechaHasta && f > RESP_FILTER.fechaHasta) return;
-      let nombre = null;
-      Object.keys(byResp).forEach(function (k) { if (namesMatch(t.responsable, k)) nombre = k; });
-      if (!nombre) {
-        if (RESP_FILTER.responsable.length && !RESP_FILTER.responsable.some(function (r) { return namesMatch(t.responsable, r); })) return;
-        nombre = t.responsable || "Sin asignar";
+      const clave = t.responsable || "";
+      if (!(clave in cruce)) {
+        let match = null;
+        Object.keys(byResp).forEach(function (k) { if (namesMatch(t.responsable, k)) match = k; });
+        if (!match && RESP_FILTER.responsable.length && !RESP_FILTER.responsable.some(function (r) { return namesMatch(t.responsable, r); })) match = false;
+        cruce[clave] = match === null ? (t.responsable || "Sin asignar") : match;
       }
+      const nombre = cruce[clave];
+      if (nombre === false) return;
       const d = ensure(nombre);
       d.totalTareas++;
       if (!tareaCompletada(t)) d.tareasPendientes++;
