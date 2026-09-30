@@ -78,15 +78,15 @@
     lastUpdated: null, firstLoadDone: false
   };
 
-  // Filtro de autor de Casos: por defecto, los casos que crearon estos gestores de
-  // CAE (pedido de Natalia, 2026-09-30). Los demás autores se agrupan en "Otros autores".
+  // Filtro de autor de Casos: solo ofrece estos gestores de CAE (pedido de Natalia,
+  // 2026-09-30). Sin selección no filtra; al elegir nombres, muestra solo sus casos.
   const AUTORES_GESTORES = ["Miguel Angel Chavarro Chamorro", "Yuddy Suleima Rayo Arias", "Duvan Andrey Silva Morales",
     "Oscar Eduardo Cucuname Otero", "Harold Vanegas Muñoz"];
   const AUTOR_OTROS = "Otros autores";
   // Clasificación del caso: abiertos según Progreso; los cerrados aparte.
   const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Cerrado"];
   const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [],
-    clasificacion: [], autor: AUTORES_GESTORES.slice(), fechaDesde: "", fechaHasta: "" };
+    clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
   const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
   const GRUPO_FILTER = { grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
@@ -966,7 +966,7 @@
       { key: "nivel2", label: "Subcategoría", icon: "bi-diagram-2", field: "nivel2" },
       { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", field: "categoria" },
       { key: "clasificacion", label: "Clasificación", icon: "bi-exclamation-triangle", opts: CLASIFICACIONES },
-      { key: "autor", label: "Autor", icon: "bi-person-plus", opts: AUTORES_GESTORES.concat([AUTOR_OTROS]) },
+      { key: "autor", label: "Autor", icon: "bi-person-plus", opts: AUTORES_GESTORES },
       { key: "grupo", label: "Grupo", icon: "bi-building", field: "grupo_responsable" },
       { key: "responsable", label: "Responsable", icon: "bi-person", field: "responsable" },
       { key: "estado", label: "Estado", icon: "bi-circle-half", field: "estado" },
@@ -984,12 +984,11 @@
       '<button class="gfb-clear" id="casosFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
     wireFilterBar("casosFilterBar", "casosFilterDrops", CASOS_FILTER, function () { renderAll(); }, ["casosFechaDesde", "casosFechaHasta"]);
     const clearBtn = document.getElementById("casosFilterClear");
-    // "Limpiar" vuelve a los filtros por defecto pero se queda en la categoría actual.
+    // "Limpiar" deja los filtros en blanco pero se queda en la categoría actual.
     if (clearBtn) clearBtn.addEventListener("click", function () { resetCasosFilter(); populateCasosFilterBar(); renderAll(); });
   }
   function resetCasosFilter() {
     Object.keys(CASOS_FILTER).forEach(function (k) { CASOS_FILTER[k] = Array.isArray(CASOS_FILTER[k]) ? [] : ""; });
-    CASOS_FILTER.autor = AUTORES_GESTORES.slice();  // por defecto: casos creados por los gestores de CAE
   }
 
   // Único punto para cambiar la categoría activa de Casos (submenú del sidebar y
