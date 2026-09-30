@@ -83,8 +83,10 @@
   const AUTORES_GESTORES = ["Miguel Angel Chavarro Chamorro", "Yuddy Suleima Rayo Arias", "Duvan Andrey Silva Morales",
     "Oscar Eduardo Cucuname Otero", "Harold Vanegas Muñoz"];
   const AUTOR_OTROS = "Otros autores";
-  // Clasificación del caso: abiertos según Progreso; los cerrados aparte.
-  const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Cerrado"];
+  // Clasificación del caso = resultado de ANS, para abiertos y cerrados (ver ansResultado:
+  // histórico = TIEMPO RESPUESTA del archivo; nuevo = según Progreso). Abierto/cerrado es
+  // otra cosa: el filtro "Condición".
+  const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo"];
   const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [],
     clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
@@ -293,7 +295,7 @@
   }
   function esAbierto(r) { return ESTADOS_CERRADOS.indexOf(r.estado) === -1; }
   const CLASIF_LABEL = { Vencido: "Vencido", Critico: "Crítico", Riesgo: "En riesgo", Normal: "A tiempo" };
-  function clasificacionCaso(r) { return esAbierto(r) ? CLASIF_LABEL[classify(effectiveProgreso(r))] : "Cerrado"; }
+  function clasificacionCaso(r) { return CLASIF_LABEL[ansResultado(r)]; }
   const CLASIF_PILL = { "Vencido": "vencido", "Crítico": "critico", "En riesgo": "riesgo", "A tiempo": "normal" };
   function clasificacionPillHTML(c) {
     return CLASIF_PILL[c] ? '<span class="status-pill status-pill--' + CLASIF_PILL[c] + '">' + esc(c) + '</span>' : '<span class="area-chip">' + esc(c) + '</span>';
