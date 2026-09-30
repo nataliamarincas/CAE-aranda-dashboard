@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
 
@@ -342,7 +342,7 @@
             <i class="bi bi-exclamation-octagon-fill"></i>
             <div>
               <h2>Atención Prioritaria</h2>
-              <p>Casos abiertos críticos y vencidos, de todas las categorías</p>
+              <p>Solo casos <strong>abiertos</strong> vencidos o críticos, de todas las categorías. Los cerrados fuera del ANS están en Responsables y Grupos (Vencidos cerrados) y en Casos (Clasificación Vencido + Condición Cerrados).</p>
             </div>
           </div>
         </div>
@@ -401,8 +401,8 @@
             <table class="table data-table" id="tableGrupos" style="width:100%">
               <thead>
                 <tr>
-                  <th>Grupo</th><th>Total casos</th><th>Vencidos</th><th>Críticos</th><th>Riesgo</th>
-                  <th>% Vencidos</th><th>Tiempo promedio</th><th>Responsables</th>
+                  <th>Grupo</th><th>Total casos</th><th>Abiertos</th><th>Vencidos abiertos</th><th>Críticos abiertos</th>
+                  <th>Vencidos cerrados</th><th>% fuera de ANS</th><th>Tiempo promedio</th><th>Responsables</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -412,7 +412,8 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-bar-chart-steps"></i> Top 10 grupos por volumen y clasificación</h2>
+            <h2><i class="bi bi-bar-chart-steps"></i> Cumplimiento de ANS de los 10 grupos con más casos</h2>
+            <span class="panel-sub">Todos los casos, abiertos y cerrados</span>
           </div>
           <div class="chart-wrap chart-tall">
             <canvas id="chartGruposStack" class="chart-skeleton"></canvas>
@@ -436,7 +437,7 @@
           <table class="table data-table resp-resumen-table" id="tableRespResumen" style="width:100%">
             <thead>
               <tr>
-                <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos activos</th><th>Críticos activos</th><th>Vencidos cerrados</th>
+                <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>Vencidos cerrados</th>
                 <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
               </tr>
             </thead>
@@ -510,6 +511,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

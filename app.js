@@ -1406,8 +1406,8 @@
       const tiempoStr = d.avgTiempoSol !== null ? (+(d.avgTiempoSol * 24).toFixed(1)) + " h" : "—";
       kpiGrid.innerHTML =
         kpi("Casos abiertos", d.abiertos, "info", "bi-folder2-open", "En Espera · En Proceso · Registrado") +
-        kpi("Vencidos activos", d.vencidosActivos, "vencido", "bi-x-octagon", "") +
-        kpi("Críticos activos", d.criticosActivos, "critico", "bi-exclamation-triangle", "") +
+        kpi("Vencidos abiertos", d.vencidosActivos, "vencido", "bi-x-octagon", "") +
+        kpi("Críticos abiertos", d.criticosActivos, "critico", "bi-exclamation-triangle", "") +
         kpi("Vencidos cerrados", d.vencidosCerrados, "vencido", "bi-archive", pct(d.vencidosCerrados, d.solucionados) + "% de sus cerrados") +
         kpi("% Resolución", d.tasaResolucion + "%", "sla", "bi-graph-up", d.solucionados + " solucionados") +
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
@@ -1464,19 +1464,26 @@
     const byGrupo = {};
     filtered.forEach(function (r) {
       const g = r.grupo_responsable || "Sin grupo";
-      if (!byGrupo[g]) byGrupo[g] = { grupo: g, total: 0, vencidos: 0, criticos: 0, riesgo: 0, normal: 0, sumTiempo: 0, solucionados: 0, responsables: {} };
+      if (!byGrupo[g]) byGrupo[g] = { grupo: g, total: 0, abiertos: 0, vencidosAbiertos: 0, criticosAbiertos: 0, vencidosCerrados: 0,
+        ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 }, sumTiempo: 0, responsables: {} };
       const d = byGrupo[g];
       d.total++;
       d.sumTiempo += (r.tiempo_transcurrido_dias || 0);
-      if (r.estado === "Solucionado") d.solucionados++;
       d.responsables[r.responsable || "Sin asignar"] = true;
-      const cls = effectiveClass(r);
-      if (cls === "Vencido") d.vencidos++; else if (cls === "Critico") d.criticos++; else if (cls === "Riesgo") d.riesgo++; else d.normal++;
+      // Igual que en Responsables: vencidos abiertos (según Progreso actual) y
+      // vencidos cerrados (cerrados cuyo resultado de ANS fue Vencido).
+      const res = ansResultado(r);
+      d.ans[res]++;
+      if (esAbierto(r)) {
+        d.abiertos++;
+        const cls = effectiveClass(r);
+        if (cls === "Vencido") d.vencidosAbiertos++; else if (cls === "Critico") d.criticosAbiertos++;
+      } else if (res === "Vencido") d.vencidosCerrados++;
     });
     Object.keys(byGrupo).forEach(function (g) {
       const d = byGrupo[g];
       d.avgTiempo = d.total ? +(d.sumTiempo / d.total).toFixed(1) : 0;
-      d.pctVencidos = pct(d.vencidos, d.total);
+      d.pctVencidos = pct(d.ans.Vencido, d.total);  // % de todos sus casos que quedó fuera del ANS
       d.nResponsables = Object.keys(d.responsables).length;
     });
     return byGrupo;
@@ -1511,10 +1518,12 @@
 
     const kpiGrid = document.getElementById("kpiGruposGrid");
     if (kpiGrid) {
-      const topVencidos = grupos.reduce(function (m, g) { return g.vencidos > m.vencidos ? g : m; }, { grupo: "—", vencidos: 0 });
+      const top = function (campo) { return grupos.reduce(function (m, g) { return g[campo] > m[campo] ? g : m; }, { grupo: "—", vencidosAbiertos: 0, vencidosCerrados: 0 }); };
+      const topAb = top("vencidosAbiertos"), topCe = top("vencidosCerrados");
       kpiGrid.innerHTML =
         kpi("Grupos en la vista", grupos.length, "info", "bi-building", "según filtros aplicados") +
-        kpi("Grupo con más vencidos", topVencidos.grupo, "vencido", "bi-x-octagon", topVencidos.vencidos + " vencidos") +
+        kpi("Más vencidos abiertos", topAb.grupo, "vencido", "bi-x-octagon", topAb.vencidosAbiertos + " vencidos abiertos") +
+        kpi("Más vencidos cerrados", topCe.grupo, "vencido", "bi-archive", topCe.vencidosCerrados + " cerrados fuera del ANS") +
         kpi("Total de casos", grupos.reduce(function (s, g) { return s + g.total; }, 0), "info", "bi-collection", "en los grupos filtrados");
     }
 
@@ -1523,24 +1532,25 @@
     const tbody = document.querySelector(selG + " tbody");
     if (tbody) {
       tbody.innerHTML = grupos.map(function (g) {
-        const rowCls = g.vencidos > 0 ? "row--vencido" : (g.criticos > 0 ? "row--critico" : "");
+        const rowCls = g.vencidosAbiertos > 0 ? "row--vencido" : (g.criticosAbiertos > 0 ? "row--critico" : "");
         return ('<tr class="' + rowCls + '">' +
           '<td><strong>' + esc(g.grupo) + '</strong></td>' +
-          '<td data-order="' + g.total + '">' + g.total + '</td>' +
-          '<td data-order="' + g.vencidos + '">' + g.vencidos + '</td>' +
-          '<td data-order="' + g.criticos + '">' + g.criticos + '</td>' +
-          '<td data-order="' + g.riesgo + '">' + g.riesgo + '</td>' +
+          '<td data-order="' + g.total + '">' + g.total.toLocaleString("es-CO") + '</td>' +
+          '<td data-order="' + g.abiertos + '">' + g.abiertos + '</td>' +
+          '<td data-order="' + g.vencidosAbiertos + '">' + g.vencidosAbiertos + '</td>' +
+          '<td data-order="' + g.criticosAbiertos + '">' + g.criticosAbiertos + '</td>' +
+          '<td data-order="' + g.vencidosCerrados + '">' + g.vencidosCerrados + '</td>' +
           '<td data-order="' + g.pctVencidos + '">' + g.pctVencidos + '%</td>' +
           '<td data-order="' + g.avgTiempo + '">' + g.avgTiempo + ' días</td>' +
           '<td data-order="' + g.nResponsables + '">' + g.nResponsables + '</td></tr>');
       }).join("");
     }
-    dtRegistry[selG] = $(selG).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[2, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
+    dtRegistry[selG] = $(selG).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
 
+    // Resultado de ANS de todos los casos (abiertos y cerrados) de los 10 grupos con más casos.
     const top10 = grupos.slice(0, 10);
     const datasets = ["Normal", "Riesgo", "Critico", "Vencido"].map(function (cls) {
-      return { label: STATUS_LABELS[cls], backgroundColor: STATUS_COLORS[cls],
-        data: top10.map(function (g) { return cls === "Normal" ? g.normal : (cls === "Riesgo" ? g.riesgo : (cls === "Critico" ? g.criticos : g.vencidos)); }) };
+      return { label: ANS_LABELS[cls], backgroundColor: ANS_COLORS[cls], data: top10.map(function (g) { return g.ans[cls]; }) };
     });
     renderChart("chartGruposStack", "bar", { labels: top10.map(function (g) { return g.grupo; }), datasets: datasets }, stackedBarOpts());
   }
