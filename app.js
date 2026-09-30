@@ -1072,7 +1072,14 @@
       dtRegistry[selAll] = $(selAll).DataTable({
         language: DT_LANG_ES, data: STATE.casos, deferRender: true,
         columns: [
-          { data: "caso", render: txt }, { data: "fecha_registro", render: txt }, { data: "estado", render: txt },
+          // No. de caso + número anterior (proyecto y número del sistema viejo): el número
+          // solo se repite entre proyectos (CAE 3483 y PQRS 3483 son casos distintos).
+          { data: null, render: function (d, type, r) {
+            if (!r.caso_anterior) return esc(r.caso);
+            return type === "display" ? esc(r.caso) + '<span class="progress-text"> · ant. ' + esc(r.caso_anterior) + '</span>'
+              : r.caso + " " + r.caso_anterior;
+          } },
+          { data: "fecha_registro", render: txt }, { data: "estado", render: txt },
           { data: null, render: function (d, type, r) {
             const c = clasificacionCaso(r);
             if (type === "display") return clasificacionPillHTML(c);
@@ -1082,14 +1089,17 @@
           { data: "nivel2", render: txt }, { data: "autor", render: txt }, { data: "responsable", render: txt },
           { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt },
           { data: "fecha_estimada_solucion", render: txt }, { data: "fecha_modificacion", render: txt },
-          { data: null, render: function (d, type, r) { const p = effectiveProgreso(r); return type === "display" ? progressCellHTML(p, effectiveClass(r)) : p; } }
+          { data: null, render: function (d, type, r) { const p = effectiveProgreso(r); return type === "display" ? progressCellHTML(p, effectiveClass(r)) : p; } },
+          // Columna oculta para el orden inicial: abiertos primero (si no, quedan al
+          // final porque los cerrados del histórico tienen progresos de miles de %).
+          { data: null, visible: false, searchable: false, render: function (d, type, r) { return esAbierto(r) ? 1 : 0; } }
         ],
         columnDefs: [{ targets: "_all", defaultContent: "" }],
         createdRow: function (row, r) {
           const cls = effectiveClass(r);
           if (cls === "Vencido") row.classList.add("row--vencido"); else if (cls === "Critico") row.classList.add("row--critico");
         },
-        paging: true, pageLength: 15, order: [[12, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
+        paging: true, pageLength: 15, order: [[13, "desc"], [12, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
       });
     }
   }
