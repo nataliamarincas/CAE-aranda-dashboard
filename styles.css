@@ -173,6 +173,8 @@ button{ font-family:inherit; }
 
 /* ============================== PANELS / LAYOUT GRIDS ============================== */
 .grid-2col{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+/* min-width:0 evita que un gráfico ancho (tendencia por días) estire la columna en vez de desplazarse. */
+.grid-2col > *, .grid-3col > *{ min-width:0; }
 .grid-3col{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:18px; }
 
 .panel{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px 20px; box-shadow:var(--shadow-card); margin-bottom:0; }

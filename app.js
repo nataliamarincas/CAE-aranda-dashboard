@@ -21,12 +21,11 @@
    - Tareas es una fuente independiente (sin Progreso/SLA), con sus propios
      filtros y KPIs, y se cruza con Responsables por nombre (namesMatch).
 
-   PROGRESO — escala sin confirmar oficialmente (ver notas del pipeline):
-   - Histórico: 'progreso_raw' ya viene en la escala de "% sobre ANS" (puede
-     superar 100).
-   - Nuevo Aranda: 'progreso_raw' llega como fracción pequeña (0–70 aprox.) —
-     se multiplica ×100 para llevarlo a la misma escala. Es una inferencia
-     confirmada solo con una muestra de 50 casos; revisar con más volumen.
+   PROGRESO — "% del ANS consumido" (puede superar 100) en ambas fuentes.
+     Verificado el 2026-09-30 con 524 casos del Aranda nuevo: progreso ≈
+     horas transcurridas / horas de ANS × 100 (RQ-2187: 9,5 h de 160 h = 5,94).
+     Antes se multiplicaba ×100 (inferido de 50 casos recién creados, con
+     valores pequeños) y eso marcaba como vencidos casos que no lo estaban.
    ============================================================================= */
 
 (function () {
@@ -79,9 +78,17 @@
     lastUpdated: null, firstLoadDone: false
   };
 
-  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], fechaDesde: "", fechaHasta: "" };
+  // Filtro de autor de Casos: por defecto, los casos que crearon estos gestores de
+  // CAE (pedido de Natalia, 2026-09-30). Los demás autores se agrupan en "Otros autores".
+  const AUTORES_GESTORES = ["Miguel Angel Chavarro Chamorro", "Yuddy Suleima Rayo Arias", "Duvan Andrey Silva Morales",
+    "Oscar Eduardo Cucuname Otero", "Harold Vanegas Muñoz"];
+  const AUTOR_OTROS = "Otros autores";
+  // Clasificación del caso: abiertos según Progreso; los cerrados aparte.
+  const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Cerrado"];
+  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [],
+    clasificacion: [], autor: AUTORES_GESTORES.slice(), fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
-  const RESP_FILTER = { responsable: [], grupo: [], fechaDesde: "", fechaHasta: "" };
+  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
   const GRUPO_FILTER = { grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
   // Resumen ejecutivo: filtros propios (independientes de la pestaña Casos).
   // Las fechas también recortan las Tareas.
@@ -151,72 +158,86 @@
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
+  function isoDe(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  const DIA_MS = 86400000;
+  function diasEntre(fromISO, fechaISO) { return Math.round((new Date(fechaISO + "T00:00:00") - new Date(fromISO + "T00:00:00")) / DIA_MS); }
+
+  // Los tres agrupadores calculan el índice del bucket directamente (sin recorrer
+  // los buckets por registro): con vista diaria de un año son cientos de puntos.
   function getDailyCountsRange(records, fromISO, toISO, dateField) {
-    const from = new Date(fromISO + "T00:00:00"), to = new Date(toISO + "T00:00:00");
-    const buckets = []; const cur = new Date(from);
+    const buckets = [], idx = {}; const cur = new Date(fromISO + "T00:00:00"), to = new Date(toISO + "T00:00:00");
     while (cur <= to) {
-      const y = cur.getFullYear(), m = String(cur.getMonth() + 1).padStart(2, "0"), d = String(cur.getDate()).padStart(2, "0");
-      buckets.push({ dateStr: y + "-" + m + "-" + d, label: cur.toLocaleDateString("es-CO", { day: "2-digit", month: "short" }), count: 0 });
+      const iso = isoDe(cur); idx[iso] = buckets.length;
+      buckets.push({ dateStr: iso, label: cur.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "2-digit" }), count: 0 });
       cur.setDate(cur.getDate() + 1);
     }
-    records.forEach(function (r) {
-      const fr = r[dateField]; if (!fr) return;
-      for (let i = 0; i < buckets.length; i++) { if (fr === buckets[i].dateStr) { buckets[i].count++; break; } }
-    });
+    records.forEach(function (r) { const i = idx[r[dateField]]; if (i !== undefined) buckets[i].count++; });
     return buckets;
   }
   function getWeeklyCountsRange(records, fromISO, toISO, dateField) {
-    const from = new Date(fromISO + "T00:00:00"), to = new Date(toISO + "T00:00:00");
-    const buckets = []; const cur = new Date(from);
-    while (cur <= to) {
-      const wEnd = new Date(cur); wEnd.setDate(cur.getDate() + 6);
-      buckets.push({ start: new Date(cur), end: wEnd > to ? new Date(to) : new Date(wEnd), label: weekLabel(cur), count: 0 });
-      cur.setDate(cur.getDate() + 7);
-    }
+    const buckets = []; const cur = new Date(fromISO + "T00:00:00"), to = new Date(toISO + "T00:00:00");
+    while (cur <= to) { buckets.push({ label: weekLabel(cur), count: 0 }); cur.setDate(cur.getDate() + 7); }
     records.forEach(function (r) {
-      const fr = r[dateField]; if (!fr) return;
-      const d = new Date(fr + "T00:00:00");
-      for (let i = 0; i < buckets.length; i++) { if (d >= buckets[i].start && d <= buckets[i].end) { buckets[i].count++; break; } }
+      const fr = r[dateField]; if (!fr || fr < fromISO || fr > toISO) return;
+      const i = Math.floor(diasEntre(fromISO, fr) / 7); if (buckets[i]) buckets[i].count++;
     });
     return buckets;
   }
   function getMonthlyCountsRange(records, fromISO, toISO, dateField) {
-    const from = new Date(fromISO + "T00:00:00"), to = new Date(toISO + "T00:00:00");
-    const buckets = []; let yr = from.getFullYear(), mo = from.getMonth();
-    const eYr = to.getFullYear(), eMo = to.getMonth();
+    const buckets = [], idx = {}; let yr = +fromISO.substring(0, 4), mo = +fromISO.substring(5, 7) - 1;
+    const eYr = +toISO.substring(0, 4), eMo = +toISO.substring(5, 7) - 1;
     while (yr < eYr || (yr === eYr && mo <= eMo)) {
-      const start = new Date(yr, mo, 1), end = new Date(yr, mo + 1, 0);
-      buckets.push({ start: start, end: end, label: start.toLocaleDateString("es-CO", { month: "short", year: "2-digit" }), count: 0 });
+      idx[yr + "-" + String(mo + 1).padStart(2, "0")] = buckets.length;
+      buckets.push({ label: new Date(yr, mo, 1).toLocaleDateString("es-CO", { month: "short", year: "2-digit" }), count: 0 });
       mo++; if (mo > 11) { mo = 0; yr++; }
     }
     records.forEach(function (r) {
-      const fr = r[dateField]; if (!fr) return;
-      const d = new Date(fr + "T00:00:00");
-      for (let i = 0; i < buckets.length; i++) { if (d >= buckets[i].start && d <= buckets[i].end) { buckets[i].count++; break; } }
+      const fr = r[dateField]; if (!fr || fr < fromISO || fr > toISO) return;
+      const i = idx[fr.substring(0, 7)]; if (i !== undefined) buckets[i].count++;
     });
     return buckets;
+  }
+  function fechaMinima(records, dateField) {
+    let min = null;
+    records.forEach(function (r) { const f = r[dateField]; if (f && (!min || f < min)) min = f; });
+    return min;
   }
   function getYearlyCounts(records, dateField) {
     const map = {};
     records.forEach(function (r) { const fr = r[dateField]; if (!fr) return; map[fr.substring(0, 4)] = (map[fr.substring(0, 4)] || 0) + 1; });
     return Object.keys(map).sort().map(function (y) { return { label: y, count: map[y] }; });
   }
-  function getTendenciaCounts(records, period, dateField, filterObj) {
+  // Rango: el de los filtros de fecha si los hay; si no, desde el primer dato
+  // ('desdeMin', que el llamador pasa igual para series que comparten eje) hasta
+  // hoy. El gráfico se desplaza horizontalmente (ver ajustarScrollTendencia).
+  // Tope de puntos para no crear un canvas gigante: 400 días / 160 semanas.
+  const MAX_PUNTOS = { "día": 400, "semana": 160 };
+  function getTendenciaCounts(records, period, dateField, filterObj, desdeMin) {
     if (period === "año") return getYearlyCounts(records, dateField);
-    const hoy = isoToday();
-    const hasta = (filterObj && filterObj.fechaHasta) || hoy;
-    let desde = filterObj && filterObj.fechaDesde;
-    if (!desde) {
-      const d = new Date();
-      if (period === "día") d.setDate(d.getDate() - 29);
-      // 13 meses: incluye el mismo mes del año anterior para comparar.
-      else if (period === "mes") { d.setDate(1); d.setMonth(d.getMonth() - 12); }
-      else d.setDate(d.getDate() - 83);
-      desde = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const hasta = (filterObj && filterObj.fechaHasta) || isoToday();
+    let desde = (filterObj && filterObj.fechaDesde) || desdeMin || fechaMinima(records, dateField) || hasta;
+    if (MAX_PUNTOS[period]) {
+      const tope = new Date(hasta + "T00:00:00");
+      tope.setDate(tope.getDate() - (period === "día" ? MAX_PUNTOS[period] - 1 : MAX_PUNTOS[period] * 7 - 1));
+      if (desde < isoDe(tope)) desde = isoDe(tope);
     }
     if (period === "día") return getDailyCountsRange(records, desde, hasta, dateField);
     if (period === "mes") return getMonthlyCountsRange(records, desde, hasta, dateField);
     return getWeeklyCountsRange(records, desde, hasta, dateField);
+  }
+  // Ancho del lienzo según la cantidad de puntos; se abre mostrando lo más reciente.
+  function ajustarScrollTendencia(innerId, nPuntos) {
+    const inner = document.getElementById(innerId); if (!inner) return;
+    const wrap = inner.parentElement, pW = wrap ? wrap.clientWidth : 0;
+    const px = TENDENCY_PERIOD === "día" ? 30 : 42;
+    inner.style.width = Math.max(nPuntos * px, pW || 300) + "px";
+    if (wrap) requestAnimationFrame(function () { wrap.scrollLeft = wrap.scrollWidth; });
+  }
+  // Opciones de línea para lienzos anchos: limita la resolución para no pasar el
+  // máximo de ancho de canvas del navegador (~32.000 px).
+  function lineOptsAncho(innerId, extra) {
+    const inner = document.getElementById(innerId), w = inner ? parseInt(inner.style.width, 10) || 1000 : 1000;
+    return Object.assign(lineOpts(extra), { devicePixelRatio: Math.min(window.devicePixelRatio || 1, 30000 / w) });
   }
   function buildPeriodBtnsHTML() {
     return '<div class="tend-period-btns">' + [["día", "Días"], ["semana", "Semanas"], ["mes", "Meses"], ["año", "Años"]].map(function (p) {
@@ -254,8 +275,7 @@
      Crítico 95-97, Vencido ≥98 — sobre el Progreso ya normalizado a "%". */
   function effectiveProgreso(r) {
     if (r.progreso_raw === null || r.progreso_raw === undefined) return 0;
-    // Nuevo Aranda: escala fracción -> ×100 (ver nota de cabecera; sin confirmar con volumen real)
-    return r.fuente === "nuevo" ? r.progreso_raw * 100 : r.progreso_raw;
+    return r.progreso_raw;  // ya es % del ANS en ambas fuentes (ver cabecera)
   }
   function classify(progreso) {
     if (progreso >= 98) return "Vencido";
@@ -272,6 +292,21 @@
     return NIVEL1_CATS.indexOf(r.nivel1) !== -1 ? r.nivel1 : NIVEL1_OTROS;
   }
   function esAbierto(r) { return ESTADOS_CERRADOS.indexOf(r.estado) === -1; }
+  const CLASIF_LABEL = { Vencido: "Vencido", Critico: "Crítico", Riesgo: "En riesgo", Normal: "A tiempo" };
+  function clasificacionCaso(r) { return esAbierto(r) ? CLASIF_LABEL[classify(effectiveProgreso(r))] : "Cerrado"; }
+  const CLASIF_PILL = { "Vencido": "vencido", "Crítico": "critico", "En riesgo": "riesgo", "A tiempo": "normal" };
+  function clasificacionPillHTML(c) {
+    return CLASIF_PILL[c] ? '<span class="status-pill status-pill--' + CLASIF_PILL[c] + '">' + esc(c) + '</span>' : '<span class="area-chip">' + esc(c) + '</span>';
+  }
+  // Autor -> uno de los gestores (sin importar tildes/mayúsculas) o "Otros autores". Se memoriza por caso.
+  const _autoresNorm = {};
+  function autorGrupo(r) {
+    if (r._autorGrupo === undefined) {
+      if (!_autoresNorm._listo) { AUTORES_GESTORES.forEach(function (a) { _autoresNorm[normalizeName(a)] = a; }); _autoresNorm._listo = true; }
+      r._autorGrupo = _autoresNorm[normalizeName(r.autor)] || AUTOR_OTROS;
+    }
+    return r._autorGrupo;
+  }
   // Las cuatro categorías fijas, más "Otros / Histórico" solo si algún caso cae ahí.
   function catsPresentes() {
     const hayOtros = STATE.rawCasos.some(function (r) { return nivel1Effective(r) === NIVEL1_OTROS; });
@@ -380,6 +415,8 @@
       if (CASOS_FILTER.estado.length && CASOS_FILTER.estado.indexOf(r.estado) === -1) return false;
       if (CASOS_FILTER.fuente.length && CASOS_FILTER.fuente.indexOf(r.fuente) === -1) return false;
       if (CASOS_FILTER.tipoRegistro.length && CASOS_FILTER.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
+      if (CASOS_FILTER.clasificacion.length && CASOS_FILTER.clasificacion.indexOf(clasificacionCaso(r)) === -1) return false;
+      if (CASOS_FILTER.autor.length && CASOS_FILTER.autor.indexOf(autorGrupo(r)) === -1) return false;
       if (CASOS_FILTER.condicion.length) {
         const cond = ESTADOS_CERRADOS.indexOf(r.estado) !== -1 ? "Cerrados" : "Abiertos";
         if (CASOS_FILTER.condicion.indexOf(cond) === -1) return false;
@@ -707,7 +744,7 @@
       return !EXEC_FILTER.nivel1.length || EXEC_FILTER.nivel1.indexOf(nivel1Effective(r)) !== -1;
     }).map(function (r) { return r.nivel2; }).filter(function (v) { return v && v !== "N/A"; }))).sort();
     const dropsHtml =
-      buildMsDropHTML("nivel1", "Categoría", "bi-collection", catsPresentes(), EXEC_FILTER) +
+      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), EXEC_FILTER) +
       buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", nivel2Opts, EXEC_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals("grupo_responsable"), EXEC_FILTER) +
       buildMsDropHTML("condicion", "Condición", "bi-toggle2-on", ["Abiertos", "Cerrados"], EXEC_FILTER) +
@@ -758,19 +795,23 @@
 
     // Casos y Tareas sobre el mismo periodo (el rango de fechas de los filtros del
     // resumen, o el rango por defecto), para que ambas series compartan etiquetas.
-    const casosBuckets = getTendenciaCounts(STATE.execCasos, TENDENCY_PERIOD, "fecha_registro", EXEC_FILTER);
-    const tareasBuckets = getTendenciaCounts(STATE.execTareas, TENDENCY_PERIOD, "fecha_creacion", EXEC_FILTER);
-    const labels = casosBuckets.map(function (b) { return b.label; });
-    const execTendInner = document.getElementById("execTendInner");
-    if (execTendInner) {
-      execTendInner.dataset.pts = labels.length;
-      const pW = execTendInner.parentElement ? execTendInner.parentElement.clientWidth : 0;
-      execTendInner.style.width = (pW > 0 ? Math.max(labels.length * 38, pW) : Math.max(labels.length * 38, 300)) + "px";
+    const minC = fechaMinima(STATE.execCasos, "fecha_registro"), minT = fechaMinima(STATE.execTareas, "fecha_creacion");
+    const desdeMin = [minC, minT].filter(Boolean).sort()[0];
+    const casosBuckets = getTendenciaCounts(STATE.execCasos, TENDENCY_PERIOD, "fecha_registro", EXEC_FILTER, desdeMin);
+    const tareasBuckets = getTendenciaCounts(STATE.execTareas, TENDENCY_PERIOD, "fecha_creacion", EXEC_FILTER, desdeMin);
+    // Días/semanas/meses: mismo rango, así que los buckets coinciden uno a uno.
+    // Años: cada serie trae sus propios años y se alinean por etiqueta.
+    let labels = casosBuckets.map(function (b) { return b.label; });
+    let serie = function (buckets) { return buckets.map(function (b) { return b.count; }); };
+    if (TENDENCY_PERIOD === "año") {
+      labels = Array.from(new Set(labels.concat(tareasBuckets.map(function (b) { return b.label; })))).sort();
+      serie = function (buckets) { const m = {}; buckets.forEach(function (b) { m[b.label] = b.count; }); return labels.map(function (l) { return m[l] || 0; }); };
     }
+    ajustarScrollTendencia("execTendInner", labels.length);
     renderChart("chartExecTendencia", "line", { labels: labels, datasets: [
-      { label: "Casos creados", data: casosBuckets.map(function (b) { return b.count; }), borderColor: "#8C0F13", backgroundColor: "#8C0F1322", fill: true },
-      { label: "Tareas creadas", data: tareasBuckets.map(function (b) { return b.count; }), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }
-    ] }, lineOpts());
+      { label: "Casos creados", data: serie(casosBuckets), borderColor: "#8C0F13", backgroundColor: "#8C0F1322", fill: true },
+      { label: "Tareas creadas", data: serie(tareasBuckets), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }
+    ] }, lineOptsAncho("execTendInner"));
 
     renderChart("chartExecClasificacion", "doughnut", toChartDataDoughnut(STATE.statsExec.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
   }
@@ -827,7 +868,7 @@
     function uniqueVals(records, field) { return Array.from(new Set(records.map(function (r) { return r[field] || ""; }).filter(function (v) { return v && v !== "N/A"; }))).sort(); }
     const dropsHtml =
       buildMsDropHTML("clasificacion", "Clasificación", "bi-exclamation-triangle", ["Vencido", "Crítico"], ATENCION_FILTER) +
-      buildMsDropHTML("nivel1", "Categoría", "bi-collection", catsPresentes().filter(function (c) { return base.some(function (r) { return nivel1Effective(r) === c; }); }), ATENCION_FILTER) +
+      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes().filter(function (c) { return base.some(function (r) { return nivel1Effective(r) === c; }); }), ATENCION_FILTER) +
       buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", uniqueVals(enCat, "nivel2"), ATENCION_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals(base, "grupo_responsable"), ATENCION_FILTER) +
       buildMsDropHTML("responsable", "Responsable", "bi-person", uniqueVals(base, "responsable"), ATENCION_FILTER) +
@@ -920,15 +961,19 @@
     const base = _casosActiveCat ? STATE.rawCasos.filter(function (r) { return nivel1Effective(r) === _casosActiveCat; }) : STATE.rawCasos;
     function uniqueVals(field) { return Array.from(new Set(base.map(function (r) { return r[field] || ""; }).filter(function (v) { return v && v !== "N/A"; }))).sort(); }
     const fields = [
+      // Tipo de servicio solo en "Todas": dentro de una categoría ya está fijo.
+      _casosActiveCat ? null : { key: "nivel1", label: "Tipo de servicio", icon: "bi-collection", opts: catsPresentes() },
       { key: "nivel2", label: "Subcategoría", icon: "bi-diagram-2", field: "nivel2" },
       { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", field: "categoria" },
+      { key: "clasificacion", label: "Clasificación", icon: "bi-exclamation-triangle", opts: CLASIFICACIONES },
+      { key: "autor", label: "Autor", icon: "bi-person-plus", opts: AUTORES_GESTORES.concat([AUTOR_OTROS]) },
       { key: "grupo", label: "Grupo", icon: "bi-building", field: "grupo_responsable" },
       { key: "responsable", label: "Responsable", icon: "bi-person", field: "responsable" },
       { key: "estado", label: "Estado", icon: "bi-circle-half", field: "estado" },
       { key: "condicion", label: "Condición", icon: "bi-toggle2-on", opts: ["Abiertos", "Cerrados"] },
-      { key: "tipoRegistro", label: "Tipo de registro", icon: "bi-tag", field: "tipo_registro" },
+      { key: "tipoRegistro", label: "Canal de registro", icon: "bi-tag", field: "tipo_registro" },
       { key: "fuente", label: "Origen", icon: "bi-database", field: "fuente" }
-    ];
+    ].filter(Boolean);
     const dropsHtml = fields.map(function (f) { return buildMsDropHTML(f.key, f.label, f.icon, f.field ? uniqueVals(f.field) : f.opts, CASOS_FILTER); }).join("");
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="casosFilterDrops">' + dropsHtml + '</div>' +
@@ -939,11 +984,12 @@
       '<button class="gfb-clear" id="casosFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
     wireFilterBar("casosFilterBar", "casosFilterDrops", CASOS_FILTER, function () { renderAll(); }, ["casosFechaDesde", "casosFechaHasta"]);
     const clearBtn = document.getElementById("casosFilterClear");
-    // "Limpiar" deja los filtros en blanco pero se queda en la categoría actual.
+    // "Limpiar" vuelve a los filtros por defecto pero se queda en la categoría actual.
     if (clearBtn) clearBtn.addEventListener("click", function () { resetCasosFilter(); populateCasosFilterBar(); renderAll(); });
   }
   function resetCasosFilter() {
     Object.keys(CASOS_FILTER).forEach(function (k) { CASOS_FILTER[k] = Array.isArray(CASOS_FILTER[k]) ? [] : ""; });
+    CASOS_FILTER.autor = AUTORES_GESTORES.slice();  // por defecto: casos creados por los gestores de CAE
   }
 
   // Único punto para cambiar la categoría activa de Casos (submenú del sidebar y
@@ -1023,9 +1069,15 @@
         language: DT_LANG_ES, data: STATE.casos, deferRender: true,
         columns: [
           { data: "caso", render: txt }, { data: "fecha_registro", render: txt }, { data: "estado", render: txt },
+          { data: null, render: function (d, type, r) {
+            const c = clasificacionCaso(r);
+            if (type === "display") return clasificacionPillHTML(c);
+            return type === "sort" ? CLASIFICACIONES.indexOf(c) : c;  // ordena Vencido primero
+          } },
           { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
           { data: "nivel2", render: txt }, { data: "autor", render: txt }, { data: "responsable", render: txt },
-          { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt }, { data: "fecha_modificacion", render: txt },
+          { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt },
+          { data: "fecha_estimada_solucion", render: txt }, { data: "fecha_modificacion", render: txt },
           { data: null, render: function (d, type, r) { const p = effectiveProgreso(r); return type === "display" ? progressCellHTML(p, effectiveClass(r)) : p; } }
         ],
         columnDefs: [{ targets: "_all", defaultContent: "" }],
@@ -1033,7 +1085,7 @@
           const cls = effectiveClass(r);
           if (cls === "Vencido") row.classList.add("row--vencido"); else if (cls === "Critico") row.classList.add("row--critico");
         },
-        paging: true, pageLength: 15, order: [[10, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
+        paging: true, pageLength: 15, order: [[12, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
       });
     }
   }
@@ -1047,19 +1099,23 @@
     const series = _casosActiveCat ? [_casosActiveCat] : cats;
     const tendTitle = document.getElementById("casosTendTitle");
     if (tendTitle) tendTitle.textContent = _casosActiveCat ? "Casos registrados" : "Casos registrados por categoría";
-    let labels = [];
-    const datasets = series.map(function (c, i) {
-      const buckets = getTendenciaCounts(recs.filter(function (r) { return nivel1Effective(r) === c; }), TENDENCY_PERIOD, "fecha_registro", CASOS_FILTER);
-      if (!labels.length) labels = buckets.map(function (b) { return b.label; });
-      const color = SERIES_PALETTE[i % SERIES_PALETTE.length];
-      return { label: c, data: buckets.map(function (b) { return b.count; }), borderColor: color, backgroundColor: color + "22", fill: series.length === 1 };
+    // Todas las series usan el mismo rango (desde el primer caso de la vista) para
+    // compartir eje; por años se alinean por etiqueta.
+    const desdeMin = fechaMinima(recs, "fecha_registro");
+    const porSerie = series.map(function (c) {
+      return getTendenciaCounts(recs.filter(function (r) { return nivel1Effective(r) === c; }), TENDENCY_PERIOD, "fecha_registro", CASOS_FILTER, desdeMin);
     });
-    const inner = document.getElementById("casosTendInner");
-    if (inner) {
-      const pW = inner.parentElement ? inner.parentElement.clientWidth : 0;
-      inner.style.width = (pW > 0 ? Math.max(labels.length * 38, pW) : Math.max(labels.length * 38, 300)) + "px";
-    }
-    renderChart("chartCasosTendencia", "line", { labels: labels, datasets: datasets }, lineOpts());
+    const labels = TENDENCY_PERIOD === "año"
+      ? Array.from(new Set([].concat.apply([], porSerie).map(function (b) { return b.label; }))).sort()
+      : (porSerie[0] || []).map(function (b) { return b.label; });
+    const datasets = series.map(function (c, i) {
+      const m = {}; porSerie[i].forEach(function (b, j) { m[TENDENCY_PERIOD === "año" ? b.label : j] = b.count; });
+      const color = SERIES_PALETTE[i % SERIES_PALETTE.length];
+      return { label: c, data: labels.map(function (l, j) { return m[TENDENCY_PERIOD === "año" ? l : j] || 0; }),
+        borderColor: color, backgroundColor: color + "22", fill: series.length === 1 };
+    });
+    ajustarScrollTendencia("casosTendInner", labels.length);
+    renderChart("chartCasosTendencia", "line", { labels: labels, datasets: datasets }, lineOptsAncho("casosTendInner"));
 
     const porNivel2 = {}, porResp = {};
     recs.forEach(function (r) {
@@ -1068,6 +1124,23 @@
       porResp[resp] = (porResp[resp] || 0) + 1;
     });
     renderChart("chartCasosNivel2", "bar", toChartDataBar(porNivel2, "#8C0F13", 12), horizontalBarOpts());
+
+    // Casos por grupo responsable (hasta 15), apilados en abiertos y cerrados.
+    const porGrupo = {};
+    recs.forEach(function (r) {
+      const g = r.grupo_responsable && r.grupo_responsable !== "N/A" ? r.grupo_responsable : "Sin grupo";
+      if (!porGrupo[g]) porGrupo[g] = { abiertos: 0, cerrados: 0 };
+      porGrupo[g][esAbierto(r) ? "abiertos" : "cerrados"]++;
+    });
+    const topGrupos = Object.keys(porGrupo).sort(function (a, b) {
+      return (porGrupo[b].abiertos + porGrupo[b].cerrados) - (porGrupo[a].abiertos + porGrupo[a].cerrados);
+    }).slice(0, 15);
+    const cvGrupo = document.getElementById("chartCasosGrupo");
+    if (cvGrupo && cvGrupo.parentElement) cvGrupo.parentElement.style.height = Math.max(200, topGrupos.length * 30 + 70) + "px";
+    renderChart("chartCasosGrupo", "bar", { labels: topGrupos, datasets: [
+      { label: "Abiertos", data: topGrupos.map(function (g) { return porGrupo[g].abiertos; }), backgroundColor: "#C0151A" },
+      { label: "Cerrados", data: topGrupos.map(function (g) { return porGrupo[g].cerrados; }), backgroundColor: "#9C8C7E" }
+    ] }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
     renderChart("chartCasosAns", "doughnut", toChartDataDoughnut(s.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
     // En "Todas": ANS por categoría. Dentro de una categoría: ANS por subcategoría (top 10).
     const ansTitle = document.getElementById("casosAnsCatTitle");
@@ -1140,14 +1213,10 @@
     const periodContainer = document.getElementById("tareasTendPeriod");
     if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
     const buckets = getTendenciaCounts(STATE.tareas, TENDENCY_PERIOD, "fecha_creacion", TAREAS_FILTER);
-    const inner = document.getElementById("tareasTendInner");
-    if (inner) {
-      const pW = inner.parentElement ? inner.parentElement.clientWidth : 0;
-      inner.style.width = (pW > 0 ? Math.max(buckets.length * 38, pW) : Math.max(buckets.length * 38, 300)) + "px";
-    }
+    ajustarScrollTendencia("tareasTendInner", buckets.length);
     renderChart("chartTareasTendencia", "line", { labels: buckets.map(function (b) { return b.label; }),
       datasets: [{ label: "Tareas creadas", data: buckets.map(function (b) { return b.count; }), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }] },
-      lineOpts({ plugins: { legend: { display: false } } }));
+      lineOptsAncho("tareasTendInner", { plugins: { legend: { display: false } } }));
 
     // Tareas por responsable (top 15 por total), apiladas en completadas y pendientes.
     const porResp = {};
@@ -1191,6 +1260,7 @@
       const nombre = r.responsable || "Sin asignar";
       if (RESP_FILTER.responsable.length && RESP_FILTER.responsable.indexOf(nombre) === -1) return;
       if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return;
+      if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
       if (RESP_FILTER.fechaDesde && (r.fecha_registro || "") < RESP_FILTER.fechaDesde) return;
       if (RESP_FILTER.fechaHasta && (r.fecha_registro || "") > RESP_FILTER.fechaHasta) return;
       const d = ensure(nombre);
@@ -1237,7 +1307,8 @@
     const respSet = new Set(), grupoSet = new Set();
     STATE.rawCasos.forEach(function (r) { if (r.responsable) respSet.add(r.responsable); if (r.grupo_responsable) grupoSet.add(r.grupo_responsable); });
     const dropsHtml = buildMsDropHTML("responsable", "Responsable", "bi-person", Array.from(respSet).sort(), RESP_FILTER) +
-      buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), RESP_FILTER);
+      buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), RESP_FILTER) +
+      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), RESP_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="respFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="respFechaDesde">Desde</label>' +
@@ -1248,7 +1319,7 @@
     wireFilterBar("respFilterBar", "respFilterDrops", RESP_FILTER, function () { renderResponsablesContent(); }, ["respFechaDesde", "respFechaHasta"]);
     const clearBtn = document.getElementById("respFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.fechaDesde = ""; RESP_FILTER.fechaHasta = "";
+      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.fechaDesde = ""; RESP_FILTER.fechaHasta = "";
       populateRespFilterBar(); renderResponsablesContent();
     });
   }
@@ -1390,7 +1461,7 @@
     const grupoSet = new Set();
     STATE.rawCasos.forEach(function (r) { if (r.grupo_responsable) grupoSet.add(r.grupo_responsable); });
     const dropsHtml = buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), GRUPO_FILTER) +
-      buildMsDropHTML("nivel1", "Categoría", "bi-diagram-2", catsPresentes(), GRUPO_FILTER);
+      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-diagram-2", catsPresentes(), GRUPO_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="gruposFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="gruposFechaDesde">Desde</label>' +

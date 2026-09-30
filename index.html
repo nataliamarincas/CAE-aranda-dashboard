@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 
@@ -146,7 +146,7 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-bar-chart-steps"></i> Comparativo por categoría (Nivel 1)</h2>
+            <h2><i class="bi bi-bar-chart-steps"></i> Comparativo por tipo de servicio</h2>
             <span class="panel-sub">Vencidos, críticos y riesgo: solo casos abiertos</span>
           </div>
           <div class="table-responsive">
@@ -240,6 +240,14 @@
           </div>
         </div>
 
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-header">
+            <h2><i class="bi bi-building"></i> Casos por grupo responsable</h2>
+            <span class="panel-sub">Abiertos y cerrados · según filtros aplicados</span>
+          </div>
+          <div class="chart-wrap" style="height:320px"><canvas id="chartCasosGrupo" class="chart-skeleton"></canvas></div>
+        </div>
+
         <div class="panel">
           <div class="panel-header">
             <h2><i class="bi bi-table"></i> <span id="casosTablaTitle">Todos los casos</span></h2>
@@ -249,9 +257,9 @@
             <table class="table data-table" id="tableCasosAll" style="width:100%">
               <thead>
                 <tr>
-                  <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Categoría (Nivel 1)</th>
-                  <th>Subcategoría (Nivel 2)</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
-                  <th>Tipo de registro</th><th>Fecha modificación</th><th>Progreso</th>
+                  <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Clasificación</th><th>Tipo de servicio</th>
+                  <th>Subcategoría</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
+                  <th>Canal de registro</th><th>Fecha est. solución</th><th>Fecha modificación</th><th>Progreso</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -502,6 +510,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
