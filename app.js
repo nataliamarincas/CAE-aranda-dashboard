@@ -214,7 +214,36 @@
   // hoy. El gráfico se desplaza horizontalmente (ver ajustarScrollTendencia).
   // Tope de puntos para no crear un canvas gigante: 400 días / 160 semanas.
   const MAX_PUNTOS = { "día": 400, "semana": 160 };
+  // Franja horaria: casos por hora del día (00:00 a 23:00) dentro del rango de
+  // fechas de los filtros. Usa '<dateField>_dt' (fecha y hora de registro); las
+  // tareas no traen hora, así que para ellas no aplica.
+  function getHourlyCounts(records, dateField, filterObj) {
+    const buckets = [];
+    for (let h = 0; h < 24; h++) buckets.push({ label: String(h).padStart(2, "0") + ":00", count: 0 });
+    const desde = filterObj && filterObj.fechaDesde, hasta = filterObj && filterObj.fechaHasta;
+    records.forEach(function (r) {
+      const f = r[dateField], dt = r[dateField + "_dt"];
+      if (!dt || String(dt).length < 13) return;
+      if (desde && (f || "") < desde) return;
+      if (hasta && (f || "") > hasta) return;
+      const h = parseInt(String(dt).substring(11, 13), 10);
+      if (h >= 0 && h < 24) buckets[h].count++;
+    });
+    return buckets;
+  }
+  function horaPico(buckets) {
+    let mejor = null; buckets.forEach(function (b) { if (!mejor || b.count > mejor.count) mejor = b; });
+    return mejor && mejor.count ? mejor : null;
+  }
+  // Opciones para el gráfico por horas: barras (apiladas si hay varias series).
+  function horasOpts(apilado) {
+    return Object.assign(stackedBarOpts(), { scales: {
+      x: { stacked: apilado, grid: { display: false }, title: { display: true, text: "Hora de registro" } },
+      y: { stacked: apilado, beginAtZero: true, grid: gridOpts(), ticks: { precision: 0 } } } });
+  }
+
   function getTendenciaCounts(records, period, dateField, filterObj, desdeMin) {
+    if (period === "hora") return getHourlyCounts(records, dateField, filterObj);
     if (period === "año") return getYearlyCounts(records, dateField);
     const hasta = (filterObj && filterObj.fechaHasta) || isoToday();
     let desde = (filterObj && filterObj.fechaDesde) || desdeMin || fechaMinima(records, dateField) || hasta;
@@ -241,11 +270,18 @@
     const inner = document.getElementById(innerId), w = inner ? parseInt(inner.style.width, 10) || 1000 : 1000;
     return Object.assign(lineOpts(extra), { devicePixelRatio: Math.min(window.devicePixelRatio || 1, 30000 / w) });
   }
-  function buildPeriodBtnsHTML() {
-    return '<div class="tend-period-btns">' + [["día", "Días"], ["semana", "Semanas"], ["mes", "Meses"], ["año", "Años"]].map(function (p) {
-      return '<button class="tend-btn' + (TENDENCY_PERIOD === p[0] ? ' tend-btn--active' : '') + '" data-period="' + p[0] + '">' + p[1] + '</button>';
+  // conHoras: agrega "Horas" (franja horaria). Tareas no lo tiene: su export no trae hora.
+  function buildPeriodBtnsHTML(conHoras) {
+    const periodos = [["día", "Días"], ["semana", "Semanas"], ["mes", "Meses"], ["año", "Años"]];
+    if (conHoras) periodos.push(["hora", "Horas"]);
+    const activo = periodoPara(conHoras);
+    return '<div class="tend-period-btns">' + periodos.map(function (p) {
+      return '<button class="tend-btn' + (activo === p[0] ? ' tend-btn--active' : '') + '" data-period="' + p[0] + '"' +
+        (p[0] === "hora" ? ' title="Casos por hora del día: en qué horas se registran más"' : '') + '>' + p[1] + '</button>';
     }).join("") + '</div>';
   }
+  // Periodo efectivo de una vista: si no tiene "Horas" y ese está elegido, usa meses.
+  function periodoPara(conHoras) { return (!conHoras && TENDENCY_PERIOD === "hora") ? "mes" : TENDENCY_PERIOD; }
   function wireTendencyBtns(container) {
     if (!container) return;
     container.querySelectorAll(".tend-btn").forEach(function (btn) {
@@ -795,7 +831,21 @@
 
   function renderExecCharts() {
     const periodContainer = document.getElementById("execTendPeriod");
-    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
+    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(true); wireTendencyBtns(periodContainer); }
+    const execTitle = document.getElementById("execTendTitle");
+
+    if (TENDENCY_PERIOD === "hora") {
+      // Por horas solo casos: las tareas no traen hora de creación.
+      const hb = getTendenciaCounts(STATE.execCasos, "hora", "fecha_registro", EXEC_FILTER);
+      const pico = horaPico(hb);
+      if (execTitle) execTitle.textContent = "Casos por hora de registro" + (pico ? " · pico " + pico.label + " (" + pico.count.toLocaleString("es-CO") + ")" : "");
+      ajustarScrollTendencia("execTendInner", hb.length);
+      renderChart("chartExecTendencia", "bar", { labels: hb.map(function (b) { return b.label; }),
+        datasets: [{ label: "Casos creados (las tareas no traen hora)", data: hb.map(function (b) { return b.count; }), backgroundColor: "#8C0F13", borderRadius: 3 }] }, horasOpts(false));
+      renderChart("chartExecClasificacion", "doughnut", toChartDataDoughnut(STATE.statsExec.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
+      return;
+    }
+    if (execTitle) execTitle.textContent = "Tendencia de creación: Casos y Tareas";
 
     // Casos y Tareas sobre el mismo periodo (el rango de fechas de los filtros del
     // resumen, o el rango por defecto), para que ambas series compartan etiquetas.
@@ -1115,10 +1165,24 @@
 
     // Tendencia: una serie por categoría (o solo la activa).
     const periodContainer = document.getElementById("casosTendPeriod");
-    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
+    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(true); wireTendencyBtns(periodContainer); }
     const series = _casosActiveCat ? [_casosActiveCat] : cats;
     const tendTitle = document.getElementById("casosTendTitle");
     if (tendTitle) tendTitle.textContent = _casosActiveCat ? "Casos registrados" : "Casos registrados por categoría";
+    if (TENDENCY_PERIOD === "hora") {
+      // Franja horaria: barras por hora, apiladas por tipo de servicio.
+      const porHora = series.map(function (c) {
+        return getTendenciaCounts(recs.filter(function (r) { return nivel1Effective(r) === c; }), "hora", "fecha_registro", CASOS_FILTER);
+      });
+      const totales = porHora[0] ? porHora[0].map(function (b, h) { return { label: b.label, count: porHora.reduce(function (s, p) { return s + p[h].count; }, 0) }; }) : [];
+      const pico = horaPico(totales);
+      if (tendTitle) tendTitle.textContent = "Casos por hora de registro" + (pico ? " · pico " + pico.label + " (" + pico.count.toLocaleString("es-CO") + ")" : "");
+      ajustarScrollTendencia("casosTendInner", 24);
+      renderChart("chartCasosTendencia", "bar", { labels: totales.map(function (b) { return b.label; }),
+        datasets: series.map(function (c, i) {
+          return { label: c, data: porHora[i].map(function (b) { return b.count; }), backgroundColor: SERIES_PALETTE[i % SERIES_PALETTE.length] };
+        }) }, horasOpts(true));
+    } else {
     // Todas las series usan el mismo rango (desde el primer caso de la vista) para
     // compartir eje; por años se alinean por etiqueta.
     const desdeMin = fechaMinima(recs, "fecha_registro");
@@ -1136,6 +1200,7 @@
     });
     ajustarScrollTendencia("casosTendInner", labels.length);
     renderChart("chartCasosTendencia", "line", { labels: labels, datasets: datasets }, lineOptsAncho("casosTendInner"));
+    }
 
     const porNivel2 = {}, porResp = {};
     recs.forEach(function (r) {
@@ -1231,8 +1296,8 @@
 
     // Tendencia con selector de periodo (días, semanas, meses, años), igual que en Casos.
     const periodContainer = document.getElementById("tareasTendPeriod");
-    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(); wireTendencyBtns(periodContainer); }
-    const buckets = getTendenciaCounts(STATE.tareas, TENDENCY_PERIOD, "fecha_creacion", TAREAS_FILTER);
+    if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(false); wireTendencyBtns(periodContainer); }
+    const buckets = getTendenciaCounts(STATE.tareas, periodoPara(false), "fecha_creacion", TAREAS_FILTER);
     ajustarScrollTendencia("tareasTendInner", buckets.length);
     renderChart("chartTareasTendencia", "line", { labels: buckets.map(function (b) { return b.label; }),
       datasets: [{ label: "Tareas creadas", data: buckets.map(function (b) { return b.count; }), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }] },
