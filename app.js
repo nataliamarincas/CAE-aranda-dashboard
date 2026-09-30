@@ -470,13 +470,14 @@
 
   function computeCasosStats(records) {
     const total = records.length;
-    let vencidos = 0, criticos = 0, riesgo = 0, normal = 0, sumTiempo = 0, abiertos = 0;
+    let vencidos = 0, criticos = 0, riesgo = 0, normal = 0, sumTiempo = 0, abiertos = 0, vencidosCerrados = 0;
     const vencidosPorResponsable = {}, vencidosPorCategoria = {}, porNivel1 = {};
     const ans = { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 };
     records.forEach(function (r) {
       const cls = effectiveClass(r);
-      if (esAbierto(r)) abiertos++;
-      ans[ansResultado(r)]++;
+      const resAns = ansResultado(r);
+      if (esAbierto(r)) abiertos++; else if (resAns === "Vencido") vencidosCerrados++;
+      ans[resAns]++;
       if (cls === "Vencido") vencidos++; else if (cls === "Critico") criticos++; else if (cls === "Riesgo") riesgo++; else normal++;
       sumTiempo += (r.tiempo_transcurrido_dias || 0);
       const n1 = nivel1Effective(r);
@@ -489,7 +490,7 @@
       else if (cls === "Riesgo") porNivel1[n1].riesgo++;
     });
     return { total: total, vencidos: vencidos, criticos: criticos, riesgo: riesgo, normal: normal,
-      abiertos: abiertos, cerrados: total - abiertos, ans: ans,
+      abiertos: abiertos, cerrados: total - abiertos, vencidosCerrados: vencidosCerrados, ans: ans,
       avgTiempo: total ? Math.round((sumTiempo / total) * 10) / 10 : 0,
       vencidosPorResponsable: vencidosPorResponsable, vencidosPorCategoria: vencidosPorCategoria, porNivel1: porNivel1 };
   }
@@ -782,6 +783,7 @@
         kpi("Total de casos", s.total, "info", "bi-collection", s.abiertos + " abiertos · " + s.cerrados + " cerrados") +
         kpi("Cumplimiento ANS", pct(s.ans.Normal, s.total) + "%", "sla", "bi-stopwatch", s.ans.Normal + " casos a tiempo") +
         kpi("Vencidos", s.vencidos, "vencido", "bi-x-octagon", "abiertos · " + pct(s.vencidos, s.abiertos) + "% de los abiertos") +
+        kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados") +
         kpi("Críticos", s.criticos, "critico", "bi-exclamation-triangle", "abiertos · " + pct(s.criticos, s.abiertos) + "% de los abiertos") +
         kpi("En riesgo", s.riesgo, "riesgo", "bi-shield-exclamation", "abiertos · " + pct(s.riesgo, s.abiertos) + "% de los abiertos") +
         kpi("Tiempo promedio", s.avgTiempo + " días", "normal", "bi-clock-history", "transcurrido por caso") +
@@ -1055,6 +1057,7 @@
         kpi("Cerrados", s.cerrados, "sla", "bi-check2-all", pct(s.cerrados, s.total) + "% del total") +
         kpi("Cumplimiento ANS", pct(s.ans.Normal, s.total) + "%", "sla", "bi-stopwatch", s.ans.Vencido + " casos fuera de ANS") +
         kpi("Vencidos abiertos", s.vencidos, "vencido", "bi-x-octagon", s.criticos + " críticos · " + s.riesgo + " en riesgo") +
+        kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados se cerró fuera del ANS") +
         kpi("Tiempo promedio", s.avgTiempo + " días", "normal", "bi-clock-history", "transcurrido por caso");
     }
     renderCasosCharts(s, cats);
@@ -1254,7 +1257,7 @@
   function computeResponsablesCombined() {
     const byResp = {};
     function ensure(nombre) {
-      if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {} };
+      if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {} };
       return byResp[nombre];
     }
     STATE.rawCasos.forEach(function (r) {
@@ -1273,6 +1276,7 @@
         if (cls === "Vencido") d.vencidosActivos++; else if (cls === "Critico") d.criticosActivos++;
       } else if (r.estado === "Solucionado" || r.estado === "Cerrado") {
         d.solucionados++;
+        if (ansResultado(r) === "Vencido") d.vencidosCerrados++;  // cerrado fuera del ANS
         if (r.tiempo_transcurrido_dias != null) d.tiemposSol.push(r.tiempo_transcurrido_dias);
       }
     });
@@ -1335,9 +1339,12 @@
     if (kpiGrid) {
       const totalCasosResp = responsables.reduce(function (s, r) { return s + r.totalCasos; }, 0);
       const totalTareasResp = responsables.reduce(function (s, r) { return s + r.totalTareas; }, 0);
+      const vencCerrResp = responsables.reduce(function (s, r) { return s + r.vencidosCerrados; }, 0);
+      const cerradosResp = responsables.reduce(function (s, r) { return s + r.solucionados; }, 0);
       kpiGrid.innerHTML =
         kpi("Responsables en vista", responsables.length, "info", "bi-people", "según filtros de sección") +
         kpi("Total de casos", totalCasosResp, "info", "bi-folder2-open", "histórico completo en la vista") +
+        kpi("Vencidos cerrados", vencCerrResp, "vencido", "bi-archive", pct(vencCerrResp, cerradosResp) + "% de los cerrados") +
         kpi("Total de tareas", totalTareasResp, "info", "bi-list-check", "reporte de tareas/eventos");
     }
 
@@ -1355,6 +1362,7 @@
           '<td data-order="' + r.abiertos + '">' + r.abiertos + '</td>' +
           '<td data-order="' + r.vencidosActivos + '">' + vBadge + '</td>' +
           '<td data-order="' + r.criticosActivos + '">' + cBadge + '</td>' +
+          '<td data-order="' + r.vencidosCerrados + '">' + r.vencidosCerrados + '</td>' +
           '<td data-order="' + r.tasaResolucion + '">' + r.tasaResolucion + '%</td>' +
           '<td data-order="' + r.totalTareas + '">' + r.totalTareas + '</td>' +
           '<td data-order="' + r.tareasPendientes + '">' + r.tareasPendientes + '</td></tr>');
@@ -1384,6 +1392,7 @@
         kpi("Casos abiertos", d.abiertos, "info", "bi-folder2-open", "En Espera · En Proceso · Registrado") +
         kpi("Vencidos activos", d.vencidosActivos, "vencido", "bi-x-octagon", "") +
         kpi("Críticos activos", d.criticosActivos, "critico", "bi-exclamation-triangle", "") +
+        kpi("Vencidos cerrados", d.vencidosCerrados, "vencido", "bi-archive", pct(d.vencidosCerrados, d.solucionados) + "% de sus cerrados") +
         kpi("% Resolución", d.tasaResolucion + "%", "sla", "bi-graph-up", d.solucionados + " solucionados") +
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
         kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "");
