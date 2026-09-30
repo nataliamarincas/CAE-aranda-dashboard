@@ -1687,6 +1687,19 @@
     });
   }
 
+  const SUB_CLASE = { completo: "listo", en_curso: "en-curso", pendiente: "pendiente" };
+  function subtareasHTML(tareaId) {
+    const subs = (STATE.metas ? STATE.metas.subtareas : []).filter(function (s) { return s.tareas.indexOf(tareaId) !== -1; })
+      .sort(function (a, b) { return ({ completo: 2, en_curso: 0, pendiente: 1 })[a.grupo] - ({ completo: 2, en_curso: 0, pendiente: 1 })[b.grupo]; });
+    if (!subs.length) return '<div class="subs-lista">Sin sub tareas</div>';
+    return '<div class="subs-lista">' + subs.map(function (s) {
+      return '<div class="subs-item"><i class="bi ' + (s.grupo === "completo" ? "bi-check-circle-fill" : "bi-circle") + '"></i>' +
+        '<span class="subs-nombre">' + esc(s.nombre) + '</span>' +
+        '<span class="subs-estado subs-estado--' + SUB_CLASE[s.grupo] + '">' + esc(s.estado) + '</span>' +
+        '<span class="subs-fecha">' + (s.fecha ? esc(s.fecha) : "Sin fecha") + '</span></div>';
+    }).join("") + '</div>';
+  }
+
   function populateMetasFilterBar() {
     const bar = document.getElementById("metasFilterBar"); if (!bar || !STATE.metas) return;
     const tareas = STATE.metas.tareas;
@@ -1804,17 +1817,25 @@
       const vence = t.vencimiento ? esc(t.vencimiento) + (t.grupo !== "completo" && d !== null ? '<span class="progress-text">' + (d < 0 ? "hace " + (-d) + " días" : d === 0 ? "hoy" : "en " + d + " días") + '</span>' : '') : '—';
       const pill = s[1] ? '<span class="status-pill status-pill--' + s[1] + '">' + s[0] + '</span>' : '<span class="area-chip">' + s[0] + '</span>';
       const orden = (t.grupo === "completo" ? "1" : "0") + (t.vencimiento || "9999-12-31");
-      return '<tr class="' + (sit === "vencida" ? "row--vencido" : "") + '">' +
+      return '<tr class="' + (sit === "vencida" ? "row--vencido" : "") + (t.subtareas_total ? " meta-row--subs" : "") + '" data-tarea="' + esc(t.id) + '">' +
         '<td><strong>' + esc(t.nombre) + '</strong>' + (t.descripcion ? '<span class="progress-text">' + esc(t.descripcion) + '</span>' : '') + '</td>' +
         '<td>' + esc(t.proyecto) + '</td><td>' + esc(t.estado) + '</td>' +
         '<td data-order="' + (PRIORIDAD_ORDEN[t.prioridad] !== undefined ? PRIORIDAD_ORDEN[t.prioridad] : 9) + '">' + esc(t.prioridad) + '</td>' +
         '<td data-order="' + orden + '">' + vence + '</td><td>' + pill + '</td>' +
         '<td>' + esc(t.asignados.join(", ") || "Sin asignar") + '</td>' +
-        '<td data-order="' + t.progreso + '">' + (t.subtareas_total ? progressCellHTML(t.progreso, "normal").replace('%</div>', '% · ' + t.subtareas_listas + '/' + t.subtareas_total + '</div>') : '<span class="area-chip">Sin sub tareas</span>') + '</td>' +
+        '<td data-order="' + t.progreso + '">' + (t.subtareas_total ? progressCellHTML(t.progreso, "normal").replace('%</div>', '% · ' + t.subtareas_listas + '/' + t.subtareas_total + '</div>') +
+          '<span class="subs-toggle"><i class="bi bi-chevron-down"></i> Ver sub tareas</span>' : '<span class="area-chip">Sin sub tareas</span>') + '</td>' +
         '<td>' + (t.url ? '<a href="' + esc(t.url) + '" target="_blank" rel="noopener" title="Abrir en Notion"><i class="bi bi-box-arrow-up-right"></i></a>' : '') + '</td></tr>';
     }).join("");
     dtRegistry[sel] = $(sel).DataTable({ language: DT_LANG_ES, paging: true, pageLength: 15, order: [[4, "asc"]], dom: "frtipB", buttons: DT_BUTTONS,
       columnDefs: [{ targets: 8, orderable: false }] });
+    // Clic en una tarea con sub tareas: despliega la lista (nombre, estado y fecha).
+    $(sel + " tbody").off("click.subs").on("click.subs", "tr.meta-row--subs", function (e) {
+      if ($(e.target).closest("a").length) return;  // el enlace a Notion no despliega
+      const fila = dtRegistry[sel].row(this), id = this.getAttribute("data-tarea");
+      if (fila.child.isShown()) { fila.child.hide(); this.classList.remove("is-open"); return; }
+      fila.child(subtareasHTML(id), "meta-subs-row").show(); this.classList.add("is-open");
+    });
   }
 
   /* ====================== BÚSQUEDA GLOBAL ====================== */
