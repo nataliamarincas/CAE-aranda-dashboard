@@ -94,7 +94,8 @@
   const GRUPO_FILTER = { grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
   // Resumen ejecutivo: filtros propios (independientes de la pestaña Casos).
   // Las fechas también recortan las Tareas.
-  const EXEC_FILTER = { nivel1: [], nivel2: [], grupo: [], condicion: [], fuente: [], fechaDesde: "", fechaHasta: "" };
+  const EXEC_FILTER = { nivel1: [], nivel2: [], clasificacion: [], autor: [], grupo: [], responsable: [], estado: [], condicion: [],
+    tipoRegistro: [], fuente: [], fechaDesde: "", fechaHasta: "" };
   // Atención Prioritaria: filtros propios sobre los casos abiertos vencidos o críticos.
   const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
 
@@ -472,7 +473,12 @@
     return STATE.rawCasos.filter(function (r) {
       if (f.nivel1.length && f.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
       if (f.nivel2.length && f.nivel2.indexOf(r.nivel2) === -1) return false;
+      if (f.clasificacion.length && f.clasificacion.indexOf(clasificacionCaso(r)) === -1) return false;
+      if (f.autor.length && f.autor.indexOf(autorGrupo(r)) === -1) return false;
       if (f.grupo.length && f.grupo.indexOf(r.grupo_responsable) === -1) return false;
+      if (f.responsable.length && f.responsable.indexOf(r.responsable) === -1) return false;
+      if (f.estado.length && f.estado.indexOf(r.estado) === -1) return false;
+      if (f.tipoRegistro.length && f.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
       if (f.fuente.length && f.fuente.indexOf(r.fuente) === -1) return false;
       if (f.condicion.length && f.condicion.indexOf(esAbierto(r) ? "Abiertos" : "Cerrados") === -1) return false;
       if (f.fechaDesde && (r.fecha_registro || "") < f.fechaDesde) return false;
@@ -517,9 +523,9 @@
       if (cls === "Vencido") vencidos++; else if (cls === "Critico") criticos++; else if (cls === "Riesgo") riesgo++; else normal++;
       sumTiempo += (r.tiempo_transcurrido_dias || 0);
       const n1 = nivel1Effective(r);
-      if (!porNivel1[n1]) porNivel1[n1] = { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 } };
+      if (!porNivel1[n1]) porNivel1[n1] = { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 } };
       porNivel1[n1].total++;
-      if (esAbierto(r)) porNivel1[n1].abiertos++;
+      if (esAbierto(r)) porNivel1[n1].abiertos++; else if (resAns === "Vencido") porNivel1[n1].vencidosCerrados++;
       porNivel1[n1].ans[ansResultado(r)]++;
       if (cls === "Vencido") { porNivel1[n1].vencidos++; vencidosPorResponsable[r.responsable || "Sin asignar"] = (vencidosPorResponsable[r.responsable || "Sin asignar"] || 0) + 1; vencidosPorCategoria[r.categoria || "Sin categoría"] = (vencidosPorCategoria[r.categoria || "Sin categoría"] || 0) + 1; }
       else if (cls === "Critico") porNivel1[n1].criticos++;
@@ -785,8 +791,13 @@
     const dropsHtml =
       buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), EXEC_FILTER) +
       buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", nivel2Opts, EXEC_FILTER) +
+      buildMsDropHTML("clasificacion", "Clasificación", "bi-exclamation-triangle", CLASIFICACIONES, EXEC_FILTER) +
+      buildMsDropHTML("autor", "Autor", "bi-person-plus", AUTORES_GESTORES, EXEC_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals("grupo_responsable"), EXEC_FILTER) +
+      buildMsDropHTML("responsable", "Responsable", "bi-person", uniqueVals("responsable"), EXEC_FILTER) +
+      buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals("estado"), EXEC_FILTER) +
       buildMsDropHTML("condicion", "Condición", "bi-toggle2-on", ["Abiertos", "Cerrados"], EXEC_FILTER) +
+      buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", uniqueVals("tipo_registro"), EXEC_FILTER) +
       buildMsDropHTML("fuente", "Origen", "bi-database", uniqueVals("fuente"), EXEC_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="execFilterDrops">' + dropsHtml + '</div>' +
@@ -873,20 +884,25 @@
   function renderComparativoNivel1() {
     const cats = catsPresentes();
     const s = STATE.statsExec;
-    const tbody = document.querySelector("#tableComparativo tbody");
+    // Destruir la tabla ANTES de reescribir las filas: si se destruye después,
+    // DataTables restaura las filas anteriores y la tabla no reflejaba los filtros.
+    const selComp = "#tableComparativo";
+    if (dtRegistry[selComp]) { try { dtRegistry[selComp].destroy(); } catch (e) {} delete dtRegistry[selComp]; }
+    const tbody = document.querySelector(selComp + " tbody");
     if (tbody) {
       let html = "";
       cats.forEach(function (c) {
-        const d = s.porNivel1[c] || { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, ans: { Normal: 0 } };
+        const d = s.porNivel1[c] || { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ans: { Normal: 0 } };
         const aTiempo = pct(d.ans.Normal, d.total);
         html += '<tr>' +
           '<td>' + nivel1ChipHTML(c) + '</td>' +
-          '<td data-order="' + d.total + '">' + d.total + '</td>' +
+          '<td data-order="' + d.total + '">' + d.total.toLocaleString("es-CO") + '</td>' +
           '<td data-order="' + d.abiertos + '">' + d.abiertos + '</td>' +
           '<td data-order="' + aTiempo + '">' + (d.total ? aTiempo + '%' : '—') + '</td>' +
           '<td data-order="' + d.vencidos + '">' + d.vencidos + '</td>' +
           '<td data-order="' + d.criticos + '">' + d.criticos + '</td>' +
           '<td data-order="' + d.riesgo + '">' + d.riesgo + '</td>' +
+          '<td data-order="' + d.vencidosCerrados + '">' + d.vencidosCerrados + '</td>' +
           '</tr>';
       });
       tbody.innerHTML = html;
