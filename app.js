@@ -1079,7 +1079,13 @@
             return type === "display" ? esc(r.caso) + '<span class="progress-text"> · ant. ' + esc(r.caso_anterior) + '</span>'
               : r.caso + " " + r.caso_anterior;
           } },
-          { data: "fecha_registro", render: txt }, { data: "estado", render: txt },
+          { data: "fecha_registro", render: txt },
+          // Estado de Aranda + si cuenta como abierto o cerrado (Registrado, En Proceso y
+          // En Espera son abiertos), para que cuadre a simple vista con las tarjetas.
+          { data: null, render: function (d, type, r) {
+            const cond = esAbierto(r) ? "Abierto" : "Cerrado";
+            return type === "display" ? esc(r.estado) + '<span class="progress-text">' + cond + '</span>' : r.estado + " " + cond;
+          } },
           { data: null, render: function (d, type, r) {
             const c = clasificacionCaso(r);
             if (type === "display") return clasificacionPillHTML(c);
