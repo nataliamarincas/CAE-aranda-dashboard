@@ -1080,11 +1080,11 @@
               : r.caso + " " + r.caso_anterior;
           } },
           { data: "fecha_registro", render: txt },
-          // Estado de Aranda + si cuenta como abierto o cerrado (Registrado, En Proceso y
-          // En Espera son abiertos), para que cuadre a simple vista con las tarjetas.
+          { data: "estado", render: txt },
+          // Condición: Registrado, En Proceso y En Espera cuentan como abiertos (igual que las tarjetas).
           { data: null, render: function (d, type, r) {
             const cond = esAbierto(r) ? "Abierto" : "Cerrado";
-            return type === "display" ? esc(r.estado) + '<span class="progress-text">' + cond + '</span>' : r.estado + " " + cond;
+            return type === "display" ? '<span class="cond-chip cond-chip--' + cond.toLowerCase() + '">' + cond + '</span>' : cond;
           } },
           { data: null, render: function (d, type, r) {
             const c = clasificacionCaso(r);
@@ -1105,7 +1105,7 @@
           const cls = effectiveClass(r);
           if (cls === "Vencido") row.classList.add("row--vencido"); else if (cls === "Critico") row.classList.add("row--critico");
         },
-        paging: true, pageLength: 15, order: [[13, "desc"], [12, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
+        paging: true, pageLength: 15, order: [[14, "desc"], [13, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
       });
     }
   }

@@ -251,6 +251,10 @@ button{ font-family:inherit; }
 .progress-text{ font-size:11px; color:var(--t3); margin-top:3px; display:block; }
 
 .area-chip{ display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:6px; background:var(--neutral); color:var(--t2); }
+/* Condición del caso en la tabla de Casos */
+.cond-chip{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:6px; }
+.cond-chip--abierto{ background:#fdf0f0; color:var(--wine); border:1px solid var(--wine); }
+.cond-chip--cerrado{ background:var(--neutral); color:var(--t3); }
 .chip-nivel1{ display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:6px; color:#fff; }
 .chip-nivel1--financiero{ background:#8C0F13; }
 .chip-nivel1--tecnologias{ background:#4A6B8C; }
