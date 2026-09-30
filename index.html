@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
 
@@ -61,6 +61,10 @@
       <button class="nav-link" data-view="tareas">
         <i class="bi bi-list-check"></i><span>Tareas</span>
         <span class="nav-badge" id="navBadgeTareas">0</span>
+      </button>
+      <button class="nav-link nav-link--alert" data-view="metas" title="Tareas de Notion vencidas">
+        <i class="bi bi-bullseye"></i><span>Metas y progreso</span>
+        <span class="nav-badge" id="navBadgeMetas" style="display:none">0</span>
       </button>
       <button class="nav-link nav-link--alert" data-view="gestion" title="Casos vencidos + críticos">
         <i class="bi bi-people-fill"></i><span>Seguimiento operativo</span>
@@ -324,6 +328,55 @@
 
       </section>
 
+      <!-- ============ VISTA: METAS Y PROGRESO (Notion · TAREAS CAE) ============ -->
+      <section class="view" id="view-metas" data-view="metas">
+
+        <div class="panel" id="metasSinDatos" style="display:none">
+          <div class="panel-header"><h2><i class="bi bi-plug"></i> Metas y progreso aún sin datos</h2></div>
+          <p style="margin:0">Esta sección se alimenta de la página <strong>TAREAS CAE</strong> de Notion a través del pipeline.
+            Cuando el workflow tenga el secreto <code>NOTION_TOKEN</code>, los datos aparecerán aquí automáticamente.</p>
+        </div>
+
+        <div id="metasContenido">
+          <div class="metas-fuente" id="metasFuente"></div>
+          <div class="global-filter-bar" id="metasFilterBar"></div>
+          <div class="kpi-grid" id="kpiMetasGrid" style="margin-top:20px"></div>
+
+          <div class="panel" style="margin-bottom:18px">
+            <div class="panel-header">
+              <h2><i class="bi bi-kanban"></i> Proyectos</h2>
+              <span class="panel-sub">Progreso = % de sus tareas finalizadas (como en Notion)</span>
+            </div>
+            <div class="metas-grid" id="metasProyectos"></div>
+          </div>
+
+          <div class="grid-2col">
+            <div class="panel">
+              <div class="panel-header"><h2><i class="bi bi-pie-chart"></i> Tareas por estado</h2></div>
+              <div class="chart-wrap"><canvas id="chartMetasEstado" class="chart-skeleton"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header"><h2><i class="bi bi-people"></i> Tareas por persona</h2><span class="panel-sub">Finalizadas · activas · vencidas</span></div>
+              <div class="chart-wrap"><canvas id="chartMetasPersona" class="chart-skeleton"></canvas></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-list-task"></i> Tareas</h2>
+              <span class="panel-sub">Ordenadas por vencimiento · progreso = sub tareas listas</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table data-table" id="tableMetasTareas" style="width:100%">
+                <thead><tr><th>Tarea</th><th>Proyecto</th><th>Estado</th><th>Prioridad</th><th>Vence</th><th>Situación</th><th>Asignada a</th><th>Sub tareas</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
       <!-- ============ VISTA: SEGUIMIENTO OPERATIVO ============
            Reúne Atención Prioritaria, Gestión de Responsables y Comparativa por
            Grupos como sub-pestañas de una misma vista. -->
@@ -511,6 +564,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

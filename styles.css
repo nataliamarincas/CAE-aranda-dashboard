@@ -251,6 +251,26 @@ button{ font-family:inherit; }
 .progress-text{ font-size:11px; color:var(--t3); margin-top:3px; display:block; }
 
 .area-chip{ display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:6px; background:var(--neutral); color:var(--t2); }
+/* Metas y progreso (Notion) */
+.metas-fuente{ font-size:12px; color:var(--t3); margin-bottom:12px; }
+.metas-fuente a{ color:var(--wine); font-weight:600; text-decoration:none; }
+.metas-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
+.meta-card{ border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--card); display:flex; flex-direction:column; gap:8px; }
+.meta-card-top{ display:flex; justify-content:space-between; align-items:center; }
+.meta-card-nombre{ font-weight:700; font-size:13.5px; color:var(--t1); }
+.meta-link{ color:var(--t4); } .meta-link:hover{ color:var(--wine); }
+.meta-progreso{ display:flex; align-items:center; gap:10px; } .meta-progreso .progress-track{ flex:1; }
+.meta-progreso strong{ font-size:13px; min-width:38px; text-align:right; }
+.progress-fill--meta{ background:#4A6B8C; }
+.meta-card-meta{ display:flex; flex-wrap:wrap; gap:4px 12px; font-size:11.5px; color:var(--t3); }
+.meta-venc{ color:var(--red); font-weight:600; }
+.meta-estado{ font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; background:var(--neutral); color:var(--t2); }
+.meta-estado--en-curso{ background:#e3ecf6; color:#2d5a86; }
+.meta-estado--atrasado{ background:#fdecec; color:var(--red); }
+.meta-estado--en-espera{ background:#fdf1e0; color:#9a5b12; }
+.meta-estado--terminado{ background:#e3f3e6; color:#2a7a3b; }
+.meta-estado--perdido{ background:#f1e4e4; color:#7a1e22; }
+
 /* Condición del caso en la tabla de Casos */
 .cond-chip{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:6px; }
 .cond-chip--abierto{ background:#fdf0f0; color:var(--wine); border:1px solid var(--wine); }

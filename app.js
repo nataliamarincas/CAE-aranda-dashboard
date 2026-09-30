@@ -36,6 +36,7 @@
   const CONFIG = {
     casosSource: "data/casos.json",
     tareasSource: "data/tareas.json",
+    metasSource: "data/metas.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
 
@@ -56,6 +57,7 @@
     resumen: "Resumen ejecutivo",
     casos: "Casos",
     tareas: "Tareas",
+    metas: "Metas y progreso",
     gestion: "Seguimiento operativo"
   };
 
@@ -625,10 +627,18 @@
       })
       .catch(function (err) { STATE.errorTareas = "Origen no disponible (" + err.message + ")"; if (!STATE.rawTareas.length) STATE.rawTareas = []; });
   }
+  // Metas (Notion): opcional. Si el archivo aún no existe, la sección muestra cómo activarla.
+  function loadMetas() {
+    return fetch(CONFIG.metasSource, { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        if (json && json.generado_en !== STATE.genMetas) { STATE.metas = json; STATE.genMetas = json.generado_en; STATE.datosCambiaron = true; }
+      })
+      .catch(function () { /* sin metas.json todavía */ });
+  }
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas()]).then(function () {
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
       const allError = !!(STATE.errorCasos && STATE.errorTareas);
@@ -740,6 +750,7 @@
     resumen: [["Resumen ejecutivo", renderExecutive]],
     casos: [["Casos", renderCasosView]],
     tareas: [["Tareas", renderTareasView]],
+    metas: [["Metas y progreso", renderMetas]],
     gestion: [["Atención Prioritaria", renderAttention], ["Responsables", renderResponsables], ["Grupos", renderGrupos]]
   };
   let _vistasPendientes = {};
@@ -776,6 +787,11 @@
     }).length;
     const navCasos = document.getElementById("navBadgeCasos");
     if (navCasos) navCasos.textContent = STATE.statsCasos.abiertos;
+    const navMetas = document.getElementById("navBadgeMetas");
+    if (navMetas) {
+      const venc = STATE.metas ? STATE.metas.tareas.filter(function (t) { return situacionTarea(t) === "vencida"; }).length : 0;
+      navMetas.textContent = venc; navMetas.style.display = venc ? "" : "none";
+    }
     const navTareas = document.getElementById("navBadgeTareas");
     if (navTareas) navTareas.textContent = STATE.statsTareas.pendientes;
   }
@@ -1634,6 +1650,171 @@
       return { label: ANS_LABELS[cls], backgroundColor: ANS_COLORS[cls], data: top10.map(function (g) { return g.ans[cls]; }) };
     });
     renderChart("chartGruposStack", "bar", { labels: top10.map(function (g) { return g.grupo; }), datasets: datasets }, stackedBarOpts());
+  }
+
+
+  /* ---------------------- METAS Y PROGRESO (Notion · TAREAS CAE) ---------------------- */
+  // Datos: data/metas.json, que arma el pipeline desde Notion (Proyectos, Tareas y
+  // Sub tareas). Progreso como en Notion: proyecto = % de tareas finalizadas o
+  // canceladas; tarea = % de sub tareas listas.
+
+  const METAS_FILTER = { proyecto: [], estado: [], prioridad: [], asignado: [] };
+  const PRIORIDAD_ORDEN = { "Urgente": 0, "Alta": 1, "Medio": 2, "Bajo": 3 };
+  const ESTADO_PROYECTO_CLASE = { "En curso": "en-curso", "Atrasado": "atrasado", "En espera": "en-espera",
+    "No iniciado": "no-iniciado", "Terminado": "terminado", "Perdido": "perdido" };
+
+  function diasHasta(fechaISO) {
+    if (!fechaISO) return null;
+    return Math.round((new Date(fechaISO.substring(0, 10) + "T00:00:00") - new Date(isoToday() + "T00:00:00")) / DIA_MS);
+  }
+  // Situación de una tarea según su fecha de vencimiento.
+  function situacionTarea(t) {
+    if (t.grupo === "completo") return "completa";
+    const d = diasHasta(t.vencimiento);
+    if (d === null) return "sin_fecha";
+    if (d < 0) return "vencida";
+    if (d <= 7) return "proxima";
+    return "a_tiempo";
+  }
+  function tareasMetasFiltradas() {
+    const f = METAS_FILTER;
+    return (STATE.metas ? STATE.metas.tareas : []).filter(function (t) {
+      if (f.proyecto.length && f.proyecto.indexOf(t.proyecto) === -1) return false;
+      if (f.estado.length && f.estado.indexOf(t.estado) === -1) return false;
+      if (f.prioridad.length && f.prioridad.indexOf(t.prioridad) === -1) return false;
+      if (f.asignado.length && !t.asignados.some(function (a) { return f.asignado.indexOf(a) !== -1; })) return false;
+      return true;
+    });
+  }
+
+  function populateMetasFilterBar() {
+    const bar = document.getElementById("metasFilterBar"); if (!bar || !STATE.metas) return;
+    const tareas = STATE.metas.tareas;
+    const uniq = function (arr) { return Array.from(new Set(arr.filter(Boolean))).sort(); };
+    const dropsHtml =
+      buildMsDropHTML("proyecto", "Proyecto", "bi-kanban", uniq(tareas.map(function (t) { return t.proyecto; })), METAS_FILTER) +
+      buildMsDropHTML("estado", "Estado", "bi-circle-half", uniq(tareas.map(function (t) { return t.estado; })), METAS_FILTER) +
+      buildMsDropHTML("prioridad", "Prioridad", "bi-flag", uniq(tareas.map(function (t) { return t.prioridad; })), METAS_FILTER) +
+      buildMsDropHTML("asignado", "Asignada a", "bi-person", uniq([].concat.apply([], tareas.map(function (t) { return t.asignados; }))), METAS_FILTER);
+    bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
+      '<div class="gfb-drops" id="metasFilterDrops">' + dropsHtml + '</div>' +
+      '<button class="gfb-clear" id="metasFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
+    wireFilterBar("metasFilterBar", "metasFilterDrops", METAS_FILTER, function () { renderMetasContent(); }, []);
+    const clearBtn = document.getElementById("metasFilterClear");
+    if (clearBtn) clearBtn.addEventListener("click", function () {
+      Object.keys(METAS_FILTER).forEach(function (k) { METAS_FILTER[k] = []; });
+      populateMetasFilterBar(); renderMetasContent();
+    });
+  }
+
+  function renderMetas() {
+    const vacio = document.getElementById("metasSinDatos"), contenido = document.getElementById("metasContenido");
+    if (!STATE.metas) {
+      if (vacio) vacio.style.display = ""; if (contenido) contenido.style.display = "none";
+      return;
+    }
+    if (vacio) vacio.style.display = "none"; if (contenido) contenido.style.display = "";
+    const fuente = document.getElementById("metasFuente");
+    if (fuente) {
+      const g = STATE.metas.generado_en ? new Date(STATE.metas.generado_en) : null;
+      fuente.innerHTML = 'Fuente: <a href="' + esc(STATE.metas.fuente_url) + '" target="_blank" rel="noopener">' + esc(STATE.metas.fuente) +
+        ' <i class="bi bi-box-arrow-up-right"></i></a>' + (g ? ' · actualizado ' + g.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" }) : '');
+    }
+    populateMetasFilterBar();
+    renderMetasContent();
+  }
+
+  function renderMetasContent() {
+    const m = STATE.metas; if (!m) return;
+    const tareas = tareasMetasFiltradas();
+    const idsTareas = {}; tareas.forEach(function (t) { idsTareas[t.id] = true; });
+    const completas = tareas.filter(function (t) { return t.grupo === "completo"; }).length;
+    const activas = tareas.filter(function (t) { return t.grupo !== "completo"; });
+    const vencidas = activas.filter(function (t) { return situacionTarea(t) === "vencida"; });
+    const proximas = activas.filter(function (t) { return situacionTarea(t) === "proxima"; });
+    const subs = m.subtareas.filter(function (s) { return s.tareas.some(function (id) { return idsTareas[id]; }); });
+    const subsListas = subs.filter(function (s) { return s.grupo === "completo"; }).length;
+    const proyEnCurso = m.proyectos.filter(function (p) { return p.grupo === "en_curso"; }).length;
+    const proyTerminados = m.proyectos.filter(function (p) { return p.grupo === "completo"; }).length;
+
+    const grid = document.getElementById("kpiMetasGrid");
+    if (grid) grid.innerHTML =
+      kpi("Avance general", pct(completas, tareas.length) + "%", "sla", "bi-bullseye", completas + " de " + tareas.length + " tareas finalizadas") +
+      kpi("Proyectos", m.proyectos.length, "info", "bi-kanban", proyEnCurso + " en curso · " + proyTerminados + " terminados") +
+      kpi("Tareas activas", activas.length, "info", "bi-list-task", "no finalizadas") +
+      kpi("Tareas vencidas", vencidas.length, "vencido", "bi-calendar-x", "pasó su fecha y no están finalizadas") +
+      kpi("Vencen en 7 días", proximas.length, "riesgo", "bi-calendar-event", "tareas activas") +
+      kpi("Sub tareas listas", subsListas + " / " + subs.length, "normal", "bi-check2-square", pct(subsListas, subs.length) + "% completadas");
+
+    // Tarjetas de proyecto (con los filtros: proyecto y, si se filtra, solo los que tienen tareas visibles)
+    const hayFiltroTareas = METAS_FILTER.estado.length || METAS_FILTER.prioridad.length || METAS_FILTER.asignado.length;
+    const proyectos = m.proyectos.filter(function (p) {
+      if (METAS_FILTER.proyecto.length && METAS_FILTER.proyecto.indexOf(p.nombre) === -1) return false;
+      return !hayFiltroTareas || tareas.some(function (t) { return t.proyecto_id === p.id; });
+    }).sort(function (a, b) {
+      const orden = { en_curso: 0, pendiente: 1, completo: 2 };
+      return (orden[a.grupo] - orden[b.grupo]) || (b.progreso - a.progreso);
+    });
+    const cards = document.getElementById("metasProyectos");
+    if (cards) cards.innerHTML = proyectos.map(function (p) {
+      const ts = m.tareas.filter(function (t) { return t.proyecto_id === p.id; });
+      const venc = ts.filter(function (t) { return situacionTarea(t) === "vencida"; }).length;
+      const clase = ESTADO_PROYECTO_CLASE[p.estado] || "sin-estado";
+      const plazo = p.plazo_fin ? '<span><i class="bi bi-calendar3"></i> Plazo ' + esc(p.plazo_fin) + '</span>' : '';
+      return '<div class="meta-card">' +
+        '<div class="meta-card-top"><span class="meta-estado meta-estado--' + clase + '">' + esc(p.estado) + '</span>' +
+        (p.url ? '<a class="meta-link" href="' + esc(p.url) + '" target="_blank" rel="noopener" title="Abrir en Notion"><i class="bi bi-box-arrow-up-right"></i></a>' : '') + '</div>' +
+        '<div class="meta-card-nombre">' + esc(p.nombre) + '</div>' +
+        '<div class="meta-progreso"><div class="progress-track"><div class="progress-fill progress-fill--meta" style="width:' + Math.max(2, p.progreso) + '%"></div></div>' +
+        '<strong>' + p.progreso.toFixed(0) + '%</strong></div>' +
+        '<div class="meta-card-meta"><span><i class="bi bi-list-check"></i> ' + p.tareas_completas + ' de ' + p.tareas_total + ' tareas</span>' + plazo +
+        (venc ? '<span class="meta-venc"><i class="bi bi-exclamation-triangle"></i> ' + venc + ' vencida' + (venc === 1 ? '' : 's') + '</span>' : '') +
+        (p.responsables.length ? '<span><i class="bi bi-person"></i> ' + esc(p.responsables.join(", ")) + '</span>' : '') + '</div></div>';
+    }).join("") || '<div class="spotlight-empty">Sin proyectos con los filtros aplicados</div>';
+
+    // Gráficos: tareas por estado y por persona asignada
+    renderChart("chartMetasEstado", "doughnut", toChartDataDoughnut(countBy(tareas, "estado"), null, {
+      "Finalizado": "#2a7a3b", "Cancelado": "#9C8C7E", "En proceso": "#6B4E8C", "En espera de aprobación": "#D9A441",
+      "Solicitado": "#4A6B8C", "No iniciado": "#D9CFC6" }), doughnutOpts());
+    const porPersona = {};
+    tareas.forEach(function (t) {
+      (t.asignados.length ? t.asignados : ["Sin asignar"]).forEach(function (a) {
+        if (!porPersona[a]) porPersona[a] = { completas: 0, activas: 0, vencidas: 0 };
+        if (t.grupo === "completo") porPersona[a].completas++;
+        else if (situacionTarea(t) === "vencida") porPersona[a].vencidas++;
+        else porPersona[a].activas++;
+      });
+    });
+    const personas = Object.keys(porPersona).sort();
+    renderChart("chartMetasPersona", "bar", { labels: personas, datasets: [
+      { label: "Finalizadas", data: personas.map(function (p) { return porPersona[p].completas; }), backgroundColor: "#2a7a3b" },
+      { label: "Activas", data: personas.map(function (p) { return porPersona[p].activas; }), backgroundColor: "#6B4E8C" },
+      { label: "Vencidas", data: personas.map(function (p) { return porPersona[p].vencidas; }), backgroundColor: "#C0151A" }
+    ] }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
+
+    // Tabla de tareas: activas primero, luego por fecha de vencimiento
+    const SIT = { vencida: ["Vencida", "vencido"], proxima: ["Vence pronto", "riesgo"], a_tiempo: ["A tiempo", "normal"],
+      sin_fecha: ["Sin fecha", ""], completa: ["Finalizada", ""] };
+    const sel = "#tableMetasTareas";
+    if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (e) {} delete dtRegistry[sel]; }
+    const tbody = document.querySelector(sel + " tbody");
+    if (tbody) tbody.innerHTML = tareas.map(function (t) {
+      const sit = situacionTarea(t), s = SIT[sit];
+      const d = diasHasta(t.vencimiento);
+      const vence = t.vencimiento ? esc(t.vencimiento) + (t.grupo !== "completo" && d !== null ? '<span class="progress-text">' + (d < 0 ? "hace " + (-d) + " días" : d === 0 ? "hoy" : "en " + d + " días") + '</span>' : '') : '—';
+      const pill = s[1] ? '<span class="status-pill status-pill--' + s[1] + '">' + s[0] + '</span>' : '<span class="area-chip">' + s[0] + '</span>';
+      const orden = (t.grupo === "completo" ? "1" : "0") + (t.vencimiento || "9999-12-31");
+      return '<tr class="' + (sit === "vencida" ? "row--vencido" : "") + '">' +
+        '<td><strong>' + esc(t.nombre) + '</strong>' + (t.descripcion ? '<span class="progress-text">' + esc(t.descripcion) + '</span>' : '') + '</td>' +
+        '<td>' + esc(t.proyecto) + '</td><td>' + esc(t.estado) + '</td>' +
+        '<td data-order="' + (PRIORIDAD_ORDEN[t.prioridad] !== undefined ? PRIORIDAD_ORDEN[t.prioridad] : 9) + '">' + esc(t.prioridad) + '</td>' +
+        '<td data-order="' + orden + '">' + vence + '</td><td>' + pill + '</td>' +
+        '<td>' + esc(t.asignados.join(", ") || "Sin asignar") + '</td>' +
+        '<td data-order="' + t.progreso + '">' + (t.subtareas_total ? progressCellHTML(t.progreso, "normal").replace('%</div>', '% · ' + t.subtareas_listas + '/' + t.subtareas_total + '</div>') : '<span class="area-chip">Sin sub tareas</span>') + '</td>' +
+        '<td>' + (t.url ? '<a href="' + esc(t.url) + '" target="_blank" rel="noopener" title="Abrir en Notion"><i class="bi bi-box-arrow-up-right"></i></a>' : '') + '</td></tr>';
+    }).join("");
+    dtRegistry[sel] = $(sel).DataTable({ language: DT_LANG_ES, paging: true, pageLength: 15, order: [[4, "asc"]], dom: "frtipB", buttons: DT_BUTTONS,
+      columnDefs: [{ targets: 8, orderable: false }] });
   }
 
   /* ====================== BÚSQUEDA GLOBAL ====================== */
