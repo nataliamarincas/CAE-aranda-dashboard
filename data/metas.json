@@ -1,93 +1,9 @@
 {
-  "generado_en": "2026-09-30T16:52:21.735770",
+  "generado_en": "2026-09-30T22:19:55.498316",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
   "avance_general": 23.1,
   "proyectos": [
-    {
-      "id": "3de8758f4cc2808f883bd91bc1e72b83",
-      "nombre": "JOURNEY MAP",
-      "estado": "En curso",
-      "grupo": "en_curso",
-      "plazo_inicio": null,
-      "plazo_fin": null,
-      "responsables": [],
-      "documentos": "https://app.notion.com/p/Journey-Rematr-cula-2026-3ce8758f4cc280daa475da39fcd1a557",
-      "tareas_total": 4,
-      "tareas_completas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc2808f883bd91bc1e72b83"
-    },
-    {
-      "id": "3de8758f4cc280698d93ee43ceb42d69",
-      "nombre": "GUÍA DE MATRÍCULA",
-      "estado": "En curso",
-      "grupo": "en_curso",
-      "plazo_inicio": null,
-      "plazo_fin": null,
-      "responsables": [],
-      "documentos": "",
-      "tareas_total": 4,
-      "tareas_completas": 2,
-      "progreso": 50.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280698d93ee43ceb42d69"
-    },
-    {
-      "id": "3de8758f4cc280d3a75ac7662d4e4a31",
-      "nombre": "DASHBOARD CANALES  DE ATENCIÓN",
-      "estado": "En curso",
-      "grupo": "en_curso",
-      "plazo_inicio": null,
-      "plazo_fin": null,
-      "responsables": [],
-      "documentos": "",
-      "tareas_total": 2,
-      "tareas_completas": 1,
-      "progreso": 50.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280d3a75ac7662d4e4a31"
-    },
-    {
-      "id": "3de8758f4cc28041811bc315ae889f03",
-      "nombre": "RE-MATRÍCULA 2027-1S / 2027-1C",
-      "estado": "No iniciado",
-      "grupo": "pendiente",
-      "plazo_inicio": null,
-      "plazo_fin": null,
-      "responsables": [],
-      "documentos": "",
-      "tareas_total": 3,
-      "tareas_completas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc28041811bc315ae889f03"
-    },
-    {
-      "id": "3de8758f4cc280ccb0d8c15e958d454b",
-      "nombre": "SALESFORCE - APOYO EN PROCESOS RE MATRÍCULA",
-      "estado": "No iniciado",
-      "grupo": "pendiente",
-      "plazo_inicio": null,
-      "plazo_fin": null,
-      "responsables": [],
-      "documentos": "",
-      "tareas_total": 0,
-      "tareas_completas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280ccb0d8c15e958d454b"
-    },
-    {
-      "id": "3de8758f4cc28019bd7dea1611cdc1bc",
-      "nombre": "NUEVA ESTRUCTURA IVR",
-      "estado": "En espera",
-      "grupo": "en_curso",
-      "plazo_inicio": null,
-      "plazo_fin": null,
-      "responsables": [],
-      "documentos": "",
-      "tareas_total": 0,
-      "tareas_completas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc28019bd7dea1611cdc1bc"
-    },
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
       "nombre": "MEJORAS INTERNAS",
@@ -102,101 +18,94 @@
       "tareas_total": 0,
       "tareas_completas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280278444eb334b5461c5"
+      "url": "https://app.notion.com/p/MEJORAS-INTERNAS-3de8758f4cc280278444eb334b5461c5"
+    },
+    {
+      "id": "3de8758f4cc28019bd7dea1611cdc1bc",
+      "nombre": "NUEVA ESTRUCTURA IVR",
+      "estado": "En espera",
+      "grupo": "en_curso",
+      "plazo_inicio": null,
+      "plazo_fin": null,
+      "responsables": [],
+      "documentos": "",
+      "tareas_total": 0,
+      "tareas_completas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/NUEVA-ESTRUCTURA-IVR-3de8758f4cc28019bd7dea1611cdc1bc"
+    },
+    {
+      "id": "3de8758f4cc28041811bc315ae889f03",
+      "nombre": "RE-MATRÍCULA 2027-1S / 2027-1C",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "plazo_inicio": null,
+      "plazo_fin": null,
+      "responsables": [],
+      "documentos": "",
+      "tareas_total": 3,
+      "tareas_completas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/RE-MATR-CULA-2027-1S-2027-1C-3de8758f4cc28041811bc315ae889f03"
+    },
+    {
+      "id": "3de8758f4cc280ccb0d8c15e958d454b",
+      "nombre": "SALESFORCE - APOYO EN PROCESOS RE MATRÍCULA",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "plazo_inicio": null,
+      "plazo_fin": null,
+      "responsables": [],
+      "documentos": "",
+      "tareas_total": 0,
+      "tareas_completas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/SALESFORCE-APOYO-EN-PROCESOS-RE-MATR-CULA-3de8758f4cc280ccb0d8c15e958d454b"
+    },
+    {
+      "id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "nombre": "DASHBOARD CANALES  DE ATENCIÓN",
+      "estado": "En curso",
+      "grupo": "en_curso",
+      "plazo_inicio": null,
+      "plazo_fin": null,
+      "responsables": [],
+      "documentos": "",
+      "tareas_total": 2,
+      "tareas_completas": 1,
+      "progreso": 50.0,
+      "url": "https://app.notion.com/p/DASHBOARD-CANALES-DE-ATENCI-N-3de8758f4cc280d3a75ac7662d4e4a31"
+    },
+    {
+      "id": "3de8758f4cc280698d93ee43ceb42d69",
+      "nombre": "GUÍA DE MATRÍCULA",
+      "estado": "En curso",
+      "grupo": "en_curso",
+      "plazo_inicio": null,
+      "plazo_fin": null,
+      "responsables": [],
+      "documentos": "",
+      "tareas_total": 4,
+      "tareas_completas": 2,
+      "progreso": 50.0,
+      "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
+    },
+    {
+      "id": "3de8758f4cc2808f883bd91bc1e72b83",
+      "nombre": "JOURNEY MAP",
+      "estado": "En curso",
+      "grupo": "en_curso",
+      "plazo_inicio": null,
+      "plazo_fin": null,
+      "responsables": [],
+      "documentos": "https://app.notion.com/p/Journey-Rematr-cula-2026-3ce8758f4cc280daa475da39fcd1a557",
+      "tareas_total": 4,
+      "tareas_completas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/JOURNEY-MAP-3de8758f4cc2808f883bd91bc1e72b83"
     }
   ],
   "tareas": [
-    {
-      "id": "8438758f4cc2831bb7a181230157616e",
-      "nombre": "UNIFICAR ARCHIVO ARANDA (ambas versiones)",
-      "estado": "Finalizado",
-      "grupo": "completo",
-      "prioridad": "Urgente",
-      "vencimiento": "2026-09-18",
-      "asignados": [
-        "Miguel Angel Medina Ospina"
-      ],
-      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
-      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
-      "descripcion": "",
-      "subtareas_total": 0,
-      "subtareas_listas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/8438758f4cc2831bb7a181230157616e"
-    },
-    {
-      "id": "b028758f4cc28299bee001e905aa1b10",
-      "nombre": "VÍDEOS CÓMO FUNCIONA ARANDA (cliente)",
-      "estado": "En proceso",
-      "grupo": "en_curso",
-      "prioridad": "Urgente",
-      "vencimiento": "2026-10-02",
-      "asignados": [
-        "Miguel Angel Medina Ospina"
-      ],
-      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
-      "proyecto": "GUÍA DE MATRÍCULA",
-      "descripcion": "",
-      "subtareas_total": 0,
-      "subtareas_listas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/b028758f4cc28299bee001e905aa1b10"
-    },
-    {
-      "id": "7e58758f4cc28397b9598160487d5ead",
-      "nombre": "NUEVA GRUPO SERVICIOS CAE “TECNOLOGÍAS”",
-      "estado": "Finalizado",
-      "grupo": "completo",
-      "prioridad": "Bajo",
-      "vencimiento": "2026-09-21",
-      "asignados": [
-        "Natalia Marin Castro"
-      ],
-      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
-      "proyecto": "GUÍA DE MATRÍCULA",
-      "descripcion": "",
-      "subtareas_total": 1,
-      "subtareas_listas": 1,
-      "progreso": 100.0,
-      "url": "https://app.notion.com/p/7e58758f4cc28397b9598160487d5ead"
-    },
-    {
-      "id": "2508758f4cc2835d96e601b276e01fb9",
-      "nombre": "NUEVA OPCIÓN “PROCESO DE GRADO”",
-      "estado": "En proceso",
-      "grupo": "en_curso",
-      "prioridad": "Medio",
-      "vencimiento": "2026-10-07",
-      "asignados": [
-        "Miguel Angel Medina Ospina",
-        "Natalia Marin Castro"
-      ],
-      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
-      "proyecto": "GUÍA DE MATRÍCULA",
-      "descripcion": "",
-      "subtareas_total": 1,
-      "subtareas_listas": 0,
-      "progreso": 0.0,
-      "url": "https://app.notion.com/p/2508758f4cc2835d96e601b276e01fb9"
-    },
-    {
-      "id": "1968758f4cc283ada02881ce5997b022",
-      "nombre": "AGREGAR CALENDARIO DUAL",
-      "estado": "Finalizado",
-      "grupo": "completo",
-      "prioridad": "Medio",
-      "vencimiento": "2026-09-18",
-      "asignados": [
-        "Natalia Marin Castro"
-      ],
-      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
-      "proyecto": "GUÍA DE MATRÍCULA",
-      "descripcion": "",
-      "subtareas_total": 1,
-      "subtareas_listas": 1,
-      "progreso": 100.0,
-      "url": "https://app.notion.com/p/1968758f4cc283ada02881ce5997b022"
-    },
     {
       "id": "3de8758f4cc280b7bca1c76200ff9d6e",
       "nombre": "ORGANIZACIÓN Y GESTIÓN CAMPAÑAS",
@@ -206,7 +115,7 @@
       "vencimiento": "2026-10-09",
       "asignados": [
         "Miguel Angel Medina Ospina",
-        "Natalia Marin Castro"
+        "NATALIA MARIN CASTRO"
       ],
       "proyecto_id": "3de8758f4cc28041811bc315ae889f03",
       "proyecto": "RE-MATRÍCULA 2027-1S / 2027-1C",
@@ -214,7 +123,7 @@
       "subtareas_total": 0,
       "subtareas_listas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280b7bca1c76200ff9d6e"
+      "url": "https://app.notion.com/p/ORGANIZACI-N-Y-GESTI-N-CAMPA-AS-3de8758f4cc280b7bca1c76200ff9d6e"
     },
     {
       "id": "3de8758f4cc2806f9bddfa17c37c2e72",
@@ -225,7 +134,7 @@
       "vencimiento": "2026-09-30",
       "asignados": [
         "Miguel Angel Medina Ospina",
-        "Natalia Marin Castro"
+        "NATALIA MARIN CASTRO"
       ],
       "proyecto_id": "3de8758f4cc28041811bc315ae889f03",
       "proyecto": "RE-MATRÍCULA 2027-1S / 2027-1C",
@@ -233,7 +142,7 @@
       "subtareas_total": 0,
       "subtareas_listas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc2806f9bddfa17c37c2e72"
+      "url": "https://app.notion.com/p/CREACI-N-DE-PIEZAS-REINTEGRO-3de8758f4cc2806f9bddfa17c37c2e72"
     },
     {
       "id": "3de8758f4cc28053bf9cc5f5bcdffc65",
@@ -251,7 +160,7 @@
       "subtareas_total": 0,
       "subtareas_listas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc28053bf9cc5f5bcdffc65"
+      "url": "https://app.notion.com/p/BASE-ESTUDIANTES-REINTEGRO-1S-1C-2027-3de8758f4cc28053bf9cc5f5bcdffc65"
     },
     {
       "id": "3de8758f4cc280bc9533d90033014250",
@@ -261,7 +170,7 @@
       "prioridad": "Medio",
       "vencimiento": "2026-09-25",
       "asignados": [
-        "Natalia Marin Castro"
+        "NATALIA MARIN CASTRO"
       ],
       "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
       "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
@@ -269,7 +178,7 @@
       "subtareas_total": 3,
       "subtareas_listas": 2,
       "progreso": 66.7,
-      "url": "https://app.notion.com/p/3de8758f4cc280bc9533d90033014250"
+      "url": "https://app.notion.com/p/VISUALIZACI-N-ATENCIONES-POR-CANAL-3de8758f4cc280bc9533d90033014250"
     },
     {
       "id": "3de8758f4cc280f4b5cecd8ba60d8e17",
@@ -279,7 +188,7 @@
       "prioridad": "Alta",
       "vencimiento": "2026-10-14",
       "asignados": [
-        "Natalia Marin Castro",
+        "NATALIA MARIN CASTRO",
         "Miguel Angel Medina Ospina"
       ],
       "proyecto_id": "3de8758f4cc2808f883bd91bc1e72b83",
@@ -288,7 +197,7 @@
       "subtareas_total": 4,
       "subtareas_listas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280f4b5cecd8ba60d8e17"
+      "url": "https://app.notion.com/p/JOURNEY-GRADOS-3de8758f4cc280f4b5cecd8ba60d8e17"
     },
     {
       "id": "3de8758f4cc280c9a9f2c1a51875d003",
@@ -298,7 +207,7 @@
       "prioridad": "Alta",
       "vencimiento": "2026-11-26",
       "asignados": [
-        "Natalia Marin Castro"
+        "NATALIA MARIN CASTRO"
       ],
       "proyecto_id": "3de8758f4cc2808f883bd91bc1e72b83",
       "proyecto": "JOURNEY MAP",
@@ -306,7 +215,7 @@
       "subtareas_total": 4,
       "subtareas_listas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/3de8758f4cc280c9a9f2c1a51875d003"
+      "url": "https://app.notion.com/p/JOURNEY-BIMESTRAL-3de8758f4cc280c9a9f2c1a51875d003"
     },
     {
       "id": "3de8758f4cc2807085a5f2b55a6a7503",
@@ -316,7 +225,7 @@
       "prioridad": "Alta",
       "vencimiento": "2026-10-29",
       "asignados": [
-        "Natalia Marin Castro"
+        "NATALIA MARIN CASTRO"
       ],
       "proyecto_id": "3de8758f4cc2808f883bd91bc1e72b83",
       "proyecto": "JOURNEY MAP",
@@ -324,7 +233,7 @@
       "subtareas_total": 3,
       "subtareas_listas": 1,
       "progreso": 33.3,
-      "url": "https://app.notion.com/p/3de8758f4cc2807085a5f2b55a6a7503"
+      "url": "https://app.notion.com/p/JOURNEY-SEMESTRAL-3de8758f4cc2807085a5f2b55a6a7503"
     },
     {
       "id": "a3e8758f4cc283ccaa79818f76e4d6a3",
@@ -334,7 +243,7 @@
       "prioridad": "Alta",
       "vencimiento": "2026-11-19",
       "asignados": [
-        "Natalia Marin Castro"
+        "NATALIA MARIN CASTRO"
       ],
       "proyecto_id": "3de8758f4cc2808f883bd91bc1e72b83",
       "proyecto": "JOURNEY MAP",
@@ -342,108 +251,199 @@
       "subtareas_total": 3,
       "subtareas_listas": 1,
       "progreso": 33.3,
-      "url": "https://app.notion.com/p/a3e8758f4cc283ccaa79818f76e4d6a3"
+      "url": "https://app.notion.com/p/JOURNEY-CUATRIMESTRAL-a3e8758f4cc283ccaa79818f76e4d6a3"
+    },
+    {
+      "id": "1968758f4cc283ada02881ce5997b022",
+      "nombre": "AGREGAR CALENDARIO DUAL",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Medio",
+      "vencimiento": "2026-09-18",
+      "asignados": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 1,
+      "subtareas_listas": 1,
+      "progreso": 100.0,
+      "url": "https://app.notion.com/p/AGREGAR-CALENDARIO-DUAL-1968758f4cc283ada02881ce5997b022"
+    },
+    {
+      "id": "2508758f4cc2835d96e601b276e01fb9",
+      "nombre": "NUEVA OPCIÓN “PROCESO DE GRADO”",
+      "estado": "En proceso",
+      "grupo": "en_curso",
+      "prioridad": "Medio",
+      "vencimiento": "2026-10-07",
+      "asignados": [
+        "Miguel Angel Medina Ospina",
+        "NATALIA MARIN CASTRO"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 1,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/NUEVA-OPCI-N-PROCESO-DE-GRADO-2508758f4cc2835d96e601b276e01fb9"
+    },
+    {
+      "id": "7e58758f4cc28397b9598160487d5ead",
+      "nombre": "NUEVA GRUPO SERVICIOS CAE “TECNOLOGÍAS”",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Bajo",
+      "vencimiento": "2026-09-21",
+      "asignados": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 1,
+      "subtareas_listas": 1,
+      "progreso": 100.0,
+      "url": "https://app.notion.com/p/NUEVA-GRUPO-SERVICIOS-CAE-TECNOLOG-AS-7e58758f4cc28397b9598160487d5ead"
+    },
+    {
+      "id": "b028758f4cc28299bee001e905aa1b10",
+      "nombre": "VÍDEOS CÓMO FUNCIONA ARANDA (cliente)",
+      "estado": "En proceso",
+      "grupo": "en_curso",
+      "prioridad": "Urgente",
+      "vencimiento": "2026-10-02",
+      "asignados": [
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/V-DEOS-C-MO-FUNCIONA-ARANDA-cliente-b028758f4cc28299bee001e905aa1b10"
+    },
+    {
+      "id": "8438758f4cc2831bb7a181230157616e",
+      "nombre": "UNIFICAR ARCHIVO ARANDA (ambas versiones)",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Urgente",
+      "vencimiento": "2026-09-18",
+      "asignados": [
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/UNIFICAR-ARCHIVO-ARANDA-ambas-versiones-8438758f4cc2831bb7a181230157616e"
     }
   ],
   "subtareas": [
     {
-      "id": "3de8758f4cc28083a4b7d4253b9e83a4",
-      "nombre": "Creación de Textos",
-      "estado": "Listo",
-      "grupo": "completo",
-      "fecha": "2026-09-18",
-      "tareas": [
-        "3de8758f4cc2807085a5f2b55a6a7503"
-      ],
-      "url": null
-    },
-    {
-      "id": "3de8758f4cc280fda8dad6ba5e1af69a",
-      "nombre": "Creación de Piezas",
-      "estado": "Solicitadas a Publicidad",
-      "grupo": "en_curso",
-      "fecha": null,
-      "tareas": [
-        "3de8758f4cc2807085a5f2b55a6a7503"
-      ],
-      "url": null
-    },
-    {
-      "id": "3de8758f4cc2808d8e64c9fbd7bf93af",
-      "nombre": "Creación de Bases",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
-      "fecha": null,
-      "tareas": [
-        "3de8758f4cc2807085a5f2b55a6a7503"
-      ],
-      "url": null
-    },
-    {
-      "id": "3df8758f4cc280db807bf126ef2c6050",
-      "nombre": "Creación de Textos",
-      "estado": "Listo",
-      "grupo": "completo",
-      "fecha": "2026-09-18",
-      "tareas": [
-        "a3e8758f4cc283ccaa79818f76e4d6a3"
-      ],
-      "url": null
-    },
-    {
-      "id": "3df8758f4cc280888570ea3837af5eaf",
-      "nombre": "Creación de Piezas",
-      "estado": "Solicitadas a Publicidad",
-      "grupo": "en_curso",
-      "fecha": null,
-      "tareas": [
-        "a3e8758f4cc283ccaa79818f76e4d6a3"
-      ],
-      "url": null
-    },
-    {
-      "id": "3df8758f4cc280d797c0c2658006b67e",
-      "nombre": "Creación de Bases",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
-      "fecha": null,
-      "tareas": [
-        "a3e8758f4cc283ccaa79818f76e4d6a3"
-      ],
-      "url": null
-    },
-    {
-      "id": "3df8758f4cc280419d3ac0b5e11a16a1",
-      "nombre": "Creación de Textos",
+      "id": "3eb8758f4cc280b08032e7e79fc69491",
+      "nombre": "Creación de Diseño Dashboard",
       "estado": "En curso",
       "grupo": "en_curso",
-      "fecha": "2026-09-18",
+      "fecha": "2026-09-29",
       "tareas": [
-        "3de8758f4cc280c9a9f2c1a51875d003"
+        "3de8758f4cc280bc9533d90033014250"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Dise-o-Dashboard-3eb8758f4cc280b08032e7e79fc69491"
     },
     {
-      "id": "3df8758f4cc280d9b2dedfe692c4c26e",
-      "nombre": "Creación de Piezas",
+      "id": "3eb8758f4cc2802fa094e7c36b58bf16",
+      "nombre": "Configuración Git Hub- Claude-Drive",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-28",
+      "tareas": [
+        "3de8758f4cc280bc9533d90033014250"
+      ],
+      "url": "https://app.notion.com/p/Configuraci-n-Git-Hub-Claude-Drive-3eb8758f4cc2802fa094e7c36b58bf16"
+    },
+    {
+      "id": "3eb8758f4cc280b1b862f7fc2ad8a5ac",
+      "nombre": "Base Historica de Casos",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-25",
+      "tareas": [
+        "3de8758f4cc280bc9533d90033014250"
+      ],
+      "url": "https://app.notion.com/p/Base-Historica-de-Casos-3eb8758f4cc280b1b862f7fc2ad8a5ac"
+    },
+    {
+      "id": "3df8758f4cc280c385b2e9dc9087dc48",
+      "nombre": "Construir textos proceso Digicampus",
       "estado": "Sin empezar",
       "grupo": "pendiente",
       "fecha": null,
       "tareas": [
         "3de8758f4cc280c9a9f2c1a51875d003"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Construir-textos-proceso-Digicampus-3df8758f4cc280c385b2e9dc9087dc48"
     },
     {
-      "id": "3df8758f4cc280129020de4dc357ddb6",
+      "id": "3df8758f4cc2802a8e43e550982d2f3b",
+      "nombre": "Edicion Guia de Matrícula",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-18",
+      "tareas": [
+        "7e58758f4cc28397b9598160487d5ead"
+      ],
+      "url": "https://app.notion.com/p/Edicion-Guia-de-Matr-cula-3df8758f4cc2802a8e43e550982d2f3b"
+    },
+    {
+      "id": "3df8758f4cc2801a9282ca6e3d2a6fb2",
+      "nombre": "Edicion Guia de Matrícula",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-18",
+      "tareas": [
+        "1968758f4cc283ada02881ce5997b022"
+      ],
+      "url": "https://app.notion.com/p/Edicion-Guia-de-Matr-cula-3df8758f4cc2801a9282ca6e3d2a6fb2"
+    },
+    {
+      "id": "3df8758f4cc280b8bcacc786232d88e1",
       "nombre": "Creación de Bases",
       "estado": "Sin empezar",
       "grupo": "pendiente",
       "fecha": null,
       "tareas": [
-        "3de8758f4cc280c9a9f2c1a51875d003"
+        "3de8758f4cc280f4b5cecd8ba60d8e17"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Bases-3df8758f4cc280b8bcacc786232d88e1"
+    },
+    {
+      "id": "3df8758f4cc280ffa6e9c010042beadb",
+      "nombre": "Creación de Piezas",
+      "estado": "En curso",
+      "grupo": "en_curso",
+      "fecha": "2026-09-14",
+      "tareas": [
+        "3de8758f4cc280f4b5cecd8ba60d8e17"
+      ],
+      "url": "https://app.notion.com/p/Creaci-n-de-Piezas-3df8758f4cc280ffa6e9c010042beadb"
+    },
+    {
+      "id": "3df8758f4cc280d39117f9f14093f0dc",
+      "nombre": "Creación de Textos",
+      "estado": "Sin empezar",
+      "grupo": "pendiente",
+      "fecha": "2026-09-14",
+      "tareas": [
+        "3de8758f4cc280f4b5cecd8ba60d8e17"
+      ],
+      "url": "https://app.notion.com/p/Creaci-n-de-Textos-3df8758f4cc280d39117f9f14093f0dc"
     },
     {
       "id": "3df8758f4cc280e6a297ebd8c0ecb5fc",
@@ -455,106 +455,106 @@
         "3de8758f4cc280f4b5cecd8ba60d8e17",
         "2508758f4cc2835d96e601b276e01fb9"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Construir-ruta-de-proceso-de-grado-3df8758f4cc280e6a297ebd8c0ecb5fc"
     },
     {
-      "id": "3df8758f4cc280d39117f9f14093f0dc",
+      "id": "3df8758f4cc280db807bf126ef2c6050",
       "nombre": "Creación de Textos",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
-      "fecha": "2026-09-14",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-18",
       "tareas": [
-        "3de8758f4cc280f4b5cecd8ba60d8e17"
+        "a3e8758f4cc283ccaa79818f76e4d6a3"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Textos-3df8758f4cc280db807bf126ef2c6050"
     },
     {
-      "id": "3df8758f4cc280ffa6e9c010042beadb",
+      "id": "3df8758f4cc280888570ea3837af5eaf",
       "nombre": "Creación de Piezas",
-      "estado": "En curso",
+      "estado": "Solicitadas a Publicidad",
       "grupo": "en_curso",
-      "fecha": "2026-09-14",
+      "fecha": null,
       "tareas": [
-        "3de8758f4cc280f4b5cecd8ba60d8e17"
+        "a3e8758f4cc283ccaa79818f76e4d6a3"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Piezas-3df8758f4cc280888570ea3837af5eaf"
     },
     {
-      "id": "3df8758f4cc280b8bcacc786232d88e1",
+      "id": "3df8758f4cc280d797c0c2658006b67e",
       "nombre": "Creación de Bases",
       "estado": "Sin empezar",
       "grupo": "pendiente",
       "fecha": null,
       "tareas": [
-        "3de8758f4cc280f4b5cecd8ba60d8e17"
+        "a3e8758f4cc283ccaa79818f76e4d6a3"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Bases-3df8758f4cc280d797c0c2658006b67e"
     },
     {
-      "id": "3df8758f4cc2801a9282ca6e3d2a6fb2",
-      "nombre": "Edicion Guia de Matrícula",
-      "estado": "Listo",
-      "grupo": "completo",
+      "id": "3df8758f4cc280419d3ac0b5e11a16a1",
+      "nombre": "Creación de Textos",
+      "estado": "En curso",
+      "grupo": "en_curso",
       "fecha": "2026-09-18",
       "tareas": [
-        "1968758f4cc283ada02881ce5997b022"
+        "3de8758f4cc280c9a9f2c1a51875d003"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Textos-3df8758f4cc280419d3ac0b5e11a16a1"
     },
     {
-      "id": "3df8758f4cc2802a8e43e550982d2f3b",
-      "nombre": "Edicion Guia de Matrícula",
-      "estado": "Listo",
-      "grupo": "completo",
-      "fecha": "2026-09-18",
-      "tareas": [
-        "7e58758f4cc28397b9598160487d5ead"
-      ],
-      "url": null
-    },
-    {
-      "id": "3df8758f4cc280c385b2e9dc9087dc48",
-      "nombre": "Construir textos proceso Digicampus",
+      "id": "3df8758f4cc280d9b2dedfe692c4c26e",
+      "nombre": "Creación de Piezas",
       "estado": "Sin empezar",
       "grupo": "pendiente",
       "fecha": null,
       "tareas": [
         "3de8758f4cc280c9a9f2c1a51875d003"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Piezas-3df8758f4cc280d9b2dedfe692c4c26e"
     },
     {
-      "id": "3eb8758f4cc280b1b862f7fc2ad8a5ac",
-      "nombre": "Base Historica de Casos",
-      "estado": "Listo",
-      "grupo": "completo",
-      "fecha": "2026-09-25",
+      "id": "3df8758f4cc280129020de4dc357ddb6",
+      "nombre": "Creación de Bases",
+      "estado": "Sin empezar",
+      "grupo": "pendiente",
+      "fecha": null,
       "tareas": [
-        "3de8758f4cc280bc9533d90033014250"
+        "3de8758f4cc280c9a9f2c1a51875d003"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Bases-3df8758f4cc280129020de4dc357ddb6"
     },
     {
-      "id": "3eb8758f4cc2802fa094e7c36b58bf16",
-      "nombre": "Configuración Git Hub- Claude-Drive",
-      "estado": "Listo",
-      "grupo": "completo",
-      "fecha": "2026-09-28",
+      "id": "3de8758f4cc2808d8e64c9fbd7bf93af",
+      "nombre": "Creación de Bases",
+      "estado": "Sin empezar",
+      "grupo": "pendiente",
+      "fecha": null,
       "tareas": [
-        "3de8758f4cc280bc9533d90033014250"
+        "3de8758f4cc2807085a5f2b55a6a7503"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Bases-3de8758f4cc2808d8e64c9fbd7bf93af"
     },
     {
-      "id": "3eb8758f4cc280b08032e7e79fc69491",
-      "nombre": "Creación de Diseño Dashboard",
-      "estado": "En curso",
+      "id": "3de8758f4cc280fda8dad6ba5e1af69a",
+      "nombre": "Creación de Piezas",
+      "estado": "Solicitadas a Publicidad",
       "grupo": "en_curso",
-      "fecha": "2026-09-29",
+      "fecha": null,
       "tareas": [
-        "3de8758f4cc280bc9533d90033014250"
+        "3de8758f4cc2807085a5f2b55a6a7503"
       ],
-      "url": null
+      "url": "https://app.notion.com/p/Creaci-n-de-Piezas-3de8758f4cc280fda8dad6ba5e1af69a"
+    },
+    {
+      "id": "3de8758f4cc28083a4b7d4253b9e83a4",
+      "nombre": "Creación de Textos",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-18",
+      "tareas": [
+        "3de8758f4cc2807085a5f2b55a6a7503"
+      ],
+      "url": "https://app.notion.com/p/Creaci-n-de-Textos-3de8758f4cc28083a4b7d4253b9e83a4"
     }
   ]
 }
