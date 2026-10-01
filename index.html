@@ -140,7 +140,7 @@
           <div class="panel">
             <div class="panel-header">
               <h2><i class="bi bi-pie-chart"></i> Cumplimiento de ANS</h2>
-              <span class="panel-sub">A tiempo · Riesgo · Crítico · Vencido</span>
+              <span class="panel-sub">Condición real de ANS: fecha de atención real vs. estimada</span>
             </div>
             <div class="chart-wrap chart-tall">
               <canvas id="chartExecClasificacion" class="chart-skeleton"></canvas>
@@ -151,12 +151,12 @@
         <div class="panel">
           <div class="panel-header">
             <h2><i class="bi bi-bar-chart-steps"></i> Comparativo por tipo de servicio</h2>
-            <span class="panel-sub">Vencidos abiertos, críticos y riesgo: casos abiertos · Vencidos cerrados: cerrados fuera del ANS</span>
+            <span class="panel-sub">Cumplimiento ANS y vencidos cerrados: Condición real de ANS · Vencidos, críticos y riesgo abiertos: según Progreso</span>
           </div>
           <div class="table-responsive">
             <table class="table data-table" id="tableComparativo" style="width:100%">
               <thead>
-                <tr><th>Tipo de servicio</th><th>Casos</th><th>Abiertos</th><th>ANS a tiempo</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>En riesgo abiertos</th><th>Vencidos cerrados</th></tr>
+                <tr><th>Tipo de servicio</th><th>Casos</th><th>Abiertos</th><th>Cumplimiento ANS</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>En riesgo abiertos</th><th>Vencidos cerrados</th></tr>
               </thead>
               <tbody></tbody>
             </table>
@@ -213,7 +213,7 @@
           <div class="panel">
             <div class="panel-header">
               <h2><i class="bi bi-stopwatch"></i> Cumplimiento de ANS</h2>
-              <span class="panel-sub">A tiempo · Riesgo · Crítico · Vencido</span>
+              <span class="panel-sub">Condición real de ANS: fecha de atención real vs. estimada</span>
             </div>
             <div class="chart-wrap chart-tall"><canvas id="chartCasosAns" class="chart-skeleton"></canvas></div>
           </div>
@@ -261,9 +261,9 @@
             <table class="table data-table" id="tableCasosAll" style="width:100%">
               <thead>
                 <tr>
-                  <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Condición</th><th>Clasificación</th><th>Tipo de servicio</th>
-                  <th>Subcategoría</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
-                  <th>Canal de registro</th><th>Fecha est. solución</th><th>Fecha modificación</th><th>Progreso</th>
+                  <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Condición</th><th>Clasificación</th><th>Condición real ANS</th><th>Tipo de servicio</th>
+                  <th>Categoría</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
+                  <th>Canal de registro</th><th>Fecha atención estimada</th><th>Fecha atención real</th><th>Fecha modificación</th><th>Progreso</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -395,7 +395,7 @@
             <i class="bi bi-exclamation-octagon-fill"></i>
             <div>
               <h2>Atención Prioritaria</h2>
-              <p>Solo casos <strong>abiertos</strong> vencidos o críticos, de todas las categorías. Los cerrados fuera del ANS están en Responsables y Grupos (Vencidos cerrados) y en Casos (Clasificación Vencido + Condición Cerrados).</p>
+              <p>Solo casos <strong>abiertos</strong> vencidos o críticos, de todas las categorías. Los cerrados fuera del ANS están en Responsables y Grupos (Vencidos cerrados) y en Casos (Condición real ANS = Incumplido).</p>
             </div>
           </div>
         </div>
@@ -484,6 +484,18 @@
 
         <div class="panel">
           <div class="panel-header">
+            <h2><i class="bi bi-calendar-check"></i> Gestión del día</h2>
+            <div class="filter-group">
+              <label for="respDia">Día</label>
+              <input type="date" id="respDia" class="filter-select filter-select--sm">
+            </div>
+          </div>
+          <p class="panel-sub" style="margin:-4px 0 12px">Casos con fecha de atención real, de cierre o de modificación en el día elegido, por responsable actual del caso. Respeta los filtros de responsable, grupo y tipo de servicio (no el rango de fechas de registro).</p>
+          <div class="kpi-grid" id="kpiRespDia"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
             <h2><i class="bi bi-table"></i> Desempeño por responsable</h2>
             <span class="panel-sub">Combina Casos y Tareas · haga clic en una fila para ver el detalle</span>
           </div>
@@ -492,6 +504,7 @@
               <tr>
                 <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>Vencidos cerrados</th>
                 <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
+                <th>Gestionados del día</th><th>Atendidos del día</th><th>Cerrados del día</th><th>Modificados del día</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -564,6 +577,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1790862542"></script>
+<script src="app.js?v=1790882892"></script>
 </body>
 </html>

@@ -89,7 +89,7 @@
   // histórico = TIEMPO RESPUESTA del archivo; nuevo = según Progreso). Abierto/cerrado es
   // otra cosa: el filtro "Condición".
   const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo"];
-  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [],
+  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
     clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
   const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
@@ -108,6 +108,7 @@
   let _casosActiveCat = null;     // categoría (nivel1) activa en Casos; null = todas
   let _vistaActual = "resumen";
   let _respDetalleActual = null;
+  let _respDia = isoToday();       // día de la "Gestión del día" en Responsables
   let _respDetalleTab = "casos";  // "casos" | "tareas" dentro del panel de detalle
   let TENDENCY_PERIOD = "mes";  // por meses se ve el año de histórico completo
 
@@ -360,6 +361,55 @@
     return classify(effectiveProgreso(r));
   }
 
+  /* ====================== CONDICIÓN REAL DE ANS ======================
+     Indicador oficial de cumplimiento de ANS (pedido de Natalia, 2026-10-01):
+     compara la fecha de atención REAL con la fecha de atención ESTIMADA.
+       - Cumplido / Incumplido: el caso tiene fecha real; real <= estimada.
+       - Vencido sin atender / En plazo: sin fecha real y abierto; ya pasó o no la estimada.
+       - Sin fecha real cerrado: se usa el TIEMPO RESPUESTA del histórico (históricos y
+         migrados); si tampoco hay, "Sin dato" (no cuenta en el %).
+     Con hora cuando el pipeline la trae (_dt); si a alguna le falta, se compara por día.
+     La "Clasificación" por Progreso (riesgo de los abiertos) sigue aparte. */
+  const ANS_REAL = ["Cumplido", "Incumplido", "Vencido sin atender", "En plazo", "Sin dato"];
+  const ANS_REAL_COLORS = { "Cumplido": "#2a7a3b", "Incumplido": "#C0151A", "Vencido sin atender": "#4A0608", "En plazo": "#D9A441", "Sin dato": "#D9CFC6" };
+  const ANS_REAL_PILL = { "Cumplido": "normal", "Incumplido": "critico", "Vencido sin atender": "vencido", "En plazo": "riesgo" };
+  function ahoraISO() {
+    const d = new Date(), p = function (n) { return String(n).padStart(2, "0"); };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+  function fechaValida(v) { return v && v !== "N/A" ? String(v) : null; }
+  // "2026-09-21T17:52:22" -> "2026-09-21 17:52" (o solo la fecha si no trae hora).
+  function fechaHoraTxt(v, type) {
+    const s = fechaValida(v); if (!s) return type === "display" ? "—" : "";
+    return type === "display" ? esc(s.slice(0, 16).replace("T", " ")) : s;
+  }
+  // <0 si a es antes que b. Si alguna no trae hora, compara solo el día.
+  function compararFechas(a, b) {
+    if (a.indexOf("T") === -1 || b.indexOf("T") === -1) { a = a.slice(0, 10); b = b.slice(0, 10); }
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+  function ansReal(r) {
+    if (r._ansReal !== undefined) return r._ansReal;
+    const real = fechaValida(r.fecha_atencion_real_dt) || fechaValida(r.fecha_atencion_real);
+    const est = fechaValida(r.fecha_estimada_solucion_dt) || fechaValida(r.fecha_estimada_solucion);
+    const hist = r.fuente === "historico" ? r.cumplimiento_ans : r.cumplimiento_ans_historico;
+    let res;
+    if (real && est) res = compararFechas(real, est) <= 0 ? "Cumplido" : "Incumplido";
+    else if (!real && esAbierto(r)) res = est ? (compararFechas(ahoraISO(), est) > 0 ? "Vencido sin atender" : "En plazo") : "Sin dato";
+    else if (hist && ANS_HISTORICO[hist]) res = hist === "VENCIDO" ? "Incumplido" : "Cumplido";
+    else res = "Sin dato";
+    // Abiertos: depende de la hora actual, no se memoriza.
+    if (!esAbierto(r)) r._ansReal = res;
+    return res;
+  }
+  function ansRealFuera(res) { return res === "Incumplido" || res === "Vencido sin atender"; }
+  // % de cumplimiento: Cumplido sobre los casos con resultado (sin "En plazo" ni "Sin dato").
+  function pctCumplimiento(cnt) { return pct(cnt["Cumplido"], cnt["Cumplido"] + cnt["Incumplido"] + cnt["Vencido sin atender"]); }
+  function contadorAnsReal() { const o = {}; ANS_REAL.forEach(function (k) { o[k] = 0; }); return o; }
+  function ansRealPillHTML(c) {
+    return ANS_REAL_PILL[c] ? '<span class="status-pill status-pill--' + ANS_REAL_PILL[c] + '">' + esc(c) + '</span>' : '<span class="area-chip">' + esc(c) + '</span>';
+  }
+
   /* ====================== NOMBRES (cruce Casos ↔ Tareas) ====================== */
   const ACCENT_MAP = { "á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u", "ñ": "n", "ü": "u" };
   function normalizeName(s) {
@@ -458,6 +508,7 @@
       if (CASOS_FILTER.fuente.length && CASOS_FILTER.fuente.indexOf(r.fuente) === -1) return false;
       if (CASOS_FILTER.tipoRegistro.length && CASOS_FILTER.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
       if (CASOS_FILTER.clasificacion.length && CASOS_FILTER.clasificacion.indexOf(clasificacionCaso(r)) === -1) return false;
+      if (CASOS_FILTER.ansReal.length && CASOS_FILTER.ansReal.indexOf(ansReal(r)) === -1) return false;
       if (CASOS_FILTER.autor.length && CASOS_FILTER.autor.indexOf(autorGrupo(r)) === -1) return false;
       if (CASOS_FILTER.condicion.length) {
         const cond = ESTADOS_CERRADOS.indexOf(r.estado) !== -1 ? "Cerrados" : "Abiertos";
@@ -518,24 +569,29 @@
     let vencidos = 0, criticos = 0, riesgo = 0, normal = 0, sumTiempo = 0, abiertos = 0, vencidosCerrados = 0;
     const vencidosPorResponsable = {}, vencidosPorCategoria = {}, porNivel1 = {};
     const ans = { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 };
+    const ansRealCnt = contadorAnsReal();
     records.forEach(function (r) {
       const cls = effectiveClass(r);
       const resAns = ansResultado(r);
-      if (esAbierto(r)) abiertos++; else if (resAns === "Vencido") vencidosCerrados++;
+      const real = ansReal(r);
+      // Vencidos cerrados = cerrados fuera de ANS según la Condición real de ANS.
+      if (esAbierto(r)) abiertos++; else if (real === "Incumplido") vencidosCerrados++;
       ans[resAns]++;
+      ansRealCnt[real]++;
       if (cls === "Vencido") vencidos++; else if (cls === "Critico") criticos++; else if (cls === "Riesgo") riesgo++; else normal++;
       sumTiempo += (r.tiempo_transcurrido_dias || 0);
       const n1 = nivel1Effective(r);
-      if (!porNivel1[n1]) porNivel1[n1] = { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 } };
+      if (!porNivel1[n1]) porNivel1[n1] = { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 }, ansReal: contadorAnsReal() };
       porNivel1[n1].total++;
-      if (esAbierto(r)) porNivel1[n1].abiertos++; else if (resAns === "Vencido") porNivel1[n1].vencidosCerrados++;
-      porNivel1[n1].ans[ansResultado(r)]++;
+      if (esAbierto(r)) porNivel1[n1].abiertos++; else if (real === "Incumplido") porNivel1[n1].vencidosCerrados++;
+      porNivel1[n1].ans[resAns]++;
+      porNivel1[n1].ansReal[real]++;
       if (cls === "Vencido") { porNivel1[n1].vencidos++; vencidosPorResponsable[r.responsable || "Sin asignar"] = (vencidosPorResponsable[r.responsable || "Sin asignar"] || 0) + 1; vencidosPorCategoria[r.categoria || "Sin categoría"] = (vencidosPorCategoria[r.categoria || "Sin categoría"] || 0) + 1; }
       else if (cls === "Critico") porNivel1[n1].criticos++;
       else if (cls === "Riesgo") porNivel1[n1].riesgo++;
     });
     return { total: total, vencidos: vencidos, criticos: criticos, riesgo: riesgo, normal: normal,
-      abiertos: abiertos, cerrados: total - abiertos, vencidosCerrados: vencidosCerrados, ans: ans,
+      abiertos: abiertos, cerrados: total - abiertos, vencidosCerrados: vencidosCerrados, ans: ans, ansReal: ansRealCnt,
       avgTiempo: total ? Math.round((sumTiempo / total) * 10) / 10 : 0,
       vencidosPorResponsable: vencidosPorResponsable, vencidosPorCategoria: vencidosPorCategoria, porNivel1: porNivel1 };
   }
@@ -948,7 +1004,7 @@
     if (grid) {
       grid.innerHTML =
         kpi("Total de casos", s.total, "info", "bi-collection", s.abiertos + " abiertos · " + s.cerrados + " cerrados") +
-        kpi("Cumplimiento ANS", pct(s.ans.Normal, s.total) + "%", "sla", "bi-stopwatch", s.ans.Normal + " casos a tiempo") +
+        kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", s.ansReal["Cumplido"] + " cumplidos · Condición real de ANS") +
         kpi("Vencidos", s.vencidos, "vencido", "bi-x-octagon", "abiertos · " + pct(s.vencidos, s.abiertos) + "% de los abiertos") +
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados") +
         kpi("Críticos", s.criticos, "critico", "bi-exclamation-triangle", "abiertos · " + pct(s.criticos, s.abiertos) + "% de los abiertos") +
@@ -973,7 +1029,7 @@
       ajustarScrollTendencia("execTendInner", hb.length);
       renderChart("chartExecTendencia", "bar", { labels: hb.map(function (b) { return b.label; }),
         datasets: [{ label: "Casos creados (las tareas no traen hora)", data: hb.map(function (b) { return b.count; }), backgroundColor: "#8C0F13", borderRadius: 3 }] }, horasOpts(false));
-      renderChart("chartExecClasificacion", "doughnut", toChartDataDoughnut(STATE.statsExec.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
+      renderChart("chartExecClasificacion", "doughnut", toChartDataDoughnut(STATE.statsExec.ansReal, null, ANS_REAL_COLORS), doughnutOpts());
       return;
     }
     if (execTitle) execTitle.textContent = "Tendencia de creación: Casos y Tareas";
@@ -998,7 +1054,7 @@
       { label: "Tareas creadas", data: serie(tareasBuckets), borderColor: "#4A6B8C", backgroundColor: "#4A6B8C22", fill: true }
     ] }, lineOptsAncho("execTendInner"));
 
-    renderChart("chartExecClasificacion", "doughnut", toChartDataDoughnut(STATE.statsExec.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
+    renderChart("chartExecClasificacion", "doughnut", toChartDataDoughnut(STATE.statsExec.ansReal, null, ANS_REAL_COLORS), doughnutOpts());
   }
 
   function renderComparativoNivel1() {
@@ -1012,8 +1068,8 @@
     if (tbody) {
       let html = "";
       cats.forEach(function (c) {
-        const d = s.porNivel1[c] || { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ans: { Normal: 0 } };
-        const aTiempo = pct(d.ans.Normal, d.total);
+        const d = s.porNivel1[c] || { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ansReal: contadorAnsReal() };
+        const aTiempo = pctCumplimiento(d.ansReal);
         html += '<tr>' +
           '<td>' + nivel1ChipHTML(c) + '</td>' +
           '<td data-order="' + d.total + '">' + d.total.toLocaleString("es-CO") + '</td>' +
@@ -1032,13 +1088,15 @@
     renderAnsPorCategoria("chartComparativoStack", s, cats);
   }
 
-  // Barras apiladas: resultado de ANS (a tiempo / riesgo / crítico / vencido) por categoría.
+  // Barras apiladas: Condición real de ANS por categoría.
   function renderAnsPorCategoria(canvasId, stats, cats) {
-    const datasets = ["Normal", "Riesgo", "Critico", "Vencido"].map(function (cls) {
-      return { label: ANS_LABELS[cls], backgroundColor: ANS_COLORS[cls],
-        data: cats.map(function (c) { const d = stats.porNivel1[c]; return d ? d.ans[cls] : 0; }) };
+    renderChart(canvasId, "bar", { labels: cats, datasets: datasetsAnsReal(cats, function (c) { const d = stats.porNivel1[c]; return d ? d.ansReal : null; }) }, stackedBarOpts());
+  }
+  // Un dataset por resultado de la Condición real de ANS; cntDe(etiqueta) da su contador.
+  function datasetsAnsReal(labels, cntDe) {
+    return ANS_REAL.map(function (res) {
+      return { label: res, backgroundColor: ANS_REAL_COLORS[res], data: labels.map(function (l, i) { const c = cntDe(l, i); return c ? c[res] : 0; }) };
     });
-    renderChart(canvasId, "bar", { labels: cats, datasets: datasets }, stackedBarOpts());
   }
 
   /* ---------------------- ATENCIÓN PRIORITARIA ---------------------- */
@@ -1156,6 +1214,7 @@
       { key: "nivel2", label: "Subcategoría", icon: "bi-diagram-2", field: "nivel2" },
       { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", field: "categoria" },
       { key: "clasificacion", label: "Clasificación", icon: "bi-exclamation-triangle", opts: CLASIFICACIONES },
+      { key: "ansReal", label: "Condición real ANS", icon: "bi-stopwatch", opts: ANS_REAL },
       { key: "autor", label: "Autor", icon: "bi-person-plus", opts: AUTORES_GESTORES },
       { key: "grupo", label: "Grupo", icon: "bi-building", field: "grupo_responsable" },
       { key: "responsable", label: "Responsable", icon: "bi-person", field: "responsable" },
@@ -1241,7 +1300,7 @@
         kpi("Casos en la vista", s.total, "info", "bi-collection", _casosActiveCat || "todas las categorías") +
         kpi("Abiertos", s.abiertos, "info", "bi-folder2-open", pct(s.abiertos, s.total) + "% del total") +
         kpi("Cerrados", s.cerrados, "sla", "bi-check2-all", pct(s.cerrados, s.total) + "% del total") +
-        kpi("Cumplimiento ANS", pct(s.ans.Normal, s.total) + "%", "sla", "bi-stopwatch", s.ans.Vencido + " casos fuera de ANS") +
+        kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", (s.ansReal["Incumplido"] + s.ansReal["Vencido sin atender"]) + " fuera de ANS · Condición real") +
         kpi("Vencidos abiertos", s.vencidos, "vencido", "bi-x-octagon", s.criticos + " críticos · " + s.riesgo + " en riesgo") +
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados se cerró fuera del ANS") +
         kpi("Tiempo promedio", s.avgTiempo + " días", "normal", "bi-clock-history", "transcurrido por caso");
@@ -1277,10 +1336,17 @@
             if (type === "display") return clasificacionPillHTML(c);
             return type === "sort" ? CLASIFICACIONES.indexOf(c) : c;  // ordena Vencido primero
           } },
+          { data: null, render: function (d, type, r) {
+            const c = ansReal(r);
+            if (type === "display") return ansRealPillHTML(c);
+            return type === "sort" ? ANS_REAL.indexOf(c) : c;
+          } },
           { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
-          { data: "nivel2", render: txt }, { data: "autor", render: txt }, { data: "responsable", render: txt },
+          { data: "categoria", render: txt }, { data: "autor", render: txt }, { data: "responsable", render: txt },
           { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt },
-          { data: "fecha_estimada_solucion", render: txt }, { data: "fecha_modificacion", render: txt },
+          { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, type); } },
+          { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_atencion_real_dt || r.fecha_atencion_real, type); } },
+          { data: "fecha_modificacion", render: txt },
           { data: null, render: function (d, type, r) { const p = effectiveProgreso(r); return type === "display" ? progressCellHTML(p, effectiveClass(r)) : p; } },
           // Columna oculta para el orden inicial: abiertos primero (si no, quedan al
           // final porque los cerrados del histórico tienen progresos de miles de %).
@@ -1291,7 +1357,7 @@
           const cls = effectiveClass(r);
           if (cls === "Vencido") row.classList.add("row--vencido"); else if (cls === "Critico") row.classList.add("row--critico");
         },
-        paging: true, pageLength: 15, order: [[14, "desc"], [13, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
+        paging: true, pageLength: 15, order: [[16, "desc"], [15, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
       });
     }
   }
@@ -1362,7 +1428,7 @@
       { label: "Abiertos", data: topGrupos.map(function (g) { return porGrupo[g].abiertos; }), backgroundColor: "#C0151A" },
       { label: "Cerrados", data: topGrupos.map(function (g) { return porGrupo[g].cerrados; }), backgroundColor: "#9C8C7E" }
     ] }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
-    renderChart("chartCasosAns", "doughnut", toChartDataDoughnut(s.ans, ANS_LABELS, ANS_COLORS), doughnutOpts());
+    renderChart("chartCasosAns", "doughnut", toChartDataDoughnut(s.ansReal, null, ANS_REAL_COLORS), doughnutOpts());
     // En "Todas": ANS por categoría. Dentro de una categoría: ANS por subcategoría (top 10).
     const ansTitle = document.getElementById("casosAnsCatTitle");
     if (ansTitle) ansTitle.textContent = _casosActiveCat ? "Cumplimiento de ANS por subcategoría" : "Cumplimiento de ANS por categoría";
@@ -1371,12 +1437,10 @@
       const ansSub = {};
       recs.forEach(function (r) {
         if (topSub.indexOf(r.nivel2) === -1) return;
-        if (!ansSub[r.nivel2]) ansSub[r.nivel2] = { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 };
-        ansSub[r.nivel2][ansResultado(r)]++;
+        if (!ansSub[r.nivel2]) ansSub[r.nivel2] = contadorAnsReal();
+        ansSub[r.nivel2][ansReal(r)]++;
       });
-      renderChart("chartCasosAnsCat", "bar", { labels: topSub, datasets: ["Normal", "Riesgo", "Critico", "Vencido"].map(function (cls) {
-        return { label: ANS_LABELS[cls], backgroundColor: ANS_COLORS[cls], data: topSub.map(function (n2) { return ansSub[n2][cls]; }) };
-      }) }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
+      renderChart("chartCasosAnsCat", "bar", { labels: topSub, datasets: datasetsAnsReal(topSub, function (n2) { return ansSub[n2]; }) }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
     } else {
       renderAnsPorCategoria("chartCasosAnsCat", s, cats);
     }
@@ -1474,7 +1538,8 @@
   function computeResponsablesCombined() {
     const byResp = {};
     function ensure(nombre) {
-      if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {} };
+      if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {},
+        atendidosDia: 0, cerradosDia: 0, modificadosDia: 0, gestionadosDia: 0 };
       return byResp[nombre];
     }
     STATE.rawCasos.forEach(function (r) {
@@ -1482,6 +1547,15 @@
       if (RESP_FILTER.responsable.length && RESP_FILTER.responsable.indexOf(nombre) === -1) return;
       if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return;
       if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      // Gestión del día: casos con fecha de atención real, cierre o modificación en _respDia.
+      // No depende del rango de fecha de registro (un caso viejo también se gestiona hoy).
+      // Se atribuye al responsable ACTUAL del caso: el export no dice quién hizo el cambio.
+      const enDia = function (v) { return (fechaValida(v) || "").slice(0, 10) === _respDia; };
+      const at = enDia(r.fecha_atencion_real), ce = enDia(r.fecha_cierre), mo = enDia(r.fecha_modificacion);
+      if (at || ce || mo) {
+        const g = ensure(nombre);
+        g.gestionadosDia++; if (at) g.atendidosDia++; if (ce) g.cerradosDia++; if (mo) g.modificadosDia++;
+      }
       if (RESP_FILTER.fechaDesde && (r.fecha_registro || "") < RESP_FILTER.fechaDesde) return;
       if (RESP_FILTER.fechaHasta && (r.fecha_registro || "") > RESP_FILTER.fechaHasta) return;
       const d = ensure(nombre);
@@ -1493,7 +1567,7 @@
         if (cls === "Vencido") d.vencidosActivos++; else if (cls === "Critico") d.criticosActivos++;
       } else if (r.estado === "Solucionado" || r.estado === "Cerrado") {
         d.solucionados++;
-        if (ansResultado(r) === "Vencido") d.vencidosCerrados++;  // cerrado fuera del ANS
+        if (ansReal(r) === "Incumplido") d.vencidosCerrados++;  // cerrado fuera del ANS (Condición real)
         if (r.tiempo_transcurrido_dias != null) d.tiemposSol.push(r.tiempo_transcurrido_dias);
       }
     });
@@ -1548,6 +1622,30 @@
 
   function renderResponsables() { populateRespFilterBar(); renderResponsablesContent(); }
 
+  // KPIs de "Gestión del día" + selector de día (por defecto hoy).
+  function renderGestionDia(responsables) {
+    const input = document.getElementById("respDia");
+    if (input) {
+      input.value = _respDia;
+      if (!input._wired) {
+        input._wired = true;
+        input.addEventListener("change", function () { _respDia = this.value || isoToday(); renderResponsablesContent(); });
+      }
+    }
+    const grid = document.getElementById("kpiRespDia"); if (!grid) return;
+    const sum = function (k) { return responsables.reduce(function (s, r) { return s + r[k]; }, 0); };
+    const activos = responsables.filter(function (r) { return r.gestionadosDia > 0; })
+      .sort(function (a, b) { return b.gestionadosDia - a.gestionadosDia; });
+    const esHoy = _respDia === isoToday();
+    grid.innerHTML =
+      kpi("Casos gestionados", sum("gestionadosDia"), "info", "bi-calendar-check", (esHoy ? "hoy" : _respDia) + " · atendidos, cerrados o modificados") +
+      kpi("Atendidos", sum("atendidosDia"), "sla", "bi-check2-circle", "con fecha de atención real ese día") +
+      kpi("Cerrados", sum("cerradosDia"), "sla", "bi-check2-all", "con fecha de cierre ese día") +
+      kpi("Modificados", sum("modificadosDia"), "normal", "bi-pencil-square", "con fecha de modificación ese día") +
+      kpi("Responsables con gestión", activos.length, "info", "bi-people",
+        activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionadosDia + ")" : "sin gestión registrada");
+  }
+
   function renderResponsablesContent() {
     const byResp = computeResponsablesCombined();
     const responsables = Object.values(byResp).sort(function (a, b) { return b.totalCasos - a.totalCasos; });
@@ -1582,9 +1680,14 @@
           '<td data-order="' + r.vencidosCerrados + '">' + r.vencidosCerrados + '</td>' +
           '<td data-order="' + r.tasaResolucion + '">' + r.tasaResolucion + '%</td>' +
           '<td data-order="' + r.totalTareas + '">' + r.totalTareas + '</td>' +
-          '<td data-order="' + r.tareasPendientes + '">' + r.tareasPendientes + '</td></tr>');
+          '<td data-order="' + r.tareasPendientes + '">' + r.tareasPendientes + '</td>' +
+          '<td data-order="' + r.gestionadosDia + '"><strong>' + r.gestionadosDia + '</strong></td>' +
+          '<td data-order="' + r.atendidosDia + '">' + r.atendidosDia + '</td>' +
+          '<td data-order="' + r.cerradosDia + '">' + r.cerradosDia + '</td>' +
+          '<td data-order="' + r.modificadosDia + '">' + r.modificadosDia + '</td></tr>');
       }).join("");
     }
+    renderGestionDia(responsables);
     // Orden por defecto: columna 1 = Total casos.
     dtRegistry[selSum] = $(selSum).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
 
@@ -1612,7 +1715,9 @@
         kpi("Vencidos cerrados", d.vencidosCerrados, "vencido", "bi-archive", pct(d.vencidosCerrados, d.solucionados) + "% de sus cerrados") +
         kpi("% Resolución", d.tasaResolucion + "%", "sla", "bi-graph-up", d.solucionados + " solucionados") +
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
-        kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "");
+        kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "") +
+        kpi("Gestión del día", d.gestionadosDia, "info", "bi-calendar-check", (_respDia === isoToday() ? "hoy" : _respDia) + " · " +
+          d.atendidosDia + " atendidos · " + d.cerradosDia + " cerrados · " + d.modificadosDia + " modificados");
     }
     renderChart("chartRespCategorias", "bar", toChartDataBar(d.categorias, "#8C0F13", 8), horizontalBarOpts());
 
@@ -1666,25 +1771,27 @@
     filtered.forEach(function (r) {
       const g = r.grupo_responsable || "Sin grupo";
       if (!byGrupo[g]) byGrupo[g] = { grupo: g, total: 0, abiertos: 0, vencidosAbiertos: 0, criticosAbiertos: 0, vencidosCerrados: 0,
-        ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 }, sumTiempo: 0, responsables: {} };
+        ansReal: contadorAnsReal(), sumTiempo: 0, responsables: {} };
       const d = byGrupo[g];
       d.total++;
       d.sumTiempo += (r.tiempo_transcurrido_dias || 0);
       d.responsables[r.responsable || "Sin asignar"] = true;
       // Igual que en Responsables: vencidos abiertos (según Progreso actual) y
-      // vencidos cerrados (cerrados cuyo resultado de ANS fue Vencido).
-      const res = ansResultado(r);
-      d.ans[res]++;
+      // vencidos cerrados (cerrados Incumplidos según la Condición real de ANS).
+      const res = ansReal(r);
+      d.ansReal[res]++;
       if (esAbierto(r)) {
         d.abiertos++;
         const cls = effectiveClass(r);
         if (cls === "Vencido") d.vencidosAbiertos++; else if (cls === "Critico") d.criticosAbiertos++;
-      } else if (res === "Vencido") d.vencidosCerrados++;
+      } else if (res === "Incumplido") d.vencidosCerrados++;
     });
     Object.keys(byGrupo).forEach(function (g) {
       const d = byGrupo[g];
       d.avgTiempo = d.total ? +(d.sumTiempo / d.total).toFixed(1) : 0;
-      d.pctVencidos = pct(d.ans.Vencido, d.total);  // % de todos sus casos que quedó fuera del ANS
+      // % fuera de ANS (Condición real) sobre los casos con resultado (sin "En plazo" ni "Sin dato").
+      const conResultado = d.ansReal["Cumplido"] + d.ansReal["Incumplido"] + d.ansReal["Vencido sin atender"];
+      d.pctVencidos = pct(d.ansReal["Incumplido"] + d.ansReal["Vencido sin atender"], conResultado);
       d.nResponsables = Object.keys(d.responsables).length;
     });
     return byGrupo;
@@ -1750,10 +1857,8 @@
 
     // Resultado de ANS de todos los casos (abiertos y cerrados) de los 10 grupos con más casos.
     const top10 = grupos.slice(0, 10);
-    const datasets = ["Normal", "Riesgo", "Critico", "Vencido"].map(function (cls) {
-      return { label: ANS_LABELS[cls], backgroundColor: ANS_COLORS[cls], data: top10.map(function (g) { return g.ans[cls]; }) };
-    });
-    renderChart("chartGruposStack", "bar", { labels: top10.map(function (g) { return g.grupo; }), datasets: datasets }, stackedBarOpts());
+    const etiquetas = top10.map(function (g) { return g.grupo; });
+    renderChart("chartGruposStack", "bar", { labels: etiquetas, datasets: datasetsAnsReal(etiquetas, function (n, i) { return top10[i].ansReal; }) }, stackedBarOpts());
   }
 
 
