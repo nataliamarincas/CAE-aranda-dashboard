@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=1790884834">
 </head>
 <body>
 
@@ -488,6 +488,7 @@
             <div class="filter-group">
               <label for="respDia">Día</label>
               <input type="date" id="respDia" class="filter-select filter-select--sm">
+              <label class="resp-dia-solo"><input type="checkbox" id="respSoloDia"> Solo con gestión ese día</label>
             </div>
           </div>
           <p class="panel-sub" style="margin:-4px 0 12px">Casos con fecha de atención real, de cierre o de modificación en el día elegido, por responsable actual del caso. Respeta los filtros de responsable, grupo y tipo de servicio (no el rango de fechas de registro).</p>
@@ -499,16 +500,18 @@
             <h2><i class="bi bi-table"></i> Desempeño por responsable</h2>
             <span class="panel-sub">Combina Casos y Tareas · haga clic en una fila para ver el detalle</span>
           </div>
+          <div class="table-responsive">
           <table class="table data-table resp-resumen-table" id="tableRespResumen" style="width:100%">
             <thead>
               <tr>
                 <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>Vencidos cerrados</th>
                 <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
-                <th>Gestionados del día</th><th>Atendidos del día</th><th>Cerrados del día</th><th>Modificados del día</th>
+                <th class="th-dia">Casos gestionados (día)</th><th class="th-dia" title="Atendidos · Cerrados · Modificados ese día">Atend. · Cerr. · Modif. (día)</th><th class="th-dia">Tareas (día)</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
+          </div>
         </div>
 
         <div class="panel resp-detail-panel" id="panelRespDetalle" style="display:none">
@@ -577,6 +580,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1790882892"></script>
+<script src="app.js?v=1790884835"></script>
 </body>
 </html>

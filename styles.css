@@ -299,8 +299,9 @@ tr.meta-row--subs.is-open .subs-toggle i{ display:inline-block; transform:rotate
 /* ============================== TABLES / DATATABLES OVERRIDES ============================== */
 .table-responsive{ overflow-x:auto; }
 table.data-table{ width:100%; font-size:12.8px; color:var(--t2); border-collapse:separate; border-spacing:0; }
-table.data-table thead th{ background:var(--neutral); color:var(--t2); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; border-bottom:none !important; padding:11px 12px; white-space:nowrap; }
-table.data-table tbody td{ padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+/* Encabezados largos bajan a 2 líneas (no se cortan ni ensanchan la columna); el ancho lo reparte el navegador según el contenido. */
+table.data-table thead th{ background:var(--neutral); color:var(--t2); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:none !important; padding:8px 8px; white-space:normal; line-height:1.2; vertical-align:bottom; }
+table.data-table tbody td{ padding:7px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
 table.data-table tbody tr:hover{ background:#FBF8F4; }
 table.data-table tbody tr.row--vencido td:first-child{ border-left:3px solid var(--status-vencido); }
 table.data-table tbody tr.row--critico td:first-child{ border-left:3px solid var(--status-critico); }
@@ -332,9 +333,6 @@ div.dataTables_wrapper .dataTables_paginate .paginate_button:hover{ background:v
 .resp-detail-panel{ border-top:3px solid var(--wine); margin-top:4px; }
 .resp-detail-header{ align-items:flex-start !important; flex-wrap:wrap; gap:8px; }
 .resp-detail-header h2{ font-size:17px; font-weight:700; }
-table.resp-resumen-table{ table-layout:fixed; width:100% !important; }
-table.resp-resumen-table thead th:first-child{ width:4%; }
-table.resp-resumen-table thead th:nth-child(2){ width:22%; }
 .resp-tab-btns{ display:flex; gap:6px; margin-bottom:16px; }
 .casos-cat-nav{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-bottom:16px; }
 .casos-cat-nav .resp-tab-btns{ margin-bottom:0; flex-wrap:wrap; }
@@ -372,3 +370,23 @@ table.resp-resumen-table thead th:nth-child(2){ width:22%; }
 
 .sidebar-nav::-webkit-scrollbar{ width:6px; }
 .sidebar-nav::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.15); border-radius:99px; }
+/* Columnas de "Gestión del día" en Responsables: se distinguen del resto. */
+table.data-table thead th.th-dia{ background:#E9DFD3; color:var(--wine); }
+table.resp-resumen-table td:first-child{ min-width:150px; }
+table.resp-resumen-table thead th{ font-size:10.5px; letter-spacing:.2px; }
+.resp-dia-solo{ display:inline-flex; align-items:center; gap:6px; margin-left:10px; text-transform:none !important; letter-spacing:0 !important; font-weight:500 !important; color:var(--t2) !important; cursor:pointer; }
+/* Paginación y botones de DataTables con la integración Bootstrap 5: misma paleta del dashboard
+   (sin esto salen en azul y los botones Excel/CSV se estiran a todo el ancho). */
+div.dataTables_wrapper .pagination{ margin:6px 0 0; gap:3px; flex-wrap:wrap; }
+div.dataTables_wrapper .page-link{ font-size:12.5px; padding:4px 10px; color:var(--t2); border:1px solid var(--border); border-radius:6px !important; background:var(--card); box-shadow:none !important; }
+div.dataTables_wrapper .page-item.active .page-link{ background:var(--wine); border-color:var(--wine); color:#fff; }
+div.dataTables_wrapper .page-item.disabled .page-link{ color:var(--t3); opacity:.6; background:var(--card); }
+div.dataTables_wrapper .page-link:hover{ background:var(--neutral); color:var(--t1); }
+.dt-buttons.btn-group{ display:flex; gap:8px; width:auto; }
+.dt-buttons.btn-group > .btn{ flex:0 0 auto; border-radius:7px !important; }
+/* Flechas de orden más juntas: DataTables reserva 26px por columna y en tablas anchas no caben. */
+table.dataTable thead > tr > th.sorting, table.dataTable thead > tr > th.sorting_asc, table.dataTable thead > tr > th.sorting_desc{ padding-right:16px !important; }
+table.dataTable thead > tr > th.sorting:before, table.dataTable thead > tr > th.sorting:after,
+table.dataTable thead > tr > th.sorting_asc:before, table.dataTable thead > tr > th.sorting_asc:after,
+table.dataTable thead > tr > th.sorting_desc:before, table.dataTable thead > tr > th.sorting_desc:after{ right:4px !important; }
+table.data-table td.td-dia-detalle{ white-space:nowrap; color:var(--t3); }

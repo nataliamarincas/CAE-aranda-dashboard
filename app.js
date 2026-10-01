@@ -109,6 +109,7 @@
   let _vistaActual = "resumen";
   let _respDetalleActual = null;
   let _respDia = isoToday();       // día de la "Gestión del día" en Responsables
+  let _respSoloDia = false;        // Responsables: mostrar solo quienes tuvieron gestión ese día
   let _respDetalleTab = "casos";  // "casos" | "tareas" dentro del panel de detalle
   let TENDENCY_PERIOD = "mes";  // por meses se ve el año de histórico completo
 
@@ -242,7 +243,9 @@
   }
   // Opciones para el gráfico por horas: barras (apiladas si hay varias series).
   function horasOpts(apilado) {
-    return Object.assign(stackedBarOpts(), { scales: {
+    // Tendencia por horas: etiquetas con la cantidad (ver pctLabelsPlugin).
+    const o = stackedBarOpts(); o.plugins.pctLabels = { modo: "valor" };
+    return Object.assign(o, { scales: {
       x: { stacked: apilado, grid: { display: false }, title: { display: true, text: "Hora de registro" } },
       y: { stacked: apilado, beginAtZero: true, grid: gridOpts(), ticks: { precision: 0 } } } });
   }
@@ -647,10 +650,13 @@
 
   const pctLabelsPlugin = {
     id: "pctLabels",
-    afterDatasetsDraw: function (chart) {
+    defaults: { modo: null },
+    afterDatasetsDraw: function (chart, args, pluginOpts) {
       const ctx = chart.ctx, type = chart.config.type, opts = chart.options;
       const horizontal = opts.indexAxis === "y";
       const stacked = !!(opts.scales && opts.scales.x && opts.scales.x.stacked);
+      // Gráficos de tendencia (líneas y barras por hora): la cantidad, no el %.
+      const enValor = ((pluginOpts && pluginOpts.modo) || (type === "line" ? "valor" : "pct")) === "valor";
       const visibles = chart.data.datasets.map(function (d, i) { return i; }).filter(function (i) { return chart.isDatasetVisible(i); });
       const ocupados = [];
       ctx.save();
@@ -684,6 +690,15 @@
             if (largoArco < ctx.measureText(t).width + 6 || p.outerRadius - p.innerRadius < 14) return;
             poner(t, pos.x, pos.y, textoSobre(colorDe(ds, j, "backgroundColor")), "center");
 
+          } else if (type === "bar" && stacked && enValor) {
+            // Una etiqueta por barra: el total, sobre la última serie con valor (la de más arriba).
+            const arriba = visibles.filter(function (k) { return +chart.data.datasets[k].data[j]; }).pop();
+            if (i !== arriba) return;
+            const tot = sumar(visibles.map(function (k) { return chart.data.datasets[k].data[j]; })); if (!tot) return;
+            const b = el.getProps(["x", "y"]);
+            if (horizontal) poner(tot.toLocaleString("es-CO"), b.x + 5, b.y, "#4A3F38", "left");
+            else poner(tot.toLocaleString("es-CO"), b.x, b.y - 8, "#4A3F38", "center");
+
           } else if (type === "bar" && stacked) {
             const total = sumar(visibles.map(function (k) { return chart.data.datasets[k].data[j]; }));
             const t = fmtPct(v, total); if (!t) return;
@@ -696,15 +711,15 @@
 
           } else if (type === "bar") {
             const t = fmtPct(v, ds.pctTotal || sumar(ds.data)); if (!t) return;
-            const texto = v.toLocaleString("es-CO") + " (" + t + ")";
+            const texto = enValor ? v.toLocaleString("es-CO") : v.toLocaleString("es-CO") + " (" + t + ")";
             const b = el.getProps(["x", "y", "base"]);
             const dentro = textoSobre(colorDe(ds, j, "backgroundColor"));
             if (horizontal) { poner(texto, b.x + 5, b.y, "#4A3F38", "left") || poner(texto, b.x - 5, b.y, dentro, "right"); }
-            else { poner(t, b.x, b.y - 8, "#4A3F38", "center") || poner(t, b.x, b.y + 9, dentro, "center"); }
+            else { const tv = enValor ? texto : t; poner(tv, b.x, b.y - 8, "#4A3F38", "center") || poner(tv, b.x, b.y + 9, dentro, "center"); }
 
           } else if (type === "line") {
-            // En líneas se omite "<1%": las series casi vacías llenarían el fondo de etiquetas.
-            const t = fmtPct(v, sumar(ds.data)); if (!t || t === "<1%") return;
+            // Tendencia: la cantidad. (Si se pidiera %, se omite "<1%" para no llenar el fondo.)
+            const t = enValor ? v.toLocaleString("es-CO") : fmtPct(v, sumar(ds.data)); if (!t || t === "<1%") return;
             poner(t, el.x, el.y - 9, colorDe(ds, j, "borderColor") || "#4A3F38", "center");
           }
         });
@@ -716,7 +731,8 @@
   // Margen extra para que las etiquetas de % que van fuera de la barra/punto no se corten.
   function paddingPct(type, options) {
     const o = options || {}, stacked = !!(o.scales && o.scales.x && o.scales.x.stacked);
-    if (type === "bar" && !stacked) return o.indexAxis === "y" ? { right: 78 } : { top: 18 };
+    const enValor = !!(o.plugins && o.plugins.pctLabels && o.plugins.pctLabels.modo === "valor");
+    if (type === "bar" && (!stacked || enValor)) return o.indexAxis === "y" ? { right: 78 } : { top: 18 };
     if (type === "line") return { top: 16 };
     return null;
   }
@@ -1539,7 +1555,7 @@
     const byResp = {};
     function ensure(nombre) {
       if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {},
-        atendidosDia: 0, cerradosDia: 0, modificadosDia: 0, gestionadosDia: 0 };
+        atendidosDia: 0, cerradosDia: 0, modificadosDia: 0, gestionadosDia: 0, tareasDia: 0 };
       return byResp[nombre];
     }
     STATE.rawCasos.forEach(function (r) {
@@ -1575,8 +1591,10 @@
     const cruce = {};
     STATE.rawTareas.forEach(function (t) {
       const f = t.fecha_creacion || "";
-      if (RESP_FILTER.fechaDesde && f < RESP_FILTER.fechaDesde) return;
-      if (RESP_FILTER.fechaHasta && f > RESP_FILTER.fechaHasta) return;
+      // Tareas del día (gestión del día): no dependen del rango de fechas de la sección.
+      const delDia = f.slice(0, 10) === _respDia;
+      const fueraDeRango = (RESP_FILTER.fechaDesde && f < RESP_FILTER.fechaDesde) || (RESP_FILTER.fechaHasta && f > RESP_FILTER.fechaHasta);
+      if (fueraDeRango && !delDia) return;
       const clave = t.responsable || "";
       if (!(clave in cruce)) {
         let match = null;
@@ -1587,6 +1605,8 @@
       const nombre = cruce[clave];
       if (nombre === false) return;
       const d = ensure(nombre);
+      if (delDia) d.tareasDia++;
+      if (fueraDeRango) return;
       d.totalTareas++;
       if (!tareaCompletada(t)) d.tareasPendientes++;
     });
@@ -1632,23 +1652,32 @@
         input.addEventListener("change", function () { _respDia = this.value || isoToday(); renderResponsablesContent(); });
       }
     }
+    const solo = document.getElementById("respSoloDia");
+    if (solo) {
+      solo.checked = _respSoloDia;
+      if (!solo._wired) { solo._wired = true; solo.addEventListener("change", function () { _respSoloDia = this.checked; renderResponsablesContent(); }); }
+    }
     const grid = document.getElementById("kpiRespDia"); if (!grid) return;
     const sum = function (k) { return responsables.reduce(function (s, r) { return s + r[k]; }, 0); };
-    const activos = responsables.filter(function (r) { return r.gestionadosDia > 0; })
-      .sort(function (a, b) { return b.gestionadosDia - a.gestionadosDia; });
+    const activos = responsables.filter(function (r) { return r.gestionadosDia + r.tareasDia > 0; })
+      .sort(function (a, b) { return (b.gestionadosDia + b.tareasDia) - (a.gestionadosDia + a.tareasDia); });
     const esHoy = _respDia === isoToday();
     grid.innerHTML =
       kpi("Casos gestionados", sum("gestionadosDia"), "info", "bi-calendar-check", (esHoy ? "hoy" : _respDia) + " · atendidos, cerrados o modificados") +
       kpi("Atendidos", sum("atendidosDia"), "sla", "bi-check2-circle", "con fecha de atención real ese día") +
       kpi("Cerrados", sum("cerradosDia"), "sla", "bi-check2-all", "con fecha de cierre ese día") +
       kpi("Modificados", sum("modificadosDia"), "normal", "bi-pencil-square", "con fecha de modificación ese día") +
+      kpi("Tareas", sum("tareasDia"), "info", "bi-list-check", "tareas/eventos creados ese día") +
       kpi("Responsables con gestión", activos.length, "info", "bi-people",
-        activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionadosDia + ")" : "sin gestión registrada");
+        activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionadosDia + " casos, " + activos[0].tareasDia + " tareas)" : "sin gestión registrada");
   }
 
   function renderResponsablesContent() {
     const byResp = computeResponsablesCombined();
-    const responsables = Object.values(byResp).sort(function (a, b) { return b.totalCasos - a.totalCasos; });
+    // "Solo con gestión ese día": deja en la tabla y KPIs solo a quienes tuvieron casos o tareas ese día.
+    const responsables = Object.values(byResp)
+      .filter(function (r) { return !_respSoloDia || r.gestionadosDia + r.tareasDia > 0; })
+      .sort(function (a, b) { return _respSoloDia ? (b.gestionadosDia + b.tareasDia) - (a.gestionadosDia + a.tareasDia) : b.totalCasos - a.totalCasos; });
 
     const kpiGrid = document.getElementById("kpiResponsablesGrid");
     if (kpiGrid) {
@@ -1682,14 +1711,13 @@
           '<td data-order="' + r.totalTareas + '">' + r.totalTareas + '</td>' +
           '<td data-order="' + r.tareasPendientes + '">' + r.tareasPendientes + '</td>' +
           '<td data-order="' + r.gestionadosDia + '"><strong>' + r.gestionadosDia + '</strong></td>' +
-          '<td data-order="' + r.atendidosDia + '">' + r.atendidosDia + '</td>' +
-          '<td data-order="' + r.cerradosDia + '">' + r.cerradosDia + '</td>' +
-          '<td data-order="' + r.modificadosDia + '">' + r.modificadosDia + '</td></tr>');
+          '<td data-order="' + r.atendidosDia + '" class="td-dia-detalle">' + r.atendidosDia + ' · ' + r.cerradosDia + ' · ' + r.modificadosDia + '</td>' +
+          '<td data-order="' + r.tareasDia + '">' + r.tareasDia + '</td></tr>');
       }).join("");
     }
     renderGestionDia(responsables);
-    // Orden por defecto: columna 1 = Total casos.
-    dtRegistry[selSum] = $(selSum).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
+    // Orden: Total casos (col 1); con "Solo con gestión ese día", Casos gestionados del día (col 9).
+    dtRegistry[selSum] = $(selSum).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[_respSoloDia ? 9 : 1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
 
     $(selSum + " tbody").off("click.resp").on("click.resp", "tr.resp-row", function () {
       const nombre = $(this).attr("data-resp");
@@ -1717,7 +1745,7 @@
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
         kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "") +
         kpi("Gestión del día", d.gestionadosDia, "info", "bi-calendar-check", (_respDia === isoToday() ? "hoy" : _respDia) + " · " +
-          d.atendidosDia + " atendidos · " + d.cerradosDia + " cerrados · " + d.modificadosDia + " modificados");
+          d.atendidosDia + " atendidos · " + d.cerradosDia + " cerrados · " + d.modificadosDia + " modificados · " + d.tareasDia + " tareas");
     }
     renderChart("chartRespCategorias", "bar", toChartDataBar(d.categorias, "#8C0F13", 8), horizontalBarOpts());
 
@@ -2100,6 +2128,9 @@
       renderErrorBanners();
     }
     setChartDefaults();
+    // Sin anchos calculados por DataTables: los calcula mal si la tabla se dibuja en una
+    // pestaña oculta (Gestión → Responsables/Grupos). El navegador reparte según contenido.
+    if (window.jQuery && jQuery.fn.dataTable) jQuery.extend(jQuery.fn.dataTable.defaults, { autoWidth: false });
     wireNav(); wireGestionTabs(); wireSidebarMobile(); wireRefreshButton(); wireGlobalSearch();
     loadAllData(true).then(function () {
       abrirDesdeHash();
