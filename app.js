@@ -147,12 +147,13 @@
   function toChartDataBar(counts, color, limit) {
     const entries = sortedEntries(counts, limit || 10);
     return { labels: entries.map(function (e) { return e[0]; }),
-      datasets: [{ data: entries.map(function (e) { return e[1]; }), backgroundColor: color || "#8C0F13", borderRadius: 4, maxBarThickness: 26 }] };
+      // pctTotal: total de TODAS las claves (no solo el top N), para el % de las etiquetas.
+      datasets: [{ data: entries.map(function (e) { return e[1]; }), pctTotal: sumar(Object.values(counts)), backgroundColor: color || "#8C0F13", borderRadius: 4, maxBarThickness: 26 }] };
   }
   function toChartDataBarMulti(counts, limit) {
     const entries = sortedEntries(counts, limit || 10);
     return { labels: entries.map(function (e) { return e[0]; }),
-      datasets: [{ data: entries.map(function (e) { return e[1]; }),
+      datasets: [{ data: entries.map(function (e) { return e[1]; }), pctTotal: sumar(Object.values(counts)),
         backgroundColor: entries.map(function (e, i) { return SERIES_PALETTE[i % SERIES_PALETTE.length]; }), borderRadius: 4, maxBarThickness: 26 }] };
   }
 
@@ -562,12 +563,115 @@
     if (typeof Chart === "undefined") return;
     Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
     Chart.defaults.font.size = 11.5; Chart.defaults.color = "#4A3F38";
+    Chart.register(pctLabelsPlugin);
+  }
+
+  /* --------- Etiquetas de porcentaje visibles sin pasar el cursor ---------
+     Plugin global (aplica a todos los gráficos; se desactiva con
+     options.plugins.pctLabels = false):
+     - Donas: % de cada porción sobre el total.
+     - Barras simples: "n (x%)" sobre el total del conjunto. Si el gráfico solo
+       muestra el top N, dataset.pctTotal trae el total real (ver toChartDataBar).
+     - Barras apiladas: % de cada segmento dentro de su barra.
+     - Líneas: % de cada punto sobre el total de su serie en el periodo (sin "<1%").
+     Una etiqueta se omite si no cabe o si se superpone con otra ya dibujada. */
+  function fmtPct(v, total) {
+    if (!total || !v) return null;
+    const p = v / total * 100;
+    return p < 1 ? "<1%" : p.toLocaleString("es-CO", { maximumFractionDigits: p < 10 ? 1 : 0 }) + "%";
+  }
+  function textoSobre(bg) {
+    const m = /^#([0-9a-f]{6})/i.exec(typeof bg === "string" ? bg : "");
+    if (!m) return "#fff";
+    const n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? "#2E2420" : "#fff";
+  }
+  function colorDe(ds, j, prop) { const c = ds[prop]; return Array.isArray(c) ? c[j % c.length] : c; }
+  function sumar(arr) { return arr.reduce(function (s, v) { return s + (+v || 0); }, 0); }
+
+  const pctLabelsPlugin = {
+    id: "pctLabels",
+    afterDatasetsDraw: function (chart) {
+      const ctx = chart.ctx, type = chart.config.type, opts = chart.options;
+      const horizontal = opts.indexAxis === "y";
+      const stacked = !!(opts.scales && opts.scales.x && opts.scales.x.stacked);
+      const visibles = chart.data.datasets.map(function (d, i) { return i; }).filter(function (i) { return chart.isDatasetVisible(i); });
+      const ocupados = [];
+      ctx.save();
+      ctx.font = "600 10.5px " + Chart.defaults.font.family;
+      ctx.textBaseline = "middle";
+
+      // Dibuja si cabe en el lienzo y no pisa otra etiqueta. align: left|center|right.
+      function poner(texto, x, y, color, align) {
+        const w = ctx.measureText(texto).width, h = 12;
+        const x0 = align === "left" ? x : align === "right" ? x - w : x - w / 2;
+        const r = { x0: x0 - 2, y0: y - h / 2 - 1, x1: x0 + w + 2, y1: y + h / 2 + 1 };
+        if (r.x0 < 0 || r.y0 < 0 || r.x1 > chart.width || r.y1 > chart.height) return false;
+        if (ocupados.some(function (o) { return r.x0 < o.x1 && r.x1 > o.x0 && r.y0 < o.y1 && r.y1 > o.y0; })) return false;
+        ocupados.push(r);
+        ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(texto, x, y);
+        return true;
+      }
+
+      visibles.forEach(function (i) {
+        const ds = chart.data.datasets[i], meta = chart.getDatasetMeta(i);
+        meta.data.forEach(function (el, j) {
+          const v = +ds.data[j];
+          if (!v) return;
+
+          if (type === "doughnut" || type === "pie") {
+            const total = sumar(ds.data.filter(function (x, k) { return chart.getDataVisibility(k); }));
+            const t = fmtPct(v, total); if (!t) return;
+            const p = el.getProps(["startAngle", "endAngle", "innerRadius", "outerRadius"]);
+            const pos = el.tooltipPosition();
+            const largoArco = (p.endAngle - p.startAngle) * (p.innerRadius + p.outerRadius) / 2;
+            if (largoArco < ctx.measureText(t).width + 6 || p.outerRadius - p.innerRadius < 14) return;
+            poner(t, pos.x, pos.y, textoSobre(colorDe(ds, j, "backgroundColor")), "center");
+
+          } else if (type === "bar" && stacked) {
+            const total = sumar(visibles.map(function (k) { return chart.data.datasets[k].data[j]; }));
+            const t = fmtPct(v, total); if (!t) return;
+            const b = el.getProps(["x", "y", "base", "width", "height"]);
+            const largo = horizontal ? Math.abs(b.x - b.base) : Math.abs(b.base - b.y);
+            const grosor = horizontal ? b.height : b.width;
+            if (largo < ctx.measureText(t).width + 6 || grosor < 12) return;
+            const cx = horizontal ? (b.x + b.base) / 2 : b.x, cy = horizontal ? b.y : (b.y + b.base) / 2;
+            poner(t, cx, cy, textoSobre(colorDe(ds, j, "backgroundColor")), "center");
+
+          } else if (type === "bar") {
+            const t = fmtPct(v, ds.pctTotal || sumar(ds.data)); if (!t) return;
+            const texto = v.toLocaleString("es-CO") + " (" + t + ")";
+            const b = el.getProps(["x", "y", "base"]);
+            const dentro = textoSobre(colorDe(ds, j, "backgroundColor"));
+            if (horizontal) { poner(texto, b.x + 5, b.y, "#4A3F38", "left") || poner(texto, b.x - 5, b.y, dentro, "right"); }
+            else { poner(t, b.x, b.y - 8, "#4A3F38", "center") || poner(t, b.x, b.y + 9, dentro, "center"); }
+
+          } else if (type === "line") {
+            // En líneas se omite "<1%": las series casi vacías llenarían el fondo de etiquetas.
+            const t = fmtPct(v, sumar(ds.data)); if (!t || t === "<1%") return;
+            poner(t, el.x, el.y - 9, colorDe(ds, j, "borderColor") || "#4A3F38", "center");
+          }
+        });
+      });
+      ctx.restore();
+    }
+  };
+
+  // Margen extra para que las etiquetas de % que van fuera de la barra/punto no se corten.
+  function paddingPct(type, options) {
+    const o = options || {}, stacked = !!(o.scales && o.scales.x && o.scales.x.stacked);
+    if (type === "bar" && !stacked) return o.indexAxis === "y" ? { right: 78 } : { top: 18 };
+    if (type === "line") return { top: 16 };
+    return null;
   }
   function renderChart(canvasId, type, data, options) {
     const el = document.getElementById(canvasId); if (!el) return null;
     if (chartRegistry[canvasId]) chartRegistry[canvasId].destroy();
     const ctx = el.getContext("2d"); el.classList.remove("chart-skeleton");
-    chartRegistry[canvasId] = new Chart(ctx, { type: type, data: data, options: options || {} });
+    options = options || {};
+    const pad = paddingPct(type, options);
+    if (pad && !(options.layout && options.layout.padding !== undefined)) options.layout = Object.assign({}, options.layout, { padding: pad });
+    chartRegistry[canvasId] = new Chart(ctx, { type: type, data: data, options: options });
     return chartRegistry[canvasId];
   }
   function gridOpts() { return { color: "#EEEBE7", drawBorder: false }; }
