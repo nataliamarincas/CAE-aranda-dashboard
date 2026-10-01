@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1790884834">
+<link rel="stylesheet" href="styles.css?v=1790888056">
 </head>
 <body>
 
@@ -491,11 +491,24 @@
               </div>
               <label for="respDia">Fecha</label>
               <input type="date" id="respDia" class="filter-select filter-select--sm">
+              <label class="resp-dia-solo"><input type="checkbox" id="respSoloAsesores"> Solo asesores del CAE</label>
               <label class="resp-dia-solo"><input type="checkbox" id="respSoloDia"> Solo con gestión en el período</label>
             </div>
           </div>
-          <p class="panel-sub" style="margin:-4px 0 12px">Casos con fecha de atención real, de cierre o de modificación en el período (el día elegido, su semana de lunes a domingo o su mes), por responsable actual del caso. Respeta los filtros de responsable, grupo y tipo de servicio (no el rango de fechas de registro).</p>
+          <p class="panel-sub" style="margin:-4px 0 12px">Período: el día elegido, su semana (lunes a domingo) o su mes. <strong>Registrados</strong>: casos que la persona creó como autor (los resuelva o los pase a otra área). <strong>Desarrollados</strong>: casos de los que es responsable, incluidos los que asigna el sistema, con atención real o cierre en el período. <strong>ANS real</strong> y <strong>mediana de atención</strong>: de lo que atendió en el período. Abiertos, vencidos sin atender y antigüedad son la foto de hoy. Se atribuye al responsable actual del caso.</p>
           <div class="kpi-grid" id="kpiRespDia"></div>
+          <div class="table-responsive" style="margin-top:14px">
+          <table class="table data-table resp-resumen-table" id="tableRespEval" style="width:100%">
+            <thead>
+              <tr>
+                <th>Responsable</th><th class="th-dia">Casos gestionados</th><th class="th-dia">Registrados</th><th class="th-dia">Desarrollados</th>
+                <th class="th-dia">Modificados</th><th class="th-dia">Tareas</th><th class="th-dia">ANS real</th><th class="th-dia">Mediana de atención</th>
+                <th>Abiertos hoy</th><th>Vencidos sin atender</th><th>Antigüedad abiertos</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          </div>
         </div>
 
         <div class="panel">
@@ -509,7 +522,6 @@
               <tr>
                 <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>Vencidos cerrados</th>
                 <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
-                <th class="th-dia">Casos gestionados (<span class="resp-per-lbl">día</span>)</th><th class="th-dia" title="Atendidos · Cerrados · Modificados en el período">Atend. · Cerr. · Modif. (<span class="resp-per-lbl">día</span>)</th><th class="th-dia">Tareas (<span class="resp-per-lbl">día</span>)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -525,6 +537,10 @@
             </button>
           </div>
           <div class="kpi-grid" id="kpiRespDetalle"></div>
+          <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia semanal (12 semanas)</h2><span class="panel-sub">Registrados · desarrollados · tareas · ANS real</span></div>
+            <div class="chart-wrap chart-tall"><canvas id="chartRespTendencia" class="chart-skeleton"></canvas></div>
+          </div>
           <div class="panel">
             <div class="panel-header"><h2><i class="bi bi-tags"></i> Categorías más frecuentes (casos)</h2></div>
             <div class="chart-wrap"><canvas id="chartRespCategorias" class="chart-skeleton"></canvas></div>
@@ -583,6 +599,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1790886065"></script>
+<script src="app.js?v=1790888056"></script>
 </body>
 </html>
