@@ -108,8 +108,9 @@
   let _casosActiveCat = null;     // categoría (nivel1) activa en Casos; null = todas
   let _vistaActual = "resumen";
   let _respDetalleActual = null;
-  let _respDia = isoToday();       // día de la "Gestión del día" en Responsables
-  let _respSoloDia = false;        // Responsables: mostrar solo quienes tuvieron gestión ese día
+  let _respDia = isoToday();       // fecha de referencia de la "Gestión" en Responsables
+  let _respPeriodo = "dia";        // "dia" | "semana" (lunes a domingo) | "mes" que contiene _respDia
+  let _respSoloDia = false;        // Responsables: mostrar solo quienes tuvieron gestión en el período
   let _respDetalleTab = "casos";  // "casos" | "tareas" dentro del panel de detalle
   let TENDENCY_PERIOD = "mes";  // por meses se ve el año de histórico completo
 
@@ -1552,6 +1553,7 @@
   /* ---------------------- RESPONSABLES (Casos + Tareas combinados) ---------------------- */
 
   function computeResponsablesCombined() {
+    const rg = rangoGestion();
     const byResp = {};
     function ensure(nombre) {
       if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {},
@@ -1563,10 +1565,10 @@
       if (RESP_FILTER.responsable.length && RESP_FILTER.responsable.indexOf(nombre) === -1) return;
       if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return;
       if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
-      // Gestión del día: casos con fecha de atención real, cierre o modificación en _respDia.
+      // Gestión del período (rangoGestion): casos con fecha de atención real, cierre o modificación en el rango.
       // No depende del rango de fecha de registro (un caso viejo también se gestiona hoy).
       // Se atribuye al responsable ACTUAL del caso: el export no dice quién hizo el cambio.
-      const enDia = function (v) { return (fechaValida(v) || "").slice(0, 10) === _respDia; };
+      const enDia = function (v) { const s = (fechaValida(v) || "").slice(0, 10); return s >= rg.desde && s <= rg.hasta; };
       const at = enDia(r.fecha_atencion_real), ce = enDia(r.fecha_cierre), mo = enDia(r.fecha_modificacion);
       if (at || ce || mo) {
         const g = ensure(nombre);
@@ -1591,8 +1593,8 @@
     const cruce = {};
     STATE.rawTareas.forEach(function (t) {
       const f = t.fecha_creacion || "";
-      // Tareas del día (gestión del día): no dependen del rango de fechas de la sección.
-      const delDia = f.slice(0, 10) === _respDia;
+      // Tareas del período (gestión): no dependen del rango de fechas de registro de la sección.
+      const delDia = f.slice(0, 10) >= rg.desde && f.slice(0, 10) <= rg.hasta;
       const fueraDeRango = (RESP_FILTER.fechaDesde && f < RESP_FILTER.fechaDesde) || (RESP_FILTER.fechaHasta && f > RESP_FILTER.fechaHasta);
       if (fueraDeRango && !delDia) return;
       const clave = t.responsable || "";
@@ -1642,8 +1644,26 @@
 
   function renderResponsables() { populateRespFilterBar(); renderResponsablesContent(); }
 
-  // KPIs de "Gestión del día" + selector de día (por defecto hoy).
+  // Rango de la Gestión: el día elegido, su semana (lunes a domingo) o su mes.
+  function rangoGestion() {
+    const p = function (n) { return String(n).padStart(2, "0"); };
+    const iso = function (d) { return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+    const ref = new Date(_respDia + "T00:00:00");
+    if (_respPeriodo === "semana") {
+      const lunes = new Date(ref); lunes.setDate(ref.getDate() - ((ref.getDay() + 6) % 7));
+      const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+      return { desde: iso(lunes), hasta: iso(domingo), nombre: "semana", texto: "semana del " + iso(lunes) + " al " + iso(domingo) };
+    }
+    if (_respPeriodo === "mes") {
+      const ini = new Date(ref.getFullYear(), ref.getMonth(), 1), fin = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+      return { desde: iso(ini), hasta: iso(fin), nombre: "mes", texto: ref.toLocaleDateString("es-CO", { month: "long", year: "numeric" }) };
+    }
+    return { desde: _respDia, hasta: _respDia, nombre: "día", texto: _respDia === isoToday() ? "hoy" : _respDia };
+  }
+
+  // KPIs de "Gestión" + selector de fecha y período (por defecto hoy, día).
   function renderGestionDia(responsables) {
+    const rg = rangoGestion();
     const input = document.getElementById("respDia");
     if (input) {
       input.value = _respDia;
@@ -1652,29 +1672,39 @@
         input.addEventListener("change", function () { _respDia = this.value || isoToday(); renderResponsablesContent(); });
       }
     }
+    const btns = document.getElementById("respPeriodoBtns");
+    if (btns) {
+      btns.querySelectorAll(".tend-btn").forEach(function (b) {
+        b.classList.toggle("tend-btn--active", b.getAttribute("data-periodo") === _respPeriodo);
+        if (!b._wired) { b._wired = true; b.addEventListener("click", function () { _respPeriodo = this.getAttribute("data-periodo"); renderResponsablesContent(); }); }
+      });
+    }
     const solo = document.getElementById("respSoloDia");
     if (solo) {
       solo.checked = _respSoloDia;
       if (!solo._wired) { solo._wired = true; solo.addEventListener("change", function () { _respSoloDia = this.checked; renderResponsablesContent(); }); }
     }
+    const titulo = document.getElementById("respGestionTitulo");
+    if (titulo) titulo.textContent = { "día": "Gestión del día", "semana": "Gestión de la semana", "mes": "Gestión del mes" }[rg.nombre];
+    document.querySelectorAll(".resp-per-lbl").forEach(function (el) { el.textContent = rg.nombre; });
     const grid = document.getElementById("kpiRespDia"); if (!grid) return;
     const sum = function (k) { return responsables.reduce(function (s, r) { return s + r[k]; }, 0); };
     const activos = responsables.filter(function (r) { return r.gestionadosDia + r.tareasDia > 0; })
       .sort(function (a, b) { return (b.gestionadosDia + b.tareasDia) - (a.gestionadosDia + a.tareasDia); });
-    const esHoy = _respDia === isoToday();
+    const enPer = rg.nombre === "día" ? "ese día" : rg.nombre === "mes" ? "en el mes" : "en la semana";
     grid.innerHTML =
-      kpi("Casos gestionados", sum("gestionadosDia"), "info", "bi-calendar-check", (esHoy ? "hoy" : _respDia) + " · atendidos, cerrados o modificados") +
-      kpi("Atendidos", sum("atendidosDia"), "sla", "bi-check2-circle", "con fecha de atención real ese día") +
-      kpi("Cerrados", sum("cerradosDia"), "sla", "bi-check2-all", "con fecha de cierre ese día") +
-      kpi("Modificados", sum("modificadosDia"), "normal", "bi-pencil-square", "con fecha de modificación ese día") +
-      kpi("Tareas", sum("tareasDia"), "info", "bi-list-check", "tareas/eventos creados ese día") +
+      kpi("Casos gestionados", sum("gestionadosDia"), "info", "bi-calendar-check", rg.texto + " · atendidos, cerrados o modificados") +
+      kpi("Atendidos", sum("atendidosDia"), "sla", "bi-check2-circle", "con fecha de atención real " + enPer) +
+      kpi("Cerrados", sum("cerradosDia"), "sla", "bi-check2-all", "con fecha de cierre " + enPer) +
+      kpi("Modificados", sum("modificadosDia"), "normal", "bi-pencil-square", "con fecha de modificación " + enPer) +
+      kpi("Tareas", sum("tareasDia"), "info", "bi-list-check", "tareas/eventos creados " + enPer) +
       kpi("Responsables con gestión", activos.length, "info", "bi-people",
         activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionadosDia + " casos, " + activos[0].tareasDia + " tareas)" : "sin gestión registrada");
   }
 
   function renderResponsablesContent() {
     const byResp = computeResponsablesCombined();
-    // "Solo con gestión ese día": deja en la tabla y KPIs solo a quienes tuvieron casos o tareas ese día.
+    // "Solo con gestión en el período": deja en la tabla y KPIs solo a quienes tuvieron casos o tareas en el período.
     const responsables = Object.values(byResp)
       .filter(function (r) { return !_respSoloDia || r.gestionadosDia + r.tareasDia > 0; })
       .sort(function (a, b) { return _respSoloDia ? (b.gestionadosDia + b.tareasDia) - (a.gestionadosDia + a.tareasDia) : b.totalCasos - a.totalCasos; });
@@ -1716,7 +1746,7 @@
       }).join("");
     }
     renderGestionDia(responsables);
-    // Orden: Total casos (col 1); con "Solo con gestión ese día", Casos gestionados del día (col 9).
+    // Orden: Total casos (col 1); con "Solo con gestión en el período", Casos gestionados (col 9).
     dtRegistry[selSum] = $(selSum).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[_respSoloDia ? 9 : 1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
 
     $(selSum + " tbody").off("click.resp").on("click.resp", "tr.resp-row", function () {
@@ -1744,7 +1774,7 @@
         kpi("% Resolución", d.tasaResolucion + "%", "sla", "bi-graph-up", d.solucionados + " solucionados") +
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
         kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "") +
-        kpi("Gestión del día", d.gestionadosDia, "info", "bi-calendar-check", (_respDia === isoToday() ? "hoy" : _respDia) + " · " +
+        kpi("Gestión (" + rangoGestion().nombre + ")", d.gestionadosDia, "info", "bi-calendar-check", rangoGestion().texto + " · " +
           d.atendidosDia + " atendidos · " + d.cerradosDia + " cerrados · " + d.modificadosDia + " modificados · " + d.tareasDia + " tareas");
     }
     renderChart("chartRespCategorias", "bar", toChartDataBar(d.categorias, "#8C0F13", 8), horizontalBarOpts());

@@ -484,14 +484,17 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-calendar-check"></i> Gestión del día</h2>
+            <h2><i class="bi bi-calendar-check"></i> <span id="respGestionTitulo">Gestión del día</span></h2>
             <div class="filter-group">
-              <label for="respDia">Día</label>
+              <div class="tend-period-btns" id="respPeriodoBtns">
+                <button class="tend-btn tend-btn--active" data-periodo="dia">Día</button><button class="tend-btn" data-periodo="semana">Semana</button><button class="tend-btn" data-periodo="mes">Mes</button>
+              </div>
+              <label for="respDia">Fecha</label>
               <input type="date" id="respDia" class="filter-select filter-select--sm">
-              <label class="resp-dia-solo"><input type="checkbox" id="respSoloDia"> Solo con gestión ese día</label>
+              <label class="resp-dia-solo"><input type="checkbox" id="respSoloDia"> Solo con gestión en el período</label>
             </div>
           </div>
-          <p class="panel-sub" style="margin:-4px 0 12px">Casos con fecha de atención real, de cierre o de modificación en el día elegido, por responsable actual del caso. Respeta los filtros de responsable, grupo y tipo de servicio (no el rango de fechas de registro).</p>
+          <p class="panel-sub" style="margin:-4px 0 12px">Casos con fecha de atención real, de cierre o de modificación en el período (el día elegido, su semana de lunes a domingo o su mes), por responsable actual del caso. Respeta los filtros de responsable, grupo y tipo de servicio (no el rango de fechas de registro).</p>
           <div class="kpi-grid" id="kpiRespDia"></div>
         </div>
 
@@ -506,7 +509,7 @@
               <tr>
                 <th>Responsable</th><th>Total casos</th><th>Casos abiertos</th><th>Vencidos abiertos</th><th>Críticos abiertos</th><th>Vencidos cerrados</th>
                 <th>% Resolución</th><th>Tareas totales</th><th>Tareas pendientes</th>
-                <th class="th-dia">Casos gestionados (día)</th><th class="th-dia" title="Atendidos · Cerrados · Modificados ese día">Atend. · Cerr. · Modif. (día)</th><th class="th-dia">Tareas (día)</th>
+                <th class="th-dia">Casos gestionados (<span class="resp-per-lbl">día</span>)</th><th class="th-dia" title="Atendidos · Cerrados · Modificados en el período">Atend. · Cerr. · Modif. (<span class="resp-per-lbl">día</span>)</th><th class="th-dia">Tareas (<span class="resp-per-lbl">día</span>)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -580,6 +583,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1790884835"></script>
+<script src="app.js?v=1790886065"></script>
 </body>
 </html>
