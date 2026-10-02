@@ -445,17 +445,25 @@
 
   /* ====================== FILTROS: dropdown multi-select genérico ====================== */
 
+  // Filtros de selección múltiple. Valor del filtro:
+  //   []            -> Todos (sin filtrar): todas las casillas aparecen marcadas.
+  //   [MS_NINGUNO]  -> el usuario desmarcó todo: no coincide nada.
+  //   [a, b, …]     -> solo esos valores.
+  // Así se puede partir de "Todos" y desmarcar los que sobran.
+  const MS_NINGUNO = "\u0000ninguno";
   function buildMsDropHTML(key, label, icon, options, filterObj) {
     const sel = filterObj[key] || [];
-    const badgeVis = (sel.length > 0 && sel.length < options.length) ? "" : "display:none";
+    const todos = sel.length === 0, ninguno = sel.length === 1 && sel[0] === MS_NINGUNO;
+    const marcadas = todos ? options.length : ninguno ? 0 : sel.filter(function (v) { return options.indexOf(v) !== -1; }).length;
+    const badgeVis = (!todos && marcadas < options.length) ? "" : "display:none";
     const optsHtml = options.map(function (opt) {
-      const checked = sel.indexOf(opt) !== -1 ? " checked" : "";
+      const checked = (todos || (!ninguno && sel.indexOf(opt) !== -1)) ? " checked" : "";
       return '<label class="ms-opt"><input type="checkbox" class="ms-cb" value="' + esc(opt) + '"' + checked + '><span>' + esc(opt) + '</span></label>';
     }).join("");
-    const allChecked = (sel.length === 0 || (options.length > 0 && sel.length === options.length)) ? " checked" : "";
+    const allChecked = (todos || (options.length > 0 && marcadas === options.length)) ? " checked" : "";
     return ('<div class="ms-drop" data-key="' + key + '">' +
       '<button class="ms-toggle" type="button"><i class="bi ' + icon + '"></i><span class="ms-label">' + label + '</span>' +
-      '<span class="ms-badge" style="' + badgeVis + '">' + sel.length + '</span><i class="bi bi-chevron-down ms-chevron"></i></button>' +
+      '<span class="ms-badge" style="' + badgeVis + '">' + marcadas + '</span><i class="bi bi-chevron-down ms-chevron"></i></button>' +
       '<div class="ms-panel" hidden><input class="ms-search" type="text" placeholder="Buscar…" autocomplete="off">' +
       '<div class="ms-opts-wrap"><label class="ms-opt ms-opt--all"><input type="checkbox" class="ms-cb-all"' + allChecked + '><span>Todos</span></label>' +
       optsHtml + '</div></div></div>');
@@ -476,17 +484,21 @@
         });
         panel.addEventListener("click", function (e) { e.stopPropagation(); });
         if (searchEl) { searchEl.addEventListener("input", function () { filterDropOptions(drop, this.value); }); searchEl.addEventListener("click", function (e) { e.stopPropagation(); }); }
+        // "Todos": marcado = sin filtro (todas las casillas); desmarcado = ninguna.
         if (allCb) allCb.addEventListener("change", function () {
-          drop.querySelectorAll(".ms-cb").forEach(function (cb) { cb.checked = false; });
-          this.checked = true; filterObj[key] = []; badge.style.display = "none"; badge.textContent = "0"; onChange();
+          const marcar = this.checked;
+          drop.querySelectorAll(".ms-cb").forEach(function (cb) { cb.checked = marcar; });
+          filterObj[key] = marcar ? [] : [MS_NINGUNO];
+          badge.textContent = "0"; badge.style.display = marcar ? "none" : "";
+          onChange();
         });
         drop.querySelectorAll(".ms-cb").forEach(function (cb) {
           cb.addEventListener("change", function () {
             const vals = []; drop.querySelectorAll(".ms-cb:checked").forEach(function (c) { vals.push(c.value); });
-            filterObj[key] = vals;
             const totalOpts = drop.querySelectorAll(".ms-cb").length;
-            if (allCb) allCb.checked = (vals.length === 0 || vals.length === totalOpts);
-            badge.textContent = vals.length; badge.style.display = (vals.length > 0 && vals.length < totalOpts) ? "" : "none";
+            filterObj[key] = vals.length === totalOpts ? [] : vals.length === 0 ? [MS_NINGUNO] : vals;
+            if (allCb) allCb.checked = vals.length === totalOpts;
+            badge.textContent = vals.length; badge.style.display = vals.length < totalOpts ? "" : "none";
             onChange();
           });
         });
