@@ -288,6 +288,7 @@ tr.meta-row--subs.is-open .subs-toggle i{ display:inline-block; transform:rotate
 .cond-chip{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:6px; }
 .cond-chip--abierto{ background:#fdf0f0; color:var(--wine); border:1px solid var(--wine); }
 .cond-chip--cerrado{ background:var(--neutral); color:var(--t3); }
+.cond-chip--fuera{ background:#fff; color:var(--t3); border:1px dashed var(--t3); cursor:help; white-space:nowrap; }
 .chip-nivel1{ display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:6px; color:#fff; }
 .chip-nivel1--financiero{ background:#8C0F13; }
 .chip-nivel1--tecnologias{ background:#4A6B8C; }

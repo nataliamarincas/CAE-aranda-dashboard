@@ -349,13 +349,21 @@
   }
   function effectiveClass(r) {
     const e = r.estado;
-    if (e === "Solucionado" || e === "Cerrado" || e === "Anulado") return "Normal";
+    if (esFueraReporte(r) || e === "Solucionado" || e === "Cerrado" || e === "Anulado") return "Normal";
     return classify(effectiveProgreso(r));
   }
   function nivel1Effective(r) {
     return NIVEL1_CATS.indexOf(r.nivel1) !== -1 ? r.nivel1 : NIVEL1_OTROS;
   }
-  function esAbierto(r) { return ESTADOS_CERRADOS.indexOf(r.estado) === -1; }
+  // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
+  // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
+  // conocido, pero ese estado ya no es confiable: no cuenta como abierto ni como cerrado.
+  // Lo marca el pipeline (fuera_export_desde) y se quita solo si el caso vuelve.
+  const CONDICIONES = ["Abiertos", "Cerrados", "Fuera del reporte"];
+  function esFueraReporte(r) { return !!r.fuera_export_desde; }
+  function esAbierto(r) { return !esFueraReporte(r) && ESTADOS_CERRADOS.indexOf(r.estado) === -1; }
+  function esCerrado(r) { return !esFueraReporte(r) && ESTADOS_CERRADOS.indexOf(r.estado) !== -1; }
+  function condicionCaso(r) { return esFueraReporte(r) ? "Fuera del reporte" : esAbierto(r) ? "Abiertos" : "Cerrados"; }
   const CLASIF_LABEL = { Vencido: "Vencido", Critico: "Crítico", Riesgo: "En riesgo", Normal: "A tiempo" };
   function clasificacionCaso(r) { return CLASIF_LABEL[ansResultado(r)]; }
   const CLASIF_PILL = { "Vencido": "vencido", "Crítico": "critico", "En riesgo": "riesgo", "A tiempo": "normal" };
@@ -544,7 +552,7 @@
       if (CASOS_FILTER.ansReal.length && CASOS_FILTER.ansReal.indexOf(ansReal(r)) === -1) return false;
       if (CASOS_FILTER.autor.length && CASOS_FILTER.autor.indexOf(autorGrupo(r)) === -1) return false;
       if (CASOS_FILTER.condicion.length) {
-        const cond = ESTADOS_CERRADOS.indexOf(r.estado) !== -1 ? "Cerrados" : "Abiertos";
+        const cond = condicionCaso(r);
         if (CASOS_FILTER.condicion.indexOf(cond) === -1) return false;
       }
       if (CASOS_FILTER.fechaDesde && (r.fecha_registro || "") < CASOS_FILTER.fechaDesde) return false;
@@ -567,7 +575,7 @@
       if (f.estado.length && f.estado.indexOf(r.estado) === -1) return false;
       if (f.tipoRegistro.length && f.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
       if (f.fuente.length && f.fuente.indexOf(r.fuente) === -1) return false;
-      if (f.condicion.length && f.condicion.indexOf(esAbierto(r) ? "Abiertos" : "Cerrados") === -1) return false;
+      if (f.condicion.length && f.condicion.indexOf(condicionCaso(r)) === -1) return false;
       if (f.fechaDesde && (r.fecha_registro || "") < f.fechaDesde) return false;
       if (f.fechaHasta && (r.fecha_registro || "") > f.fechaHasta) return false;
       return true;
@@ -599,7 +607,7 @@
 
   function computeCasosStats(records) {
     const total = records.length;
-    let vencidos = 0, criticos = 0, riesgo = 0, normal = 0, sumTiempo = 0, abiertos = 0, vencidosCerrados = 0;
+    let vencidos = 0, criticos = 0, riesgo = 0, normal = 0, sumTiempo = 0, abiertos = 0, vencidosCerrados = 0, fueraReporte = 0;
     const vencidosPorResponsable = {}, vencidosPorCategoria = {}, porNivel1 = {};
     const ans = { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 };
     const ansRealCnt = contadorAnsReal();
@@ -608,7 +616,7 @@
       const resAns = ansResultado(r);
       const real = ansReal(r);
       // Vencidos cerrados = cerrados fuera de ANS según la Condición real de ANS.
-      if (esAbierto(r)) abiertos++; else if (real === "Incumplido") vencidosCerrados++;
+      if (esAbierto(r)) abiertos++; else if (esFueraReporte(r)) fueraReporte++; else if (real === "Incumplido") vencidosCerrados++;
       ans[resAns]++;
       ansRealCnt[real]++;
       if (cls === "Vencido") vencidos++; else if (cls === "Critico") criticos++; else if (cls === "Riesgo") riesgo++; else normal++;
@@ -616,7 +624,7 @@
       const n1 = nivel1Effective(r);
       if (!porNivel1[n1]) porNivel1[n1] = { total: 0, vencidos: 0, criticos: 0, riesgo: 0, abiertos: 0, vencidosCerrados: 0, ans: { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 }, ansReal: contadorAnsReal() };
       porNivel1[n1].total++;
-      if (esAbierto(r)) porNivel1[n1].abiertos++; else if (real === "Incumplido") porNivel1[n1].vencidosCerrados++;
+      if (esAbierto(r)) porNivel1[n1].abiertos++; else if (esCerrado(r) && real === "Incumplido") porNivel1[n1].vencidosCerrados++;
       porNivel1[n1].ans[resAns]++;
       porNivel1[n1].ansReal[real]++;
       if (cls === "Vencido") { porNivel1[n1].vencidos++; vencidosPorResponsable[r.responsable || "Sin asignar"] = (vencidosPorResponsable[r.responsable || "Sin asignar"] || 0) + 1; vencidosPorCategoria[r.categoria || "Sin categoría"] = (vencidosPorCategoria[r.categoria || "Sin categoría"] || 0) + 1; }
@@ -624,7 +632,7 @@
       else if (cls === "Riesgo") porNivel1[n1].riesgo++;
     });
     return { total: total, vencidos: vencidos, criticos: criticos, riesgo: riesgo, normal: normal,
-      abiertos: abiertos, cerrados: total - abiertos, vencidosCerrados: vencidosCerrados, ans: ans, ansReal: ansRealCnt,
+      abiertos: abiertos, cerrados: total - abiertos - fueraReporte, fueraReporte: fueraReporte, vencidosCerrados: vencidosCerrados, ans: ans, ansReal: ansRealCnt,
       avgTiempo: total ? Math.round((sumTiempo / total) * 10) / 10 : 0,
       vencidosPorResponsable: vencidosPorResponsable, vencidosPorCategoria: vencidosPorCategoria, porNivel1: porNivel1 };
   }
@@ -1019,7 +1027,7 @@
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals("grupo_responsable"), EXEC_FILTER) +
       buildMsDropHTML("responsable", "Responsable", "bi-person", uniqueVals("responsable"), EXEC_FILTER) +
       buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals("estado"), EXEC_FILTER) +
-      buildMsDropHTML("condicion", "Condición", "bi-toggle2-on", ["Abiertos", "Cerrados"], EXEC_FILTER) +
+      buildMsDropHTML("condicion", "Condición", "bi-toggle2-on", CONDICIONES, EXEC_FILTER) +
       buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", uniqueVals("tipo_registro"), EXEC_FILTER) +
       buildMsDropHTML("fuente", "Origen", "bi-database", uniqueVals("fuente"), EXEC_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
@@ -1050,7 +1058,7 @@
     const grid = document.getElementById("kpiExecGrid");
     if (grid) {
       grid.innerHTML =
-        kpi("Total de casos", s.total, "info", "bi-collection", s.abiertos + " abiertos · " + s.cerrados + " cerrados") +
+        kpi("Total de casos", s.total, "info", "bi-collection", s.abiertos + " abiertos · " + s.cerrados + " cerrados" + (s.fueraReporte ? " · " + s.fueraReporte + " fuera del reporte" : "")) +
         kpiClientes(STATE.execCasos) +
         kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", s.ansReal["Cumplido"] + " cumplidos · Condición real de ANS") +
         kpi("Vencidos", s.vencidos, "vencido", "bi-x-octagon", "abiertos · " + pct(s.vencidos, s.abiertos) + "% de los abiertos") +
@@ -1267,7 +1275,7 @@
       { key: "grupo", label: "Grupo", icon: "bi-building", field: "grupo_responsable" },
       { key: "responsable", label: "Responsable", icon: "bi-person", field: "responsable" },
       { key: "estado", label: "Estado", icon: "bi-circle-half", field: "estado" },
-      { key: "condicion", label: "Condición", icon: "bi-toggle2-on", opts: ["Abiertos", "Cerrados"] },
+      { key: "condicion", label: "Condición", icon: "bi-toggle2-on", opts: CONDICIONES },
       { key: "tipoRegistro", label: "Canal de registro", icon: "bi-tag", field: "tipo_registro" },
       { key: "fuente", label: "Origen", icon: "bi-database", field: "fuente" }
     ].filter(Boolean);
@@ -1349,6 +1357,7 @@
         kpiClientes(STATE.casos) +
         kpi("Abiertos", s.abiertos, "info", "bi-folder2-open", pct(s.abiertos, s.total) + "% del total") +
         kpi("Cerrados", s.cerrados, "sla", "bi-check2-all", pct(s.cerrados, s.total) + "% del total") +
+        (s.fueraReporte ? kpi("Fuera del reporte", s.fueraReporte, "info", "bi-box-arrow-right", "dejaron de venir en el export (p. ej. escalados a otro grupo) · se conservan con su último estado") : "") +
         kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", (s.ansReal["Incumplido"] + s.ansReal["Vencido sin atender"]) + " fuera de ANS · Condición real") +
         kpi("Vencidos abiertos", s.vencidos, "vencido", "bi-x-octagon", s.criticos + " críticos · " + s.riesgo + " en riesgo") +
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados se cerró fuera del ANS") +
@@ -1377,7 +1386,8 @@
           { data: "estado", render: txt },
           // Condición: Registrado, En Proceso y En Espera cuentan como abiertos (igual que las tarjetas).
           { data: null, render: function (d, type, r) {
-            const cond = esAbierto(r) ? "Abierto" : "Cerrado";
+            const cond = esFueraReporte(r) ? "Fuera del reporte" : esAbierto(r) ? "Abierto" : "Cerrado";
+            if (type === "display" && esFueraReporte(r)) return '<span class="cond-chip cond-chip--fuera" title="Dejó de venir en el export desde ' + esc(r.fuera_export_desde) + ' (p. ej. escalado a un grupo fuera del reporte). Estado: último conocido.">Fuera del reporte</span>';
             return type === "display" ? '<span class="cond-chip cond-chip--' + cond.toLowerCase() + '">' + cond + '</span>' : cond;
           } },
           { data: null, render: function (d, type, r) {
@@ -1465,18 +1475,20 @@
     const porGrupo = {};
     recs.forEach(function (r) {
       const g = r.grupo_responsable && r.grupo_responsable !== "N/A" ? r.grupo_responsable : "Sin grupo";
-      if (!porGrupo[g]) porGrupo[g] = { abiertos: 0, cerrados: 0 };
-      porGrupo[g][esAbierto(r) ? "abiertos" : "cerrados"]++;
+      if (!porGrupo[g]) porGrupo[g] = { abiertos: 0, cerrados: 0, fuera: 0 };
+      porGrupo[g][esAbierto(r) ? "abiertos" : esFueraReporte(r) ? "fuera" : "cerrados"]++;
     });
     const topGrupos = Object.keys(porGrupo).sort(function (a, b) {
-      return (porGrupo[b].abiertos + porGrupo[b].cerrados) - (porGrupo[a].abiertos + porGrupo[a].cerrados);
+      return (porGrupo[b].abiertos + porGrupo[b].cerrados + porGrupo[b].fuera) - (porGrupo[a].abiertos + porGrupo[a].cerrados + porGrupo[a].fuera);
     }).slice(0, 15);
     const cvGrupo = document.getElementById("chartCasosGrupo");
     if (cvGrupo && cvGrupo.parentElement) cvGrupo.parentElement.style.height = Math.max(200, topGrupos.length * 30 + 70) + "px";
     renderChart("chartCasosGrupo", "bar", { labels: topGrupos, datasets: [
       { label: "Abiertos", data: topGrupos.map(function (g) { return porGrupo[g].abiertos; }), backgroundColor: "#C0151A" },
       { label: "Cerrados", data: topGrupos.map(function (g) { return porGrupo[g].cerrados; }), backgroundColor: "#9C8C7E" }
-    ] }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
+    ].concat(topGrupos.some(function (g) { return porGrupo[g].fuera; }) ? [
+      { label: "Fuera del reporte", data: topGrupos.map(function (g) { return porGrupo[g].fuera; }), backgroundColor: "#D9CFC6" }] : [])
+    }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
     renderChart("chartCasosAns", "doughnut", toChartDataDoughnut(s.ansReal, null, ANS_REAL_COLORS), doughnutOpts());
     // En "Todas": ANS por categoría. Dentro de una categoría: ANS por subcategoría (top 10).
     const ansTitle = document.getElementById("casosAnsCatTitle");
@@ -1600,11 +1612,11 @@
       const d = ensure(nombre);
       d.totalCasos++;
       d.categorias[r.categoria || "Sin categoría"] = (d.categorias[r.categoria || "Sin categoría"] || 0) + 1;
-      if (r.estado === "En Espera" || r.estado === "En Proceso" || r.estado === "Registrado") {
+      if (esAbierto(r)) {
         d.abiertos++;
         const cls = classify(effectiveProgreso(r));
         if (cls === "Vencido") d.vencidosActivos++; else if (cls === "Critico") d.criticosActivos++;
-      } else if (r.estado === "Solucionado" || r.estado === "Cerrado") {
+      } else if (esCerrado(r)) {
         d.solucionados++;
         if (ansReal(r) === "Incumplido") d.vencidosCerrados++;  // cerrado fuera del ANS (Condición real)
         if (r.tiempo_transcurrido_dias != null) d.tiemposSol.push(r.tiempo_transcurrido_dias);
@@ -2033,7 +2045,7 @@
     if (tabsEl) tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-tab") === _respDetalleTab); });
     document.querySelectorAll(".resp-subview").forEach(function (sv) { sv.classList.toggle("is-active", sv.id === "respSub-" + _respDetalleTab); });
 
-    const casosResp = STATE.rawCasos.filter(function (r) { return r.responsable === d.nombre && (r.estado === "En Espera" || r.estado === "En Proceso" || r.estado === "Registrado"); })
+    const casosResp = STATE.rawCasos.filter(function (r) { return r.responsable === d.nombre && esAbierto(r); })
       .sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
     const selCasos = "#tableRespCasos";
     if (dtRegistry[selCasos]) { try { dtRegistry[selCasos].destroy(); } catch (e) {} delete dtRegistry[selCasos]; }
@@ -2081,7 +2093,7 @@
         d.abiertos++;
         const cls = effectiveClass(r);
         if (cls === "Vencido") d.vencidosAbiertos++; else if (cls === "Critico") d.criticosAbiertos++;
-      } else if (res === "Incumplido") d.vencidosCerrados++;
+      } else if (esCerrado(r) && res === "Incumplido") d.vencidosCerrados++;
     });
     Object.keys(byGrupo).forEach(function (g) {
       const d = byGrupo[g];
