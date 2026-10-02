@@ -306,6 +306,22 @@
       (foot ? '<div class="kpi-foot">' + esc(foot) + '</div>' : '') + '</div>');
   }
 
+  // Clientes únicos: casos con cliente_id, código seudónimo que calcula el pipeline
+  // (HMAC del campo Cliente con clave secreta). Se cuentan sin saber quiénes son.
+  function contarClientes(records) {
+    const veces = {}; let conId = 0;
+    records.forEach(function (r) { if (r.cliente_id) { conId++; veces[r.cliente_id] = (veces[r.cliente_id] || 0) + 1; } });
+    const ids = Object.keys(veces);
+    return { unicos: ids.length, conId: conId, total: records.length, recurrentes: ids.filter(function (k) { return veces[k] > 1; }).length };
+  }
+  function kpiClientes(records) {
+    const c = contarClientes(records);
+    if (!c.conId) return kpi("Clientes únicos", "—", "info", "bi-person-vcard", "aún sin identificar (llega con la próxima sincronización)");
+    return kpi("Clientes únicos", c.unicos, "info", "bi-person-vcard",
+      (c.conId / c.unicos).toFixed(1).replace(".", ",") + " casos por cliente · " + c.recurrentes + " con más de un caso" +
+      (c.conId < c.total ? " · " + c.conId + " de " + c.total + " casos con cliente" : ""));
+  }
+
   function progressCellHTML(progreso, cls) {
     const p = progreso === null || progreso === undefined ? 0 : progreso;
     const pctWidth = Math.max(4, Math.min(100, p));
@@ -1023,6 +1039,7 @@
     if (grid) {
       grid.innerHTML =
         kpi("Total de casos", s.total, "info", "bi-collection", s.abiertos + " abiertos · " + s.cerrados + " cerrados") +
+        kpiClientes(STATE.execCasos) +
         kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", s.ansReal["Cumplido"] + " cumplidos · Condición real de ANS") +
         kpi("Vencidos", s.vencidos, "vencido", "bi-x-octagon", "abiertos · " + pct(s.vencidos, s.abiertos) + "% de los abiertos") +
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados") +
@@ -1317,6 +1334,7 @@
     if (kpiGrid) {
       kpiGrid.innerHTML =
         kpi("Casos en la vista", s.total, "info", "bi-collection", _casosActiveCat || "todas las categorías") +
+        kpiClientes(STATE.casos) +
         kpi("Abiertos", s.abiertos, "info", "bi-folder2-open", pct(s.abiertos, s.total) + "% del total") +
         kpi("Cerrados", s.cerrados, "sla", "bi-check2-all", pct(s.cerrados, s.total) + "% del total") +
         kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", (s.ansReal["Incumplido"] + s.ansReal["Vencido sin atender"]) + " fuera de ANS · Condición real") +
@@ -1630,17 +1648,17 @@
   }
   function evaluarPersona(nombre, rg) {
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
-    const e = { nombre: nombre, registrados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0,
+    const e = { nombre: nombre, registrados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
       ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, edades: [] };
     const llaves = new Set();
     STATE.rawCasos.forEach(function (r) {
       if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
-      if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) { e.registrados++; llaves.add(r.llave); }
+      if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) { e.registrados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
       if (nombreNorm(r) !== n) return;
       const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg), mo = enRango(r.fecha_modificacion, rg);
       if (at || ce) e.desarrollados++;
       if (mo) e.modificados++;
-      if (at || ce || mo) llaves.add(r.llave);
+      if (at || ce || mo) { llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
       if (at) {
         const res = ansReal(r);
         if (res === "Cumplido") e.ansCumplido++; else if (res === "Incumplido") e.ansIncumplido++;
@@ -1657,11 +1675,18 @@
     });
     STATE.rawTareas.forEach(function (t) { if (enRango(t.fecha_creacion, rg) && mismaPersona(nombreNorm(t), n)) e.tareas++; });
     e.gestionados = llaves.size;
+    e.clientes = e.clientesSet.size;  // clientes distintos detrás de sus casos gestionados
     e.ansPct = (e.ansCumplido + e.ansIncumplido) ? pct(e.ansCumplido, e.ansCumplido + e.ansIncumplido) : null;
     e.horasMediana = mediana(e.horas);
     e.edadPromedio = e.edades.length ? e.edades.reduce(function (s, v) { return s + v; }, 0) / e.edades.length : null;
     e.actividad = e.gestionados + e.tareas;
     return e;
+  }
+  // Clientes distintos entre varias personas (un cliente atendido por dos asesores cuenta una vez).
+  function clientesUnion(evals) {
+    const todos = new Set();
+    evals.forEach(function (e) { e.clientesSet.forEach(function (c) { todos.add(c); }); });
+    return todos.size;
   }
   function esAsesorCAE(nombre) { return AUTORES_GESTORES.some(function (a) { return namesMatch(a, nombre); }); }
   function fmtHoras(h) { return h === null ? "—" : h < 24 ? h.toFixed(1).replace(".", ",") + " h" : (h / 24).toFixed(1).replace(".", ",") + " d"; }
@@ -1743,6 +1768,7 @@
     const grid = document.getElementById("kpiRespDia");
     if (grid) grid.innerHTML =
       kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", rg.texto + " · registrados, desarrollados o modificados") +
+      kpi("Clientes atendidos", clientesUnion(evals), "info", "bi-person-vcard", "clientes distintos detrás de esos casos") +
       kpi("Registrados", sum("registrados"), "info", "bi-pencil-square", "creados como autor (resueltos o escalados)") +
       kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre") +
       kpi("Tareas", sum("tareas"), "info", "bi-list-check", "tareas/eventos creados") +
@@ -1761,6 +1787,7 @@
       return '<tr class="resp-row" data-resp="' + esc(e.nombre) + '">' +
         '<td><strong>' + esc(e.nombre) + '</strong></td>' +
         '<td data-order="' + e.gestionados + '"><strong>' + e.gestionados + '</strong></td>' +
+        '<td data-order="' + e.clientes + '">' + e.clientes + '</td>' +
         '<td data-order="' + e.registrados + '">' + e.registrados + '</td>' +
         '<td data-order="' + e.desarrollados + '">' + e.desarrollados + '</td>' +
         '<td data-order="' + e.modificados + '">' + e.modificados + '</td>' +
