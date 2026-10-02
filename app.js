@@ -1799,6 +1799,7 @@
         '<td data-order="' + (e.edadPromedio === null ? -1 : e.edadPromedio) + '">' + (e.edadPromedio === null ? "—" : Math.round(e.edadPromedio) + " d") + '</td></tr>';
     }).join("");
     dtRegistry[sel] = $(sel).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
+    renderComparativaResponsables(evals);
   }
 
   function renderResponsablesContent() {
@@ -1865,25 +1866,80 @@
     if (_respDetalleActual && byResp[_respDetalleActual]) renderResponsableDetalle(byResp[_respDetalleActual], evalDe[_respDetalleActual]);
   }
 
-  // Tendencia semanal de una persona: 12 semanas (lunes a domingo) hasta la semana de la fecha elegida.
-  function renderTendenciaResponsable(nombre) {
-    const p = function (n) { return String(n).padStart(2, "0"); };
-    const iso = function (d) { return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
-    const ref = new Date(_respDia + "T00:00:00");
-    const lunes = new Date(ref); lunes.setDate(ref.getDate() - ((ref.getDay() + 6) % 7));
-    const semanas = [];
-    for (let k = 11; k >= 0; k--) {
-      const ini = new Date(lunes); ini.setDate(lunes.getDate() - 7 * k);
-      const fin = new Date(ini); fin.setDate(ini.getDate() + 6);
-      semanas.push({ etiqueta: weekLabel(ini), ev: evaluarPersona(nombre, { desde: iso(ini), hasta: iso(fin) }) });
+  /* ---------- Series semanales (tendencia del responsable y comparativa) ----------
+     Mismas reglas que evaluarPersona(), pero por semana (lunes a domingo) y en una sola
+     pasada por los datos para todas las personas pedidas. */
+  const _lunesDe = {};
+  function lunesDe(fecha) {
+    const s = (fechaValida(fecha) || "").slice(0, 10); if (!s) return null;
+    if (_lunesDe[s] === undefined) {
+      const d = new Date(s + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      _lunesDe[s] = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     }
-    const etiquetas = semanas.map(function (s) { return s.etiqueta; });
-    const serie = function (k) { return semanas.map(function (s) { return s.ev[k]; }); };
-    renderChart("chartRespTendencia", "bar", { labels: etiquetas, datasets: [
-      { label: "Registrados", data: serie("registrados"), backgroundColor: "#8C0F13", borderRadius: 3, yAxisID: "y" },
-      { label: "Desarrollados", data: serie("desarrollados"), backgroundColor: "#4A6B8C", borderRadius: 3, yAxisID: "y" },
-      { label: "Tareas", data: serie("tareas"), backgroundColor: "#D9A441", borderRadius: 3, yAxisID: "y" },
-      { type: "line", label: "ANS real %", data: semanas.map(function (s) { return s.ev.ansPct; }), sufijo: "%",
+    return _lunesDe[s];
+  }
+  // { semanas: ["2026-09-07", …], por: { nombre: { registrados:{sem:n}, desarrollados, gestionados, tareas, cumplidos, atendidosAns } } }
+  function seriesSemanales(nombres) {
+    const idx = {}, por = {};
+    nombres.forEach(function (nm) {
+      idx[normalizeName(nm)] = nm;
+      por[nm] = { registrados: {}, desarrollados: {}, gestionados: {}, tareas: {}, cumplidos: {}, atendidosAns: {} };
+    });
+    const suma = function (obj, sem) { if (sem) obj[sem] = (obj[sem] || 0) + 1; };
+    let min = null;
+    const verSem = function (sem) { if (sem && (!min || sem < min)) min = sem; };
+    STATE.rawCasos.forEach(function (r) {
+      if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      const autor = idx[autorNorm(r)], resp = idx[nombreNorm(r)];
+      if (!autor && !resp) return;
+      const gest = {};  // semanas en que este caso cuenta como gestionado, por persona
+      if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); if (s) gest[autor + "|" + s] = [autor, s]; }
+      if (resp) {
+        const sa = lunesDe(r.fecha_atencion_real), sc = lunesDe(r.fecha_cierre), sm = lunesDe(r.fecha_modificacion);
+        [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); });
+        [sa, sc, sm].forEach(function (s) { if (s) gest[resp + "|" + s] = [resp, s]; });
+        if (sa) {
+          const res = ansReal(r);
+          if (res === "Cumplido" || res === "Incumplido") { suma(por[resp].atendidosAns, sa); if (res === "Cumplido") suma(por[resp].cumplidos, sa); }
+        }
+      }
+      Object.keys(gest).forEach(function (k) { suma(por[gest[k][0]].gestionados, gest[k][1]); });
+    });
+    STATE.rawTareas.forEach(function (t) {
+      const tn = nombreNorm(t); if (!tn) return;
+      const nm = Object.keys(idx).find(function (n) { return mismaPersona(tn, n); });
+      if (nm) { const s = lunesDe(t.fecha_creacion); suma(por[idx[nm]].tareas, s); verSem(s); }
+    });
+    // Semanas desde la primera con actividad hasta la de la fecha elegida (máx. 2 años).
+    const fin = lunesDe(_respDia), semanas = [];
+    if (min && fin) {
+      const d = new Date(fin + "T00:00:00"), limite = new Date(min + "T00:00:00");
+      for (let k = 0; k < 104 && d >= limite; k++) { semanas.unshift(lunesDe(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"))); d.setDate(d.getDate() - 7); }
+    }
+    return { semanas: semanas, por: por };
+  }
+  function valorSemanal(p, indicador, sem) {
+    if (indicador === "ans") return p.atendidosAns[sem] ? pct(p.cumplidos[sem] || 0, p.atendidosAns[sem]) : null;
+    return p[indicador][sem] || 0;
+  }
+  // Ancho del lienzo para series semanales con barra de desplazamiento (≈56 px por semana).
+  function anchoSemanal(innerId, n) {
+    const inner = document.getElementById(innerId); if (!inner) return;
+    const wrap = inner.parentElement, pW = wrap ? wrap.clientWidth : 0;
+    inner.style.width = Math.max(n * 56, pW || 300) + "px";
+    if (wrap) requestAnimationFrame(function () { wrap.scrollLeft = wrap.scrollWidth; });
+  }
+  function etiquetaSemana(sem) { return weekLabel(new Date(sem + "T00:00:00")); }
+
+  // Tendencia semanal de una persona: todas las semanas con actividad (con barra de desplazamiento).
+  function renderTendenciaResponsable(nombre) {
+    const ss = seriesSemanales([nombre]), p = ss.por[nombre], sem = ss.semanas;
+    anchoSemanal("respTendInner", sem.length);
+    renderChart("chartRespTendencia", "bar", { labels: sem.map(etiquetaSemana), datasets: [
+      { label: "Registrados", data: sem.map(function (s) { return valorSemanal(p, "registrados", s); }), backgroundColor: "#8C0F13", borderRadius: 3, yAxisID: "y" },
+      { label: "Desarrollados", data: sem.map(function (s) { return valorSemanal(p, "desarrollados", s); }), backgroundColor: "#4A6B8C", borderRadius: 3, yAxisID: "y" },
+      { label: "Tareas", data: sem.map(function (s) { return valorSemanal(p, "tareas", s); }), backgroundColor: "#D9A441", borderRadius: 3, yAxisID: "y" },
+      { type: "line", label: "ANS real %", data: sem.map(function (s) { return valorSemanal(p, "ans", s); }), sufijo: "%",
         borderColor: "#2a7a3b", backgroundColor: "#2a7a3b", yAxisID: "y1", spanGaps: true, tension: 0.3, pointRadius: 3 }
     ] }, {
       maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
@@ -1893,6 +1949,32 @@
         y1: { position: "right", min: 0, max: 100, grid: { display: false }, ticks: { callback: function (v) { return v + "%"; } }, title: { display: true, text: "ANS real" } } }
     });
   }
+
+  // Comparativa semanal: una línea por persona de la evaluación (máx. 8, las de más actividad).
+  const COMPARATIVA_INDICADORES = { gestionados: "Casos gestionados", registrados: "Registrados", desarrollados: "Desarrollados", tareas: "Tareas", ans: "ANS real %" };
+  let _respComparativa = "gestionados";
+  function renderComparativaResponsables(evals) {
+    const btns = document.getElementById("respCompBtns");
+    if (btns) btns.querySelectorAll(".tend-btn").forEach(function (b) {
+      b.classList.toggle("tend-btn--active", b.getAttribute("data-ind") === _respComparativa);
+      if (!b._wired) { b._wired = true; b.addEventListener("click", function () { _respComparativa = this.getAttribute("data-ind"); renderComparativaResponsables(_ultimasEvals); }); }
+    });
+    _ultimasEvals = evals;
+    const personas = evals.slice().sort(function (a, b) { return b.actividad - a.actividad; }).slice(0, 8).map(function (e) { return e.nombre; });
+    const nota = document.getElementById("respCompNota");
+    if (nota) nota.textContent = evals.length > 8 ? "Se muestran las 8 personas con más actividad en el período; use \"Solo asesores del CAE\" o el filtro de Responsable para elegir." : "";
+    const ss = seriesSemanales(personas), sem = ss.semanas, esAns = _respComparativa === "ans";
+    anchoSemanal("respCompInner", sem.length);
+    renderChart("chartRespComparativa", "line", { labels: sem.map(etiquetaSemana), datasets: personas.map(function (nm, i) {
+      const color = COLORES_PERSONAS[i % COLORES_PERSONAS.length];
+      return { label: nm, data: sem.map(function (s) { return valorSemanal(ss.por[nm], _respComparativa, s); }), sufijo: esAns ? "%" : "",
+        borderColor: color, backgroundColor: color, spanGaps: true, tension: 0.3, pointRadius: 3, fill: false };
+    }) }, lineOpts({ scales: { x: { grid: { display: false } },
+      y: Object.assign({ beginAtZero: true, grid: gridOpts(), ticks: { precision: 0 } }, esAns ? { max: 100, ticks: { callback: function (v) { return v + "%"; } } } : {}) } }));
+  }
+  let _ultimasEvals = [];
+  // Colores bien distinguibles entre sí para una línea por persona.
+  const COLORES_PERSONAS = ["#8C0F13", "#4A6B8C", "#D9A441", "#2a7a3b", "#6B4E8C", "#B5654A", "#4A0608", "#9C8C7E"];
 
   function renderResponsableDetalle(d, ev) {
     if (!d) return;

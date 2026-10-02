@@ -394,3 +394,7 @@ table.data-table td.td-dia-detalle{ white-space:nowrap; color:var(--t3); }
 table.data-table td.eval-ok{ color:#2a7a3b; font-weight:700; }
 table.data-table td.eval-medio{ color:#B07D1A; font-weight:700; }
 table.data-table td.eval-bajo{ color:var(--status-critico); font-weight:700; }
+/* Tabla de evaluación (12 columnas): más compacta para que quepa sin desplazamiento. */
+#tableRespEval thead th, #tableRespEval tbody td{ padding-left:6px; padding-right:6px; }
+#tableRespEval thead th.sorting, #tableRespEval thead th.sorting_asc, #tableRespEval thead th.sorting_desc{ padding-right:14px !important; }
+#tableRespEval td:first-child{ min-width:130px; }

@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1790888056">
+<link rel="stylesheet" href="styles.css?v=1790955303">
 </head>
 <body>
 
@@ -501,14 +501,25 @@
           <table class="table data-table resp-resumen-table" id="tableRespEval" style="width:100%">
             <thead>
               <tr>
-                <th>Responsable</th><th class="th-dia">Casos gestionados</th><th class="th-dia">Clientes</th><th class="th-dia">Registrados</th><th class="th-dia">Desarrollados</th>
-                <th class="th-dia">Modificados</th><th class="th-dia">Tareas</th><th class="th-dia">ANS real</th><th class="th-dia">Mediana de atención</th>
-                <th>Abiertos hoy</th><th>Vencidos sin atender</th><th>Antigüedad abiertos</th>
+                <th>Responsable</th><th class="th-dia">Gestionados</th><th class="th-dia">Clientes</th><th class="th-dia">Registrados</th><th class="th-dia">Desarrollados</th>
+                <th class="th-dia">Modificados</th><th class="th-dia">Tareas</th><th class="th-dia">ANS real</th><th class="th-dia">Mediana atención</th>
+                <th>Abiertos hoy</th><th title="Vencidos sin atender">Venc. sin atender</th><th title="Antigüedad promedio de los abiertos">Antigüedad</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
           </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-people"></i> Comparativa semanal entre responsables</h2>
+            <div class="tend-period-btns" id="respCompBtns">
+              <button class="tend-btn tend-btn--active" data-ind="gestionados">Casos gestionados</button><button class="tend-btn" data-ind="registrados">Registrados</button><button class="tend-btn" data-ind="desarrollados">Desarrollados</button><button class="tend-btn" data-ind="tareas">Tareas</button><button class="tend-btn" data-ind="ans">ANS real</button>
+            </div>
+          </div>
+          <p class="panel-sub" style="margin:-4px 0 10px">Una línea por persona, semana a semana (lunes a domingo), hasta la semana de la fecha elegida · deslice para ver semanas anteriores. <span id="respCompNota"></span></p>
+          <div class="chart-wrap chart-tall chart-wrap--hscroll"><div class="chart-scroll-inner" id="respCompInner"><canvas id="chartRespComparativa" class="chart-skeleton"></canvas></div></div>
         </div>
 
         <div class="panel">
@@ -538,8 +549,8 @@
           </div>
           <div class="kpi-grid" id="kpiRespDetalle"></div>
           <div class="panel">
-            <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia semanal (12 semanas)</h2><span class="panel-sub">Registrados · desarrollados · tareas · ANS real</span></div>
-            <div class="chart-wrap chart-tall"><canvas id="chartRespTendencia" class="chart-skeleton"></canvas></div>
+            <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia semanal</h2><span class="panel-sub">Registrados · desarrollados · tareas · ANS real · deslice para ver semanas anteriores</span></div>
+            <div class="chart-wrap chart-tall chart-wrap--hscroll"><div class="chart-scroll-inner" id="respTendInner"><canvas id="chartRespTendencia" class="chart-skeleton"></canvas></div></div>
           </div>
           <div class="panel">
             <div class="panel-header"><h2><i class="bi bi-tags"></i> Categorías más frecuentes (casos)</h2></div>
@@ -599,6 +610,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1790949289"></script>
+<script src="app.js?v=1790955217"></script>
 </body>
 </html>
