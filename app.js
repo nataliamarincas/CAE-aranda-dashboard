@@ -1934,14 +1934,20 @@
     if (indicador === "ans") return p.atendidosAns[sem] ? pct(p.cumplidos[sem] || 0, p.atendidosAns[sem]) : null;
     return p[indicador][sem] || 0;
   }
-  // Ancho del lienzo para series semanales con barra de desplazamiento (≈56 px por semana).
+  // Ancho del lienzo para series semanales con barra de desplazamiento (≈70 px por semana).
   function anchoSemanal(innerId, n) {
     const inner = document.getElementById(innerId); if (!inner) return;
     const wrap = inner.parentElement, pW = wrap ? wrap.clientWidth : 0;
-    inner.style.width = Math.max(n * 56, pW || 300) + "px";
+    inner.style.width = Math.max(n * 70, pW || 300) + "px";
     if (wrap) requestAnimationFrame(function () { wrap.scrollLeft = wrap.scrollWidth; });
   }
-  function etiquetaSemana(sem) { return weekLabel(new Date(sem + "T00:00:00")); }
+  // "28 sep – 4 oct": la semana completa (lunes a domingo), para que se vea que incluye hoy.
+  const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  function etiquetaSemana(sem) {
+    const ini = new Date(sem + "T00:00:00"), fin = new Date(ini); fin.setDate(ini.getDate() + 6);
+    const f = function (d) { return d.getDate() + " " + MESES_CORTOS[d.getMonth()]; };
+    return f(ini) + " – " + f(fin);
+  }
 
   // Tendencia semanal de una persona: todas las semanas con actividad (con barra de desplazamiento).
   function renderTendenciaResponsable(nombre) {
