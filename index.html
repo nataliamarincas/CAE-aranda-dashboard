@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1790977670">
+<link rel="stylesheet" href="styles.css?v=1791207932">
 </head>
 <body>
 
@@ -386,6 +386,7 @@
           <button class="resp-tab-btn is-active" data-tab="atencion"><i class="bi bi-exclamation-triangle"></i> Atención prioritaria</button>
           <button class="resp-tab-btn" data-tab="responsables"><i class="bi bi-people-fill"></i> Responsables</button>
           <button class="resp-tab-btn" data-tab="grupos"><i class="bi bi-diagram-3"></i> Grupos</button>
+          <button class="resp-tab-btn" data-tab="fuera"><i class="bi bi-box-arrow-right"></i> Fuera del reporte <span class="nav-badge" id="badgeFueraReporte" style="display:none">0</span></button>
         </div>
 
       <!-- ---- Sub-vista: ATENCIÓN PRIORITARIA ---- -->
@@ -473,6 +474,28 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- ---- Sub-vista: FUERA DEL REPORTE ---- -->
+      <div class="gestion-sub" id="gestionSub-fuera">
+        <div class="panel">
+          <div class="panel-header">
+            <h2><i class="bi bi-box-arrow-right"></i> Casos fuera del reporte</h2>
+            <span class="panel-sub" id="fueraReporteResumen"></span>
+          </div>
+          <p class="panel-sub" style="margin:-4px 0 12px">Casos que dejaron de venir en el export de Aranda, normalmente porque se escalaron a un grupo que no está en el reporte. No se borran: se muestran con su <strong>último estado conocido</strong> y la fecha en que se detectó que salieron. No cuentan como abiertos ni cerrados en los indicadores, pero sí en el histórico y como registrados de quien los creó. Si un caso vuelve a aparecer en el export, sale de esta lista solo.</p>
+          <div class="table-responsive">
+            <table class="table data-table" id="tableFueraReporte" style="width:100%">
+              <thead>
+                <tr>
+                  <th>No. Caso</th><th>Fecha Reg.</th><th>Último estado</th><th>Fuera desde</th><th>Último grupo</th><th>Último responsable</th>
+                  <th>Autor</th><th>Tipo de servicio</th><th>Categoría</th><th>Condición real ANS</th><th>Fecha atención estimada</th><th>Fecha atención real</th><th>Fecha modificación</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- ---- Sub-vista: GESTIÓN DE RESPONSABLES ---- -->
@@ -610,6 +633,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1790977670"></script>
+<script src="app.js?v=1791207833"></script>
 </body>
 </html>

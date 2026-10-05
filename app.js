@@ -966,7 +966,7 @@
     casos: [["Casos", renderCasosView]],
     tareas: [["Tareas", renderTareasView]],
     metas: [["Metas y progreso", renderMetas]],
-    gestion: [["Atención Prioritaria", renderAttention], ["Responsables", renderResponsables], ["Grupos", renderGrupos]]
+    gestion: [["Atención Prioritaria", renderAttention], ["Responsables", renderResponsables], ["Grupos", renderGrupos], ["Fuera del reporte", renderFueraReporte]]
   };
   let _vistasPendientes = {};
 
@@ -1196,6 +1196,41 @@
       populateAtencionFilterBar(); renderAttentionContent();
     });
   }
+  /* ---------------------- FUERA DEL REPORTE ---------------------- */
+  // Casos que dejaron de venir en el export (ver esFueraReporte): listado completo, sin
+  // filtros de otras vistas, con su último estado conocido. Más recientes primero.
+  function renderFueraReporte() {
+    const casos = STATE.rawCasos.filter(esFueraReporte)
+      .sort(function (a, b) { return (b.fuera_export_desde || "").localeCompare(a.fuera_export_desde || ""); });
+    const badge = document.getElementById("badgeFueraReporte");
+    if (badge) { badge.textContent = casos.length; badge.style.display = casos.length ? "" : "none"; }
+    const resumen = document.getElementById("fueraReporteResumen");
+    if (resumen) {
+      const grupos = countBy(casos, "grupo_responsable");
+      const top = sortedEntries(grupos, 3).map(function (e) { return e[0] + " (" + e[1] + ")"; }).join(" · ");
+      resumen.textContent = casos.length + (casos.length === 1 ? " caso" : " casos") + (top ? " · últimos grupos: " + top : "");
+    }
+    const sel = "#tableFueraReporte";
+    const txt = function (d) { return esc(d); };
+    if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (e) {} delete dtRegistry[sel]; }
+    dtRegistry[sel] = $(sel).DataTable({
+      language: DT_LANG_ES, data: casos, deferRender: true,
+      columns: [
+        { data: "caso", render: txt }, { data: "fecha_registro", render: txt },
+        { data: "estado", render: txt }, { data: "fuera_export_desde", render: txt },
+        { data: "grupo_responsable", render: txt }, { data: "responsable", render: txt }, { data: "autor", render: txt },
+        { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
+        { data: "categoria", render: txt },
+        { data: null, render: function (d, type, r) { const c = ansReal(r); return type === "display" ? ansRealPillHTML(c) : c; } },
+        { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, type); } },
+        { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_atencion_real_dt || r.fecha_atencion_real, type); } },
+        { data: "fecha_modificacion", render: txt }
+      ],
+      columnDefs: [{ targets: "_all", defaultContent: "" }],
+      paging: true, pageLength: 15, order: [], dom: "frtipB", buttons: DT_BUTTONS
+    });
+  }
+
   function renderAttention() { populateAtencionFilterBar(); renderAttentionContent(); }
 
   function renderAttentionContent() {
@@ -1357,7 +1392,6 @@
         kpiClientes(STATE.casos) +
         kpi("Abiertos", s.abiertos, "info", "bi-folder2-open", pct(s.abiertos, s.total) + "% del total") +
         kpi("Cerrados", s.cerrados, "sla", "bi-check2-all", pct(s.cerrados, s.total) + "% del total") +
-        (s.fueraReporte ? kpi("Fuera del reporte", s.fueraReporte, "info", "bi-box-arrow-right", "dejaron de venir en el export (p. ej. escalados a otro grupo) · se conservan con su último estado") : "") +
         kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", (s.ansReal["Incumplido"] + s.ansReal["Vencido sin atender"]) + " fuera de ANS · Condición real") +
         kpi("Vencidos abiertos", s.vencidos, "vencido", "bi-x-octagon", s.criticos + " críticos · " + s.riesgo + " en riesgo") +
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados se cerró fuera del ANS") +
