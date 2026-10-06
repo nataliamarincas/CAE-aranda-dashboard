@@ -1,5 +1,5 @@
 {
-  "generado_en": "2026-10-06T01:38:45.644566",
+  "generado_en": "2026-10-06T14:38:14.454551",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
   "avance_general": 23.1,
@@ -176,8 +176,8 @@
       "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
       "descripcion": "",
       "subtareas_total": 3,
-      "subtareas_listas": 2,
-      "progreso": 66.7,
+      "subtareas_listas": 3,
+      "progreso": 100.0,
       "url": "https://app.notion.com/p/VISUALIZACI-N-ATENCIONES-POR-CANAL-3de8758f4cc280bc9533d90033014250"
     },
     {
@@ -195,8 +195,8 @@
       "proyecto": "JOURNEY MAP",
       "descripcion": "El jueves 19 de nov revisar journey bimestral completo y hecho (qué piezas y cuándo vamos a enviar)",
       "subtareas_total": 4,
-      "subtareas_listas": 0,
-      "progreso": 0.0,
+      "subtareas_listas": 3,
+      "progreso": 75.0,
       "url": "https://app.notion.com/p/JOURNEY-GRADOS-3de8758f4cc280f4b5cecd8ba60d8e17"
     },
     {
@@ -349,9 +349,9 @@
     {
       "id": "3eb8758f4cc280b08032e7e79fc69491",
       "nombre": "Creación de Diseño Dashboard",
-      "estado": "En curso",
-      "grupo": "en_curso",
-      "fecha": "2026-09-29",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-09-30",
       "tareas": [
         "3de8758f4cc280bc9533d90033014250"
       ],
@@ -415,8 +415,8 @@
     {
       "id": "3df8758f4cc280b8bcacc786232d88e1",
       "nombre": "Creación de Bases",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": null,
       "tareas": [
         "3de8758f4cc280f4b5cecd8ba60d8e17"
@@ -426,8 +426,8 @@
     {
       "id": "3df8758f4cc280ffa6e9c010042beadb",
       "nombre": "Creación de Piezas",
-      "estado": "En curso",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": "2026-09-14",
       "tareas": [
         "3de8758f4cc280f4b5cecd8ba60d8e17"
@@ -437,8 +437,8 @@
     {
       "id": "3df8758f4cc280d39117f9f14093f0dc",
       "nombre": "Creación de Textos",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": "2026-09-14",
       "tareas": [
         "3de8758f4cc280f4b5cecd8ba60d8e17"
