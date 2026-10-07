@@ -1001,11 +1001,8 @@
 
   function updateSidebarBadges() {
     const navAtencion = document.getElementById("navBadgeAtencion");
-    // Vencidos + críticos: solo pueden ser casos abiertos, así que basta con recorrer esos.
-    if (navAtencion) navAtencion.textContent = STATE.rawCasos.filter(function (r) {
-      if (!esAbierto(r)) return false;
-      const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico";
-    }).length;
+    // Mismo criterio que la pestaña Atención prioritaria (vencidos, vencidos por fecha y críticos).
+    if (navAtencion) navAtencion.textContent = casosEnAtencion().length;
     const navCasos = document.getElementById("navBadgeCasos");
     if (navCasos) navCasos.textContent = STATE.statsCasos.abiertos;
     const navMetas = document.getElementById("navBadgeMetas");
@@ -1166,11 +1163,20 @@
 
   // Atención Prioritaria mira todos los casos (no depende de los filtros de Casos)
   // y tiene su propia barra de filtros sobre los casos abiertos vencidos o críticos.
+  // Atención prioritaria (opción B, pedido de Natalia 2026-10-07): casos abiertos
+  //   - Vencido / Crítico según el Progreso, o
+  //   - "Vencido por fecha": Condición real = Vencido sin atender (la fecha estimada ya
+  //     pasó sin atención real) aunque el Progreso no avance (p. ej. En Espera).
+  const MOTIVOS_ATENCION = ["Vencido", "Crítico", "Vencido por fecha"];
+  function motivoAtencion(r) {
+    if (!esAbierto(r)) return null;
+    const cls = effectiveClass(r);
+    if (cls === "Vencido") return "Vencido";
+    if (cls === "Critico") return "Crítico";
+    return ansReal(r) === "Vencido sin atender" ? "Vencido por fecha" : null;
+  }
   function casosEnAtencion() {
-    return STATE.rawCasos.filter(function (r) {
-      if (!esAbierto(r)) return false;
-      const cls = effectiveClass(r); return cls === "Vencido" || cls === "Critico";
-    });
+    return STATE.rawCasos.filter(function (r) { return motivoAtencion(r) !== null; });
   }
   function populateAtencionFilterBar() {
     const bar = document.getElementById("atencionFilterBar"); if (!bar) return;
@@ -1178,7 +1184,7 @@
     const enCat = base.filter(function (r) { return !ATENCION_FILTER.nivel1.length || ATENCION_FILTER.nivel1.indexOf(nivel1Effective(r)) !== -1; });
     function uniqueVals(records, field) { return Array.from(new Set(records.map(function (r) { return r[field] || ""; }).filter(function (v) { return v && v !== "N/A"; }))).sort(); }
     const dropsHtml =
-      buildMsDropHTML("clasificacion", "Clasificación", "bi-exclamation-triangle", ["Vencido", "Crítico"], ATENCION_FILTER) +
+      buildMsDropHTML("clasificacion", "Motivo", "bi-exclamation-triangle", MOTIVOS_ATENCION, ATENCION_FILTER) +
       buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes().filter(function (c) { return base.some(function (r) { return nivel1Effective(r) === c; }); }), ATENCION_FILTER) +
       buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", uniqueVals(enCat, "nivel2"), ATENCION_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals(base, "grupo_responsable"), ATENCION_FILTER) +
@@ -1244,7 +1250,7 @@
     const f = ATENCION_FILTER;
     const filtrados = casosEnAtencion().filter(function (r) {
       const n1 = nivel1Effective(r);
-      if (f.clasificacion.length && f.clasificacion.indexOf(STATUS_LABELS[effectiveClass(r)]) === -1) return false;
+      if (f.clasificacion.length && f.clasificacion.indexOf(motivoAtencion(r)) === -1) return false;
       if (f.nivel1.length && f.nivel1.indexOf(n1) === -1) return false;
       if (f.nivel2.length && f.nivel2.indexOf(r.nivel2) === -1) return false;
       if (f.grupo.length && f.grupo.indexOf(r.grupo_responsable) === -1) return false;
@@ -1254,20 +1260,29 @@
       if (f.fechaHasta && (r.fecha_registro || "") > f.fechaHasta) return false;
       return true;
     });
-    const s = computeCasosStats(filtrados);
+    const porMotivo = { "Vencido": 0, "Crítico": 0, "Vencido por fecha": 0 };
+    const vencPorResp = {}, vencPorCat = {}, vencPorN1 = {};
+    filtrados.forEach(function (r) {
+      const m = motivoAtencion(r); porMotivo[m]++;
+      if (m === "Crítico") return;  // los destacados cuentan vencidos (por progreso o por fecha)
+      const suma = function (o, k) { o[k] = (o[k] || 0) + 1; };
+      suma(vencPorResp, r.responsable || "Sin asignar"); suma(vencPorCat, r.categoria || "Sin categoría"); suma(vencPorN1, nivel1Effective(r));
+    });
     const grid = document.getElementById("kpiAttentionGrid");
     if (grid) {
       grid.innerHTML =
-        kpi("Vencidos", s.vencidos, "vencido", "bi-x-octagon", "requieren acción inmediata") +
-        kpi("Críticos", s.criticos, "critico", "bi-exclamation-triangle", "por vencer en horas") +
-        kpi("Total en atención", s.vencidos + s.criticos, "atencion", "bi-megaphone", "vencidos + críticos");
+        kpi("Vencidos", porMotivo["Vencido"], "vencido", "bi-x-octagon", "por Progreso · requieren acción inmediata") +
+        kpi("Vencidos por fecha", porMotivo["Vencido por fecha"], "vencido", "bi-calendar-x", "pasó la fecha estimada sin atención (p. ej. En Espera)") +
+        kpi("Críticos", porMotivo["Crítico"], "critico", "bi-exclamation-triangle", "por vencer en horas") +
+        kpi("Total en atención", filtrados.length, "atencion", "bi-megaphone", "vencidos + vencidos por fecha + críticos");
     }
-    const respTop = topEntry(s.vencidosPorResponsable), catTop = topEntry(s.vencidosPorCategoria);
-    let n1Top = { key: "—", count: 0 };
-    Object.keys(s.porNivel1).forEach(function (n1) { if (s.porNivel1[n1].vencidos > n1Top.count) n1Top = { key: n1, count: s.porNivel1[n1].vencidos }; });
-    setSpotlight("spotlightResponsable", respTop); setSpotlight("spotlightCategoria", catTop); setSpotlight("spotlightArea", n1Top);
+    setSpotlight("spotlightResponsable", topEntry(vencPorResp)); setSpotlight("spotlightCategoria", topEntry(vencPorCat)); setSpotlight("spotlightArea", topEntry(vencPorN1));
 
-    const atencionCases = filtrados.slice().sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
+    // Orden: vencidos, vencidos por fecha, críticos; dentro de cada uno, mayor progreso primero.
+    const atencionCases = filtrados.slice().sort(function (a, b) {
+      return (MOTIVOS_ATENCION.indexOf(motivoAtencion(a)) - MOTIVOS_ATENCION.indexOf(motivoAtencion(b))) ||
+        (effectiveProgreso(b) - effectiveProgreso(a));
+    });
 
     const selAt = "#tableAtencion";
     if (dtRegistry[selAt]) { try { dtRegistry[selAt].destroy(); } catch (e) {} delete dtRegistry[selAt]; }
