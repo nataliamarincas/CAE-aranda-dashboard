@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-07T15:05:47.897914",
+  "generado_en": "2026-10-07T19:37:19.555428",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 30.8,
+  "avance_general": 26.7,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -85,9 +85,9 @@
       "plazo_fin": null,
       "responsables": [],
       "documentos": "",
-      "tareas_total": 4,
+      "tareas_total": 5,
       "tareas_completas": 2,
-      "progreso": 50.0,
+      "progreso": 40.0,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -99,13 +99,50 @@
       "plazo_fin": null,
       "responsables": [],
       "documentos": "https://app.notion.com/p/Journey-Rematr-cula-2026-3ce8758f4cc280daa475da39fcd1a557",
-      "tareas_total": 4,
+      "tareas_total": 5,
       "tareas_completas": 0,
       "progreso": 0.0,
       "url": "https://app.notion.com/p/JOURNEY-MAP-3de8758f4cc2808f883bd91bc1e72b83"
     }
   ],
   "tareas": [
+    {
+      "id": "3f28758f4cc280468fc7d41af5defcff",
+      "nombre": "JOURNEY REINTEGROS",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "prioridad": "Sin prioridad",
+      "vencimiento": null,
+      "asignados": [
+        "Miguel Angel Medina Ospina",
+        "NATALIA MARIN CASTRO"
+      ],
+      "proyecto_id": "3de8758f4cc2808f883bd91bc1e72b83",
+      "proyecto": "JOURNEY MAP",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/JOURNEY-REINTEGROS-3f28758f4cc280468fc7d41af5defcff"
+    },
+    {
+      "id": "3f28758f4cc28003ae38d34e739f18d6",
+      "nombre": "AGREGAR SERVICIO DE BIENESTAR",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-10-31",
+      "asignados": [
+        "Natalia Marin Castro"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/AGREGAR-SERVICIO-DE-BIENESTAR-3f28758f4cc28003ae38d34e739f18d6"
+    },
     {
       "id": "3de8758f4cc280b7bca1c76200ff9d6e",
       "nombre": "ORGANIZACIÓN Y GESTIÓN CAMPAÑAS",
@@ -175,9 +212,9 @@
       "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
       "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
       "descripcion": "",
-      "subtareas_total": 3,
+      "subtareas_total": 4,
       "subtareas_listas": 3,
-      "progreso": 100.0,
+      "progreso": 75.0,
       "url": "https://app.notion.com/p/VISUALIZACI-N-ATENCIONES-POR-CANAL-3de8758f4cc280bc9533d90033014250"
     },
     {
@@ -346,6 +383,17 @@
     }
   ],
   "subtareas": [
+    {
+      "id": "3f28758f4cc280de8ef8f8084253567b",
+      "nombre": "Hacerle Seguimiento a los datos finalizados.",
+      "estado": "En curso",
+      "grupo": "en_curso",
+      "fecha": null,
+      "tareas": [
+        "3de8758f4cc280bc9533d90033014250"
+      ],
+      "url": "https://app.notion.com/p/Hacerle-Seguimiento-a-los-datos-finalizados-3f28758f4cc280de8ef8f8084253567b"
+    },
     {
       "id": "3eb8758f4cc280b08032e7e79fc69491",
       "nombre": "Creación de Diseño Dashboard",
