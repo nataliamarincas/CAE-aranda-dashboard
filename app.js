@@ -1754,7 +1754,8 @@
     return todos.size;
   }
   function esAsesorCAE(nombre) { return AUTORES_GESTORES.some(function (a) { return namesMatch(a, nombre); }); }
-  function fmtHoras(h) { return h === null ? "—" : h < 24 ? h.toFixed(1).replace(".", ",") + " h" : (h / 24).toFixed(1).replace(".", ",") + " d"; }
+  // Mediana de atención (horas) con el mismo formato de los tiempos promedio: "0 d 2 h 15 min".
+  function fmtHoras(h) { return h === null ? "—" : fmtDuracion(h / 24); }
 
   function populateRespFilterBar() {
     const bar = document.getElementById("respFilterBar"); if (!bar) return;
@@ -1827,7 +1828,6 @@
     if (titulo) titulo.textContent = { "día": "Gestión del día", "semana": "Gestión de la semana", "mes": "Gestión del mes" }[rg.nombre];
     document.querySelectorAll(".resp-per-lbl").forEach(function (el) { el.textContent = rg.nombre; });
     const sum = function (k) { return evals.reduce(function (s, e) { return s + e[k]; }, 0); };
-    const cumpl = sum("ansCumplido"), incum = sum("ansIncumplido");
     const todasHoras = [].concat.apply([], evals.map(function (e) { return e.horas; }));
     const activos = evals.filter(function (e) { return e.actividad > 0; }).sort(function (a, b) { return b.actividad - a.actividad; });
     const grid = document.getElementById("kpiRespDia");
@@ -1837,7 +1837,6 @@
       kpi("Registrados", sum("registrados"), "info", "bi-pencil-square", "creados como autor (resueltos o escalados)") +
       kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre") +
       kpi("Tareas", sum("tareas"), "info", "bi-list-check", "tareas/eventos creados") +
-      kpi("ANS real", (cumpl + incum ? pct(cumpl, cumpl + incum) + "%" : "—"), "sla", "bi-stopwatch", cumpl + " cumplidos de " + (cumpl + incum) + " atendidos") +
       kpi("Mediana de atención", fmtHoras(mediana(todasHoras)), "normal", "bi-clock-history", "del registro a la atención real (" + todasHoras.length + " casos)") +
       kpi("Vencidos sin atender", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "hoy · " + sum("abiertos") + " abiertos") +
       kpi("Con gestión", activos.length, "info", "bi-people",
@@ -1847,8 +1846,6 @@
     if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (x) {} delete dtRegistry[sel]; }
     const tbody = document.querySelector(sel + " tbody");
     if (tbody) tbody.innerHTML = evals.map(function (e) {
-      const ansTxt = e.ansPct === null ? "—" : e.ansPct + "%";
-      const ansCls = e.ansPct === null ? "" : e.ansPct >= 90 ? "eval-ok" : e.ansPct >= 75 ? "eval-medio" : "eval-bajo";
       return '<tr class="resp-row" data-resp="' + esc(e.nombre) + '">' +
         '<td><strong>' + esc(e.nombre) + '</strong></td>' +
         '<td data-order="' + e.gestionados + '"><strong>' + e.gestionados + '</strong></td>' +
@@ -1857,7 +1854,6 @@
         '<td data-order="' + e.desarrollados + '">' + e.desarrollados + '</td>' +
         '<td data-order="' + e.modificados + '">' + e.modificados + '</td>' +
         '<td data-order="' + e.tareas + '">' + e.tareas + '</td>' +
-        '<td data-order="' + (e.ansPct === null ? -1 : e.ansPct) + '" class="' + ansCls + '">' + ansTxt + '</td>' +
         '<td data-order="' + (e.horasMediana === null ? 1e9 : e.horasMediana) + '">' + fmtHoras(e.horasMediana) + '</td>' +
         '<td data-order="' + e.abiertos + '">' + e.abiertos + '</td>' +
         '<td data-order="' + e.vencidosSinAtender + '">' + (e.vencidosSinAtender ? '<span class="resp-badge resp-badge--vencido">' + e.vencidosSinAtender + '</span>' : "0") + '</td>' +
