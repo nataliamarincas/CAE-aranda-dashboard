@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-06T20:37:11.650450",
+  "generado_en": "2026-10-07T00:19:44.567023",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 23.1,
+  "avance_general": 30.8,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -72,8 +72,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 2,
-      "tareas_completas": 1,
-      "progreso": 50.0,
+      "tareas_completas": 2,
+      "progreso": 100.0,
       "url": "https://app.notion.com/p/DASHBOARD-CANALES-DE-ATENCI-N-3de8758f4cc280d3a75ac7662d4e4a31"
     },
     {
@@ -165,8 +165,8 @@
     {
       "id": "3de8758f4cc280bc9533d90033014250",
       "nombre": "VISUALIZACIÓN ATENCIONES POR CANAL",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Medio",
       "vencimiento": "2026-09-25",
       "asignados": [
