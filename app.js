@@ -1283,17 +1283,20 @@
 
   function buildCaseRow(r, includeFecha) {
     const cls = effectiveClass(r);
-    const rowClass = cls === "Vencido" ? "row--vencido" : (cls === "Critico" ? "row--critico" : "");
+    // Vencido por Progreso o, aunque el Progreso no avance (p. ej. En Espera), por Condición real de ANS.
+    const real = ansReal(r);
+    const rowClass = (cls === "Vencido" || real === "Vencido sin atender") ? "row--vencido" : (cls === "Critico" ? "row--critico" : "");
     const prog = effectiveProgreso(r);
     let html = '<tr class="' + rowClass + '">';
     html += '<td>' + esc(r.caso) + '</td>';
     html += '<td>' + nivel1ChipHTML(nivel1Effective(r)) + '</td>';
     if (includeFecha) html += '<td>' + esc(r.fecha_registro) + '</td>';
     html += '<td>' + esc(r.estado) + '</td>';
+    html += '<td data-order="' + ANS_REAL.indexOf(real) + '">' + ansRealPillHTML(real) + '</td>';
     html += '<td>' + esc(r.categoria) + '</td>';
     html += '<td>' + esc(r.responsable) + '</td>';
-    html += '<td>' + esc(r.fecha_estimada_solucion) + '</td>';
-    html += '<td data-order="' + (r.tiempo_transcurrido_dias || 0) + '">' + (r.tiempo_transcurrido_dias || 0).toFixed(1) + ' días</td>';
+    html += '<td data-order="' + esc(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion || "") + '">' + fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, "display") + '</td>';
+    html += '<td data-order="' + (r.tiempo_transcurrido_dias || 0) + '">' + fmtDuracion(r.tiempo_transcurrido_dias || 0) + '</td>';
     html += '<td data-order="' + prog + '">' + progressCellHTML(prog, cls) + '</td>';
     html += '</tr>';
     return html;
