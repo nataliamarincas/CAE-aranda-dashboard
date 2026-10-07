@@ -122,6 +122,12 @@
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
   function pct(n, total) { return !total ? 0 : Math.round((n / total) * 1000) / 10; }
+  // Duración en días (decimal) -> "2 d 3 h 15 min". Para los tiempos promedio.
+  function fmtDuracion(dias) {
+    if (dias === null || dias === undefined || isNaN(dias)) return "—";
+    const min = Math.round(dias * 1440), d = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60), m = min % 60;
+    return d + " d " + h + " h " + m + " min";
+  }
 
   function countBy(records, field) {
     const counts = {};
@@ -633,7 +639,7 @@
     });
     return { total: total, vencidos: vencidos, criticos: criticos, riesgo: riesgo, normal: normal,
       abiertos: abiertos, cerrados: total - abiertos - fueraReporte, fueraReporte: fueraReporte, vencidosCerrados: vencidosCerrados, ans: ans, ansReal: ansRealCnt,
-      avgTiempo: total ? Math.round((sumTiempo / total) * 10) / 10 : 0,
+      avgTiempo: total ? sumTiempo / total : 0,  // días; se muestra con fmtDuracion
       vencidosPorResponsable: vencidosPorResponsable, vencidosPorCategoria: vencidosPorCategoria, porNivel1: porNivel1 };
   }
 
@@ -1065,8 +1071,9 @@
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados") +
         kpi("Críticos", s.criticos, "critico", "bi-exclamation-triangle", "abiertos · " + pct(s.criticos, s.abiertos) + "% de los abiertos") +
         kpi("En riesgo", s.riesgo, "riesgo", "bi-shield-exclamation", "abiertos · " + pct(s.riesgo, s.abiertos) + "% de los abiertos") +
-        kpi("Tiempo promedio", s.avgTiempo + " días", "normal", "bi-clock-history", "transcurrido por caso") +
-        kpi("Tareas pendientes", st.pendientes, "info", "bi-list-check", st.total + " tareas en total");
+        kpi("Tiempo promedio", fmtDuracion(s.avgTiempo), "normal", "bi-clock-history", "transcurrido por caso") +
+        kpi("Tareas totales", st.total, "info", "bi-list-task", st.completadas + " completadas · " + st.pendientes + " pendientes") +
+        kpi("Tareas pendientes", st.pendientes, "info", "bi-list-check", pct(st.pendientes, st.total) + "% del total");
     }
     renderExecCharts();
     renderComparativoNivel1();
@@ -1395,7 +1402,7 @@
         kpi("Cumplimiento ANS", pctCumplimiento(s.ansReal) + "%", "sla", "bi-stopwatch", (s.ansReal["Incumplido"] + s.ansReal["Vencido sin atender"]) + " fuera de ANS · Condición real") +
         kpi("Vencidos abiertos", s.vencidos, "vencido", "bi-x-octagon", s.criticos + " críticos · " + s.riesgo + " en riesgo") +
         kpi("Vencidos cerrados", s.vencidosCerrados, "vencido", "bi-archive", pct(s.vencidosCerrados, s.cerrados) + "% de los cerrados se cerró fuera del ANS") +
-        kpi("Tiempo promedio", s.avgTiempo + " días", "normal", "bi-clock-history", "transcurrido por caso");
+        kpi("Tiempo promedio", fmtDuracion(s.avgTiempo), "normal", "bi-clock-history", "transcurrido por caso");
     }
     renderCasosCharts(s, cats);
 
@@ -1678,7 +1685,7 @@
     Object.keys(byResp).forEach(function (k) {
       const d = byResp[k];
       d.tasaResolucion = (d.totalCasos > 0) ? +((d.solucionados / d.totalCasos) * 100).toFixed(1) : 0;
-      d.avgTiempoSol = d.tiemposSol.length ? +(d.tiemposSol.reduce(function (s, v) { return s + v; }, 0) / d.tiemposSol.length).toFixed(1) : null;
+      d.avgTiempoSol = d.tiemposSol.length ? d.tiemposSol.reduce(function (s, v) { return s + v; }, 0) / d.tiemposSol.length : null;  // días
     });
     return byResp;
   }
@@ -2047,7 +2054,7 @@
 
     const kpiGrid = document.getElementById("kpiRespDetalle");
     if (kpiGrid) {
-      const tiempoStr = d.avgTiempoSol !== null ? (+(d.avgTiempoSol * 24).toFixed(1)) + " h" : "—";
+      const tiempoStr = fmtDuracion(d.avgTiempoSol);
       kpiGrid.innerHTML =
         kpi("Casos abiertos", d.abiertos, "info", "bi-folder2-open", "En Espera · En Proceso · Registrado") +
         kpi("Vencidos abiertos", d.vencidosActivos, "vencido", "bi-x-octagon", "") +
@@ -2131,7 +2138,7 @@
     });
     Object.keys(byGrupo).forEach(function (g) {
       const d = byGrupo[g];
-      d.avgTiempo = d.total ? +(d.sumTiempo / d.total).toFixed(1) : 0;
+      d.avgTiempo = d.total ? d.sumTiempo / d.total : 0;  // días; se muestra con fmtDuracion
       // % fuera de ANS (Condición real) sobre los casos con resultado (sin "En plazo" ni "Sin dato").
       const conResultado = d.ansReal["Cumplido"] + d.ansReal["Incumplido"] + d.ansReal["Vencido sin atender"];
       d.pctVencidos = pct(d.ansReal["Incumplido"] + d.ansReal["Vencido sin atender"], conResultado);
@@ -2192,7 +2199,7 @@
           '<td data-order="' + g.criticosAbiertos + '">' + g.criticosAbiertos + '</td>' +
           '<td data-order="' + g.vencidosCerrados + '">' + g.vencidosCerrados + '</td>' +
           '<td data-order="' + g.pctVencidos + '">' + g.pctVencidos + '%</td>' +
-          '<td data-order="' + g.avgTiempo + '">' + g.avgTiempo + ' días</td>' +
+          '<td data-order="' + g.avgTiempo + '">' + fmtDuracion(g.avgTiempo) + '</td>' +
           '<td data-order="' + g.nResponsables + '">' + g.nResponsables + '</td></tr>');
       }).join("");
     }
