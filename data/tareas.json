@@ -1,6 +1,6 @@
 {
-  "generado_en": "2026-10-08T00:40:53.181859",
-  "total_tareas": 5001,
+  "generado_en": "2026-10-08T15:20:25.566825",
+  "total_tareas": 5003,
   "tareas": [
     {
       "asunto": "Paz y salvo financiero para grado",
@@ -64990,6 +64990,19 @@
       "tipo_servicio": "Pregrado"
     },
     {
+      "asunto": "Información credito",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-07",
+      "linea_atencion": "Presencial",
+      "responsable": "Harold Vanegas Muñoz",
+      "tarea_id": "00TQl00001dwehT",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
       "asunto": "créditos",
       "causa": "AF - Corto Plazo",
       "criterios": "Proceso de matricula Apoyo financiero",
@@ -65012,6 +65025,19 @@
       "linea_atencion": "Correo electrónico",
       "responsable": "Miguel Angel Chavarro Chamorro",
       "tarea_id": "00TQl00001dwjU3",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Información credito",
+      "causa": "AF - Largo Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-07",
+      "linea_atencion": "Presencial",
+      "responsable": "Harold Vanegas Muñoz",
+      "tarea_id": "00TQl00001dxHE7",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Pregrado"
     }
