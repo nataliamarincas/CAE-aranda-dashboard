@@ -1716,7 +1716,9 @@
          otra persona) con fecha de registro en el rango.
        - Desarrollados: casos de los que es Responsable con atención real o cierre en el rango
          (incluye los que le asigna el sistema).
-       - Gestionados: casos distintos registrados, desarrollados o modificados (sin duplicar).
+       - Gestionados: casos distintos que registró (autor) o que, como responsable, atendió o
+         cerró en el rango. Modificar no basta en los casos asignados: Aranda cambia la fecha de
+         modificación al asignar, aunque el asesor aún no los haya trabajado. En los suyos sí cuenta.
        - ANS real y horas de atención de lo que atendió en el rango (horas: solo casos
          nacidos en el Aranda nuevo; los migrados conservan su fecha de registro original).
        - Pendientes: foto de HOY (abiertos, vencidos sin atender, antigüedad), no del rango.
@@ -1745,7 +1747,8 @@
       const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg), mo = enRango(r.fecha_modificacion, rg);
       if (at || ce) e.desarrollados++;
       if (mo) e.modificados++;
-      if (at || ce || mo) { llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
+      const propio = autorNorm(r) === n;
+      if (at || ce || (mo && propio)) { llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
       if (at) {
         const res = ansReal(r);
         if (res === "Cumplido") e.ansCumplido++; else if (res === "Incumplido") e.ansIncumplido++;
@@ -1854,7 +1857,7 @@
     const activos = evals.filter(function (e) { return e.actividad > 0; }).sort(function (a, b) { return b.actividad - a.actividad; });
     const grid = document.getElementById("kpiRespDia");
     if (grid) grid.innerHTML =
-      kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", rg.texto + " · registrados, desarrollados o modificados") +
+      kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", rg.texto + " · registrados por el asesor o atendidos / cerrados") +
       kpi("Clientes atendidos", clientesUnion(evals), "info", "bi-person-vcard", "clientes distintos detrás de esos casos") +
       kpi("Registrados", sum("registrados"), "info", "bi-pencil-square", "creados como autor (resueltos o escalados)") +
       kpi("Asignados", sum("asignados"), "info", "bi-person-check", "es responsable sin ser autor: los asignó Aranda u otra persona") +
@@ -1983,7 +1986,8 @@
         if (resp !== autor) suma(por[resp].asignados, lunesDe(r.fecha_registro));
         const sa = lunesDe(r.fecha_atencion_real), sc = lunesDe(r.fecha_cierre), sm = lunesDe(r.fecha_modificacion);
         [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); });
-        [sa, sc, sm].forEach(function (s) { if (s) gest[resp + "|" + s] = [resp, s]; });
+        // Casos asignados (no es autor): la modificación sola no cuenta como gestión (ver evaluarPersona).
+        [sa, sc, resp === autor ? sm : null].forEach(function (s) { if (s) gest[resp + "|" + s] = [resp, s]; });
         if (sa) {
           const res = ansReal(r);
           if (res === "Cumplido" || res === "Incumplido") { suma(por[resp].atendidosAns, sa); if (res === "Cumplido") suma(por[resp].cumplidos, sa); }
