@@ -37,6 +37,7 @@
     casosSource: "data/casos.json",
     tareasSource: "data/tareas.json",
     metasSource: "data/metas.json",
+    eventosSource: "data/eventos.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
 
@@ -856,10 +857,17 @@
       })
       .catch(function () { /* sin metas.json todavía */ });
   }
+  function loadEventos() {
+    return fetch(CONFIG.eventosSource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        if (json && json.generado_en !== (STATE.eventos && STATE.eventos.generado_en)) { STATE.eventos = json; STATE.datosCambiaron = true; }
+      })
+      .catch(function () { /* sin eventos.json todavía: las modificaciones quedan en "—" */ });
+  }
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas(), loadMetas()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos()]).then(function () {
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
       const allError = !!(STATE.errorCasos && STATE.errorTareas);
@@ -1716,9 +1724,10 @@
          otra persona) con fecha de registro en el rango.
        - Desarrollados: casos de los que es Responsable con atención real o cierre en el rango
          (incluye los que le asigna el sistema).
-       - Gestionados: casos distintos que registró (autor) o que, como responsable, atendió o
-         cerró en el rango. Modificar no basta en los casos asignados: Aranda cambia la fecha de
-         modificación al asignar, aunque el asesor aún no los haya trabajado. En los suyos sí cuenta.
+       - Modificaciones: veces que trabajó casos como responsable según el historial (gestionesReales).
+       - Gestionados: casos distintos que registró (autor) o que, como responsable, atendió,
+         cerró o modificó (historial, sin asignaciones) en el rango. La fecha de modificación del
+         export ya no se usa: Aranda la cambia al asignar, aunque el asesor no haya trabajado el caso.
        - ANS real y horas de atención de lo que atendió en el rango (horas: solo casos
          nacidos en el Aranda nuevo; los migrados conservan su fecha de registro original).
        - Pendientes: foto de HOY (abiertos, vencidos sin atender, antigüedad), no del rango.
@@ -1733,6 +1742,52 @@
     const s = arr.slice().sort(function (a, b) { return a - b; }), m = Math.floor(s.length / 2);
     return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
   }
+  /* ---------- Modificaciones reales (historial de cambios del pipeline, desde 2026-10-01) ----------
+     data/eventos.json trae cada cambio detectado entre sincronizaciones (estado, fechas,
+     responsable, grupo…) con el responsable del momento. Una "modificación" del asesor es un
+     grupo de cambios de un caso en una misma sincronización que:
+       - tiene trabajo sobre el caso (estado, fecha de modificación, atención o cierre), y
+       - NO cambia el responsable ni el grupo (eso es una asignación o reasignación).
+     Se atribuye al responsable que tenía el caso en ese momento. Cuenta veces, no casos; varias
+     modificaciones entre dos sincronizaciones cuentan como una. */
+  const CAMPOS_TRABAJO = ["estado", "fecha_modificacion", "fecha_modificacion_dt", "fecha_atencion_real", "fecha_cierre"];
+  const CAMPOS_ASIGNACION = ["responsable", "grupo_responsable"];
+  function gestionesReales() {
+    const ev = STATE.eventos;
+    if (!ev || !ev.eventos) return [];
+    if (STATE._gestionesDe === ev.generado_en) return STATE._gestiones;
+    const grupos = {};
+    ev.eventos.forEach(function (x) {
+      const k = x.llave + "|" + x.detectado_en;
+      if (!grupos[k]) grupos[k] = { llave: x.llave, campos: {}, responsable: x.responsable, fecha: null, detectado: x.detectado_en };
+      const g = grupos[k]; g.campos[x.campo] = true;
+      if (x.campo === "fecha_modificacion_dt" && fechaValida(x.despues)) g.fecha = String(x.despues).slice(0, 10);
+      else if (!g.fecha && fechaValida(x.fecha_modificacion)) g.fecha = String(x.fecha_modificacion).slice(0, 10);
+    });
+    const out = [];
+    Object.keys(grupos).forEach(function (k) {
+      const g = grupos[k];
+      const trabajo = CAMPOS_TRABAJO.some(function (c) { return g.campos[c]; });
+      const asignacion = CAMPOS_ASIGNACION.some(function (c) { return g.campos[c]; });
+      if (!trabajo || asignacion || !g.responsable) return;
+      // Sin fecha de Aranda, la del día en que se detectó (hora local).
+      if (!g.fecha) { const d = new Date(g.detectado); g.fecha = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+      out.push({ llave: g.llave, n: normalizeName(g.responsable), fecha: g.fecha });
+    });
+    STATE._gestiones = out; STATE._gestionesDe = ev.generado_en;
+    return out;
+  }
+  // Primer día con historial: antes de esa fecha no se pueden contar modificaciones.
+  function historialDesde() {
+    const ev = STATE.eventos; if (!ev || !ev.desde) return null;
+    const d = new Date(ev.desde);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function casoPorLlave(llave) {
+    if (STATE._porLlaveDe !== STATE.rawCasos) { STATE._porLlave = {}; STATE.rawCasos.forEach(function (r) { STATE._porLlave[r.llave] = r; }); STATE._porLlaveDe = STATE.rawCasos; }
+    return STATE._porLlave[llave];
+  }
+
   function evaluarPersona(nombre, rg) {
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
     const e = { nombre: nombre, registrados: 0, asignados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
@@ -1744,11 +1799,8 @@
       if (nombreNorm(r) !== n) return;
       // Asignados: es responsable pero no autor (se lo asignó Aranda u otra persona) y llegó en el período.
       if (autorNorm(r) !== n && enRango(r.fecha_registro, rg)) e.asignados++;
-      const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg), mo = enRango(r.fecha_modificacion, rg);
-      if (at || ce) e.desarrollados++;
-      if (mo) e.modificados++;
-      const propio = autorNorm(r) === n;
-      if (at || ce || (mo && propio)) { llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
+      const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg);
+      if (at || ce) { e.desarrollados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
       if (at) {
         const res = ansReal(r);
         if (res === "Cumplido") e.ansCumplido++; else if (res === "Incumplido") e.ansIncumplido++;
@@ -1762,6 +1814,17 @@
         if (ansReal(r) === "Vencido sin atender") e.vencidosSinAtender++;
         if (fechaValida(r.fecha_registro)) e.edades.push((hoy - new Date(r.fecha_registro.slice(0, 10) + "T00:00:00")) / 86400000);
       }
+    });
+    // Modificaciones reales del historial (sin asignaciones), como responsable en ese momento.
+    // Antes de que exista historial no se pueden contar: queda en null ("—").
+    const desde = historialDesde();
+    if (!desde || rg.hasta < desde) e.modificados = null;
+    else gestionesReales().forEach(function (g) {
+      if (g.n !== n || g.fecha < rg.desde || g.fecha > rg.hasta) return;
+      const r = casoPorLlave(g.llave);
+      if (r && RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      e.modificados++;
+      llaves.add(g.llave); if (r && r.cliente_id) e.clientesSet.add(r.cliente_id);
     });
     STATE.rawTareas.forEach(function (t) { if (enRango(t.fecha_creacion, rg) && mismaPersona(nombreNorm(t), n)) e.tareas++; });
     e.gestionados = llaves.size;
@@ -1879,7 +1942,7 @@
         '<td data-order="' + e.registrados + '">' + e.registrados + '</td>' +
         '<td data-order="' + e.asignados + '">' + e.asignados + '</td>' +
         '<td data-order="' + e.desarrollados + '">' + e.desarrollados + '</td>' +
-        '<td data-order="' + e.modificados + '">' + e.modificados + '</td>' +
+        '<td data-order="' + (e.modificados === null ? -1 : e.modificados) + '">' + (e.modificados === null ? "—" : e.modificados) + '</td>' +
         '<td data-order="' + e.tareas + '">' + e.tareas + '</td>' +
         '<td data-order="' + (e.horasMediana === null ? 1e9 : e.horasMediana) + '">' + fmtHoras(e.horasMediana) + '</td>' +
         '<td data-order="' + e.abiertos + '">' + e.abiertos + '</td>' +
@@ -1971,29 +2034,38 @@
     const idx = {}, por = {};
     nombres.forEach(function (nm) {
       idx[normalizeName(nm)] = nm;
-      por[nm] = { registrados: {}, asignados: {}, desarrollados: {}, gestionados: {}, tareas: {}, cumplidos: {}, atendidosAns: {} };
+      por[nm] = { registrados: {}, asignados: {}, desarrollados: {}, gestionados: {}, modificaciones: {}, tareas: {}, cumplidos: {}, atendidosAns: {} };
     });
     const suma = function (obj, sem) { if (sem) obj[sem] = (obj[sem] || 0) + 1; };
     let min = null;
     const verSem = function (sem) { if (sem && (!min || sem < min)) min = sem; };
+    // Gestionados: cada caso cuenta una vez por persona y semana (mismas reglas que evaluarPersona).
+    const vistos = {};
+    const gestionado = function (nm, sem, llave) {
+      const k = nm + "|" + sem + "|" + llave;
+      if (sem && !vistos[k]) { vistos[k] = true; suma(por[nm].gestionados, sem); }
+    };
     STATE.rawCasos.forEach(function (r) {
       if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
       const autor = idx[autorNorm(r)], resp = idx[nombreNorm(r)];
       if (!autor && !resp) return;
-      const gest = {};  // semanas en que este caso cuenta como gestionado, por persona
-      if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); if (s) gest[autor + "|" + s] = [autor, s]; }
+      if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); gestionado(autor, s, r.llave); }
       if (resp) {
         if (resp !== autor) suma(por[resp].asignados, lunesDe(r.fecha_registro));
-        const sa = lunesDe(r.fecha_atencion_real), sc = lunesDe(r.fecha_cierre), sm = lunesDe(r.fecha_modificacion);
-        [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); });
-        // Casos asignados (no es autor): la modificación sola no cuenta como gestión (ver evaluarPersona).
-        [sa, sc, resp === autor ? sm : null].forEach(function (s) { if (s) gest[resp + "|" + s] = [resp, s]; });
+        const sa = lunesDe(r.fecha_atencion_real), sc = lunesDe(r.fecha_cierre);
+        [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); gestionado(resp, s, r.llave); });
         if (sa) {
           const res = ansReal(r);
           if (res === "Cumplido" || res === "Incumplido") { suma(por[resp].atendidosAns, sa); if (res === "Cumplido") suma(por[resp].cumplidos, sa); }
         }
       }
-      Object.keys(gest).forEach(function (k) { suma(por[gest[k][0]].gestionados, gest[k][1]); });
+    });
+    // Modificaciones reales del historial (sin asignaciones).
+    gestionesReales().forEach(function (g) {
+      const nm = idx[g.n]; if (!nm) return;
+      const r = casoPorLlave(g.llave);
+      if (r && RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      const s = lunesDe(g.fecha); suma(por[nm].modificaciones, s); verSem(s); gestionado(nm, s, g.llave);
     });
     STATE.rawTareas.forEach(function (t) {
       const tn = nombreNorm(t); if (!tn) return;
@@ -2035,6 +2107,7 @@
       { label: "Registrados", data: sem.map(function (s) { return valorSemanal(p, "registrados", s); }), backgroundColor: "#8C0F13", borderRadius: 3, yAxisID: "y" },
       { label: "Asignados", data: sem.map(function (s) { return valorSemanal(p, "asignados", s); }), backgroundColor: "#9C8C7E", borderRadius: 3, yAxisID: "y" },
       { label: "Desarrollados", data: sem.map(function (s) { return valorSemanal(p, "desarrollados", s); }), backgroundColor: "#4A6B8C", borderRadius: 3, yAxisID: "y" },
+      { label: "Modificaciones", data: sem.map(function (s) { return valorSemanal(p, "modificaciones", s); }), backgroundColor: "#6B4E8C", borderRadius: 3, yAxisID: "y" },
       { label: "Tareas", data: sem.map(function (s) { return valorSemanal(p, "tareas", s); }), backgroundColor: "#D9A441", borderRadius: 3, yAxisID: "y" },
       { type: "line", label: "ANS real %", data: sem.map(function (s) { return valorSemanal(p, "ans", s); }), sufijo: "%",
         borderColor: "#2a7a3b", backgroundColor: "#2a7a3b", yAxisID: "y1", spanGaps: true, tension: 0.3, pointRadius: 3 }
@@ -2048,7 +2121,7 @@
   }
 
   // Comparativa semanal: una línea por persona de la evaluación (máx. 8, las de más actividad).
-  const COMPARATIVA_INDICADORES = { gestionados: "Casos gestionados", registrados: "Registrados", asignados: "Asignados", desarrollados: "Desarrollados", tareas: "Tareas", ans: "ANS real %" };
+  const COMPARATIVA_INDICADORES = { gestionados: "Casos gestionados", registrados: "Registrados", asignados: "Asignados", desarrollados: "Desarrollados", modificaciones: "Modificaciones", tareas: "Tareas", ans: "ANS real %" };
   let _respComparativa = "gestionados";
   function renderComparativaResponsables(evals) {
     const btns = document.getElementById("respCompBtns");
@@ -2090,7 +2163,7 @@
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
         kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "") +
         (ev ? kpi("Gestión (" + rangoGestion().nombre + ")", ev.gestionados, "info", "bi-calendar-check", rangoGestion().texto + " · " +
-          ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " + ev.tareas + " tareas") +
+          ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " + (ev.modificados === null ? "—" : ev.modificados) + " modificaciones · " + ev.tareas + " tareas") +
           kpi("ANS real (" + rangoGestion().nombre + ")", ev.ansPct === null ? "—" : ev.ansPct + "%", "sla", "bi-stopwatch", (ev.ansCumplido + ev.ansIncumplido) + " atendidos en el período") +
           kpi("Mediana de atención", fmtHoras(ev.horasMediana), "normal", "bi-clock-history", "registro → atención real") : "");
     }
