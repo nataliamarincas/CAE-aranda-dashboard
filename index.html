@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1791562279">
+<link rel="stylesheet" href="styles.css?v=1791565761">
 </head>
 <body>
 
@@ -518,7 +518,7 @@
               <label class="resp-dia-solo"><input type="checkbox" id="respSoloDia"> Solo con gestión en el período</label>
             </div>
           </div>
-          <p class="panel-sub" style="margin:-4px 0 12px">Período: el día elegido, su semana (lunes a domingo) o su mes. <strong>Clientes</strong>: personas distintas detrás de esos casos (se cuentan con un código anónimo, sin saber quiénes son). <strong>Registrados</strong>: casos que la persona creó como autor (los resuelva o los pase a otra área). <strong>Asignados</strong>: casos de los que es responsable sin ser autor (se los asignó Aranda u otra persona). <strong>Modificaciones</strong>: veces que trabajó casos como responsable (cambio de estado, atención, cierre o modificación), sin contar las asignaciones; sale del historial que se guarda desde el 1-oct-2026. <strong>Gestionados</strong>: casos que registró, atendió, cerró o modificó (sin repetir). <strong>Desarrollados</strong>: casos de los que es responsable, incluidos los que asigna el sistema, con atención real o cierre en el período. <strong>Mediana de atención</strong>: tiempo del registro a la atención real de lo que atendió en el período. Abiertos, vencidos sin atender y antigüedad son la foto de hoy. Se atribuye al responsable actual del caso.</p>
+          <p class="panel-sub" style="margin:-4px 0 12px">Período: el día elegido, su semana (lunes a domingo) o su mes. <strong>Clientes</strong>: personas distintas detrás de esos casos (se cuentan con un código anónimo, sin saber quiénes son). <strong>Registrados</strong>: casos que la persona creó como autor (los resuelva o los pase a otra área). <strong>Asignados</strong>: casos de los que es responsable sin ser autor (se los asignó Aranda u otra persona). <strong>Modificaciones</strong>: veces que trabajó casos como responsable (cambio de estado, atención, cierre o modificación), sin contar las asignaciones; sale del historial que se guarda desde el 1-oct-2026. <strong>Gestionados</strong>: casos que registró, atendió, cerró o modificó (sin repetir). <strong>Desarrollados</strong>: casos de los que es responsable (también los asignados) con atención real en el período, o que cerró directamente sin atención previa; no cuentan los cierres por aprobación del usuario ni por vencimiento del plazo. <strong>Mediana de atención</strong>: tiempo del registro a la atención real de lo que atendió en el período. Abiertos, vencidos sin atender y antigüedad son la foto de hoy. Se atribuye al responsable actual del caso.</p>
           <div class="kpi-grid" id="kpiRespDia"></div>
           <div class="table-responsive" style="margin-top:14px">
           <table class="table data-table resp-resumen-table" id="tableRespEval" style="width:100%">
@@ -583,6 +583,7 @@
           <div class="resp-tab-btns" id="respDetalleTabs">
             <button class="resp-tab-btn is-active" data-tab="casos"><i class="bi bi-folder2-open"></i> Casos</button>
             <button class="resp-tab-btn" data-tab="tareas"><i class="bi bi-list-check"></i> Tareas</button>
+            <button class="resp-tab-btn" data-tab="evaluacion"><i class="bi bi-clipboard-check"></i> Detalle de la evaluación</button>
           </div>
 
           <div class="resp-subview is-active" id="respSub-casos">
@@ -602,6 +603,15 @@
             <div class="table-responsive">
               <table class="table data-table" id="tableRespTareas" style="width:100%">
                 <thead><tr><th>Fecha</th><th>Asunto</th><th>Estado</th><th>Canal</th><th>Causa</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="resp-subview" id="respSub-evaluacion">
+            <p class="panel-sub" style="margin:0 0 10px" id="respEvalDetalleResumen"></p>
+            <div class="table-responsive">
+              <table class="table data-table" id="tableRespEvalDetalle" style="width:100%">
+                <thead><tr><th>Indicador</th><th>Caso / tarea</th><th>Fecha</th><th>Por qué cuenta</th><th>Cuenta en gestionados</th><th>Estado actual</th><th>Tipo de servicio</th><th>Categoría</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
@@ -633,6 +643,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1791564483"></script>
+<script src="app.js?v=1791565761"></script>
 </body>
 </html>

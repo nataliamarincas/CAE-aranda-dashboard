@@ -85,6 +85,14 @@
   // 2026-09-30). Sin selección no filtra; al elegir nombres, muestra solo sus casos.
   const AUTORES_GESTORES = ["Miguel Angel Chavarro Chamorro", "Yuddy Suleima Rayo Arias", "Duvan Andrey Silva Morales",
     "Oscar Eduardo Cucuname Otero", "Harold Vanegas Muñoz"];
+  // Asesores que ya no están en el CAE: se conserva todo su histórico, pero con "Solo asesores
+  // del CAE" no aparecen en períodos que empiezan después de su salida (para no mostrarlos con
+  // ceros). Fecha = último día de trabajo (provisional: última actividad como responsable).
+  const ASESORES_HASTA = { "Duvan Andrey Silva Morales": "2026-09-30" };
+  function salidaAsesor(nombre) {
+    const k = Object.keys(ASESORES_HASTA).find(function (a) { return namesMatch(a, nombre); });
+    return k ? ASESORES_HASTA[k] : null;
+  }
   const AUTOR_OTROS = "Otros autores";
   // Clasificación del caso = resultado de ANS, para abiertos y cerrados (ver ansResultado:
   // histórico = TIEMPO RESPUESTA del archivo; nuevo = según Progreso). Abierto/cerrado es
@@ -113,7 +121,7 @@
   let _respPeriodo = "dia";        // "dia" | "semana" (lunes a domingo) | "mes" que contiene _respDia
   let _respSoloDia = false;        // Responsables: mostrar solo quienes tuvieron gestión en el período
   let _respSoloAsesores = false;   // Responsables: mostrar solo a los asesores del CAE (AUTORES_GESTORES)
-  let _respDetalleTab = "casos";  // "casos" | "tareas" dentro del panel de detalle
+  let _respDetalleTab = "casos";  // "casos" | "tareas" | "evaluacion" dentro del panel de detalle
   let TENDENCY_PERIOD = "mes";  // por meses se ve el año de histórico completo
 
   /* ============================ UTILIDADES ============================ */
@@ -1722,7 +1730,9 @@
          igual los que resolvió y los que pasó a otra área (no se evalúa el escalamiento).
        - Asignados: casos de los que es Responsable pero NO Autor (se los asignó Aranda u
          otra persona) con fecha de registro en el rango.
-       - Desarrollados: casos de los que es Responsable con atención real o cierre en el rango
+       - Desarrollados: casos de los que es Responsable con atención real en el rango, o que cerró
+         directamente sin atención previa (cierreDelAsesor; no cuentan los cierres por aprobación
+         del usuario ni por vencimiento del plazo, que llegan días después de la solución)
          (incluye los que le asigna el sistema).
        - Modificaciones: veces que trabajó casos como responsable según el historial (gestionesReales).
        - Gestionados: casos distintos que registró (autor) o que, como responsable, atendió,
@@ -1752,6 +1762,24 @@
      modificaciones entre dos sincronizaciones cuentan como una. */
   const CAMPOS_TRABAJO = ["estado", "fecha_modificacion", "fecha_modificacion_dt", "fecha_atencion_real", "fecha_cierre"];
   const CAMPOS_ASIGNACION = ["responsable", "grupo_responsable"];
+  // Texto legible de lo que cambió en una modificación (para el detalle de la evaluación).
+  const NOMBRE_CAMPO = { estado: "estado", fecha_modificacion: "fecha de modificación", fecha_modificacion_dt: "hora de modificación",
+    fecha_atencion_real: "atención real", fecha_cierre: "cierre", creado: "registrado ya en estado" };
+  // ISO con zona (p. ej. "2026-10-02T15:12:42+00:00") -> "2026-10-02 10:12" en hora local.
+  function horaLocal(iso) {
+    const d = new Date(iso); if (isNaN(d)) return "";
+    const p = function (n) { return String(n).padStart(2, "0"); };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  function describirCambios(cambios) {
+    return cambios.filter(function (x) { return NOMBRE_CAMPO[x.campo] && x.campo !== "fecha_modificacion"; }).map(function (x) {
+      if (x.campo === "creado") return "registrado y ya " + x.despues;
+      if (x.campo === "estado") return "estado " + (x.antes || "—") + " → " + (x.despues || "—");
+      if (x.campo === "fecha_modificacion_dt") return "modificado " + String(x.despues || "").replace("T", " ").slice(0, 16);
+      if (!fechaValida(x.despues)) return "se quitó la " + NOMBRE_CAMPO[x.campo] + " (antes " + String(x.antes || "").replace("T", " ").slice(0, 16) + ")";
+      return NOMBRE_CAMPO[x.campo] + " " + String(x.despues).replace("T", " ").slice(0, 16);
+    }).join(" · ") || "modificado";
+  }
   function gestionesReales() {
     const ev = STATE.eventos;
     if (!ev || !ev.eventos) return [];
@@ -1759,9 +1787,9 @@
     const grupos = {};
     ev.eventos.forEach(function (x) {
       const k = x.llave + "|" + x.detectado_en;
-      if (!grupos[k]) grupos[k] = { llave: x.llave, campos: {}, responsable: x.responsable, fecha: null, detectado: x.detectado_en, estadoCreado: null };
+      if (!grupos[k]) grupos[k] = { llave: x.llave, campos: {}, cambios: [], responsable: x.responsable, fecha: null, detectado: x.detectado_en, estadoCreado: null, origen: x.origen };
       if (x.campo === "creado") grupos[k].estadoCreado = x.despues;
-      const g = grupos[k]; g.campos[x.campo] = true;
+      const g = grupos[k]; g.campos[x.campo] = true; g.cambios.push(x);
       if (x.campo === "fecha_modificacion_dt" && fechaValida(x.despues)) g.fecha = String(x.despues).slice(0, 10);
       else if (!g.fecha && fechaValida(x.fecha_modificacion)) g.fecha = String(x.fecha_modificacion).slice(0, 10);
     });
@@ -1775,12 +1803,15 @@
         const r = casoPorLlave(g.llave);
         creadoTrabajado = !!(r && autorNorm(r) && autorNorm(r) === normalizeName(g.responsable));
       }
-      const trabajo = creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return g.campos[c]; });
+      // Solucionado -> Cerrado es el cierre del usuario al aprobar (o de Aranda al vencer el plazo),
+      // no trabajo del asesor; tampoco un cambio que solo trae la fecha de cierre.
+      const cierreAutomatico = g.cambios.some(function (x) { return x.campo === "estado" && x.antes === "Solucionado" && x.despues === "Cerrado"; });
+      const trabajo = !cierreAutomatico && (creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return c !== "fecha_cierre" && g.campos[c]; }));
       const asignacion = CAMPOS_ASIGNACION.some(function (c) { return g.campos[c]; });
       if (!trabajo || asignacion || !g.responsable) return;
       // Sin fecha de Aranda, la del día en que se detectó (hora local).
       if (!g.fecha) { const d = new Date(g.detectado); g.fecha = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-      out.push({ llave: g.llave, n: normalizeName(g.responsable), fecha: g.fecha });
+      out.push({ llave: g.llave, n: normalizeName(g.responsable), fecha: g.fecha, detectado: g.detectado, detalle: describirCambios(g.cambios), reconstruido: g.origen === "reconstruido" });
     });
     STATE._gestiones = out; STATE._gestionesDe = ev.generado_en;
     return out;
@@ -1796,19 +1827,46 @@
     return STATE._porLlave[llave];
   }
 
-  function evaluarPersona(nombre, rg) {
+  // ¿El cierre del caso es trabajo del asesor? No lo es cuando el caso ya tenía atención real
+  // (el cierre posterior lo hace el usuario al aprobar la solución, o Aranda al vencer el plazo,
+  // unos 6-8 días después) ni cuando la razón es una de esas. Sí cuando lo cerró directamente,
+  // sin atención previa (p. ej. "No procede la solicitud").
+  const RAZONES_CIERRE_AUTOMATICO = ["cerrado por aprobacion del usuario", "vencimiento del plazo de validacion de solucion"];
+  function cierreDelAsesor(r) {
+    if (!fechaValida(r.fecha_cierre) || fechaValida(r.fecha_atencion_real)) return false;
+    return RAZONES_CIERRE_AUTOMATICO.indexOf(normTexto(r.razon)) === -1;
+  }
+  function normTexto(s) { return normalizeName(s).replace(/[.]/g, ""); }
+  // filas (opcional): si se pasa un arreglo, se llena con cada caso o tarea que cuenta y por qué
+  // (detalle de la evaluación). Las mismas reglas producen los números y el detalle.
+  function evaluarPersona(nombre, rg, filas) {
+    const fila = function (indicador, r, fecha, detalle, gestiona) {
+      if (filas) filas.push({ indicador: indicador, caso: r ? r.caso : "", fecha: fecha || "", detalle: detalle, gestiona: gestiona,
+        estado: r ? (esFueraReporte(r) ? r.estado + " (fuera del reporte)" : r.estado) : "", n1: r ? nivel1Effective(r) : "", categoria: r ? r.categoria : "" });
+    };
+    const fh = function (v) { return (fechaValida(v) || "").replace("T", " ").slice(0, 16); };
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
     const e = { nombre: nombre, registrados: 0, asignados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
       ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, edades: [] };
     const llaves = new Set();
     STATE.rawCasos.forEach(function (r) {
       if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
-      if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) { e.registrados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
+      if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) {
+        e.registrados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id);
+        fila("Registrado", r, fh(r.fecha_registro_dt || r.fecha_registro), "lo registró (autor)" + (nombreNorm(r) === n ? " y es el responsable" : " · responsable actual: " + (r.responsable || "—")), true);
+      }
       if (nombreNorm(r) !== n) return;
       // Asignados: es responsable pero no autor (se lo asignó Aranda u otra persona) y llegó en el período.
-      if (autorNorm(r) !== n && enRango(r.fecha_registro, rg)) e.asignados++;
-      const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg);
-      if (at || ce) { e.desarrollados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
+      if (autorNorm(r) !== n && enRango(r.fecha_registro, rg)) {
+        e.asignados++;
+        fila("Asignado", r, fh(r.fecha_registro_dt || r.fecha_registro), "es responsable sin ser autor (llegó por asignación)", false);
+      }
+      const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg) && cierreDelAsesor(r);
+      if (at || ce) {
+        e.desarrollados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id);
+        fila("Desarrollado", r, fh(at ? (r.fecha_atencion_real_dt || r.fecha_atencion_real) : r.fecha_cierre),
+          [at ? "atención real " + fh(r.fecha_atencion_real_dt || r.fecha_atencion_real) : "", ce ? "lo cerró directamente el " + fh(r.fecha_cierre) + " (sin atención previa; razón: " + (r.razon || "—") + ")" : ""].filter(Boolean).join(" · ") + (at ? " · ANS: " + ansReal(r) : ""), true);
+      }
       if (at) {
         const res = ansReal(r);
         if (res === "Cumplido") e.ansCumplido++; else if (res === "Incumplido") e.ansIncumplido++;
@@ -1832,9 +1890,15 @@
       const r = casoPorLlave(g.llave);
       if (r && RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
       e.modificados++;
+      fila("Modificación", r, g.fecha, g.detalle + " · detectado en la sincronización del " + horaLocal(g.detectado) + (g.reconstruido ? " (reconstruido de fotos anteriores)" : ""), true);
       llaves.add(g.llave); if (r && r.cliente_id) e.clientesSet.add(r.cliente_id);
     });
-    STATE.rawTareas.forEach(function (t) { if (enRango(t.fecha_creacion, rg) && mismaPersona(nombreNorm(t), n)) e.tareas++; });
+    STATE.rawTareas.forEach(function (t) {
+      if (!enRango(t.fecha_creacion, rg) || !mismaPersona(nombreNorm(t), n)) return;
+      e.tareas++;
+      if (filas) filas.push({ indicador: "Tarea", caso: t.tarea_id, fecha: t.fecha_creacion, detalle: [t.linea_atencion, t.causa, t.asunto].filter(function (v) { return v && v !== "N/A"; }).join(" · "),
+        gestiona: false, estado: t.estado, n1: "", categoria: t.criterios && t.criterios !== "N/A" ? t.criterios : "" });
+    });
     e.gestionados = llaves.size;
     e.clientes = e.clientesSet.size;  // clientes distintos detrás de sus casos gestionados
     e.ansPct = (e.ansCumplido + e.ansIncumplido) ? pct(e.ansCumplido, e.ansCumplido + e.ansIncumplido) : null;
@@ -1944,7 +2008,7 @@
     const tbody = document.querySelector(sel + " tbody");
     if (tbody) tbody.innerHTML = evals.map(function (e) {
       return '<tr class="resp-row" data-resp="' + esc(e.nombre) + '">' +
-        '<td><strong>' + esc(e.nombre) + '</strong></td>' +
+        '<td><strong>' + esc(e.nombre) + '</strong>' + (salidaAsesor(e.nombre) ? '<br><span class="tag-retirado" title="Ya no está en el CAE · último día: ' + esc(salidaAsesor(e.nombre)) + '">ya no está en el CAE</span>' : '') + '</td>' +
         '<td data-order="' + e.gestionados + '"><strong>' + e.gestionados + '</strong></td>' +
         '<td data-order="' + e.clientes + '">' + e.clientes + '</td>' +
         '<td data-order="' + e.registrados + '">' + e.registrados + '</td>' +
@@ -1974,7 +2038,7 @@
     const evalDe = {};
     // "Solo asesores del CAE" y "Solo con gestión en el período" filtran ambas tablas y los KPIs.
     const responsables = Object.values(byResp)
-      .filter(function (r) { return !_respSoloAsesores || esAsesorCAE(r.nombre); })
+      .filter(function (r) { const s = salidaAsesor(r.nombre); return !_respSoloAsesores || (esAsesorCAE(r.nombre) && !(s && rg.desde > s)); })
       .filter(function (r) { evalDe[r.nombre] = evaluarPersona(r.nombre, rg); return !_respSoloDia || evalDe[r.nombre].actividad > 0; })
       .sort(function (a, b) { return b.totalCasos - a.totalCasos; });
     renderEvaluacion(responsables.map(function (r) { return evalDe[r.nombre]; }), rg);
@@ -2060,7 +2124,7 @@
       if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); gestionado(autor, s, r.llave); }
       if (resp) {
         if (resp !== autor) suma(por[resp].asignados, lunesDe(r.fecha_registro));
-        const sa = lunesDe(r.fecha_atencion_real), sc = lunesDe(r.fecha_cierre);
+        const sa = lunesDe(r.fecha_atencion_real), sc = cierreDelAsesor(r) ? lunesDe(r.fecha_cierre) : null;
         [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); gestionado(resp, s, r.llave); });
         if (sa) {
           const res = ansReal(r);
@@ -2154,6 +2218,37 @@
   // Colores bien distinguibles entre sí para una línea por persona.
   const COLORES_PERSONAS = ["#8C0F13", "#4A6B8C", "#D9A441", "#2a7a3b", "#6B4E8C", "#B5654A", "#4A0608", "#9C8C7E"];
 
+  // Detalle de la evaluación: cada caso o tarea que cuenta en los indicadores del período y por qué.
+  // Sale de evaluarPersona() con las mismas reglas que los números (para revisar contra Aranda).
+  const ORDEN_INDICADOR = ["Registrado", "Asignado", "Desarrollado", "Modificación", "Tarea"];
+  function renderDetalleEvaluacion(nombre) {
+    const rg = rangoGestion(), filas = [];
+    const ev = evaluarPersona(nombre, rg, filas);
+    filas.sort(function (a, b) { return (ORDEN_INDICADOR.indexOf(a.indicador) - ORDEN_INDICADOR.indexOf(b.indicador)) || String(a.fecha).localeCompare(String(b.fecha)); });
+    const res = document.getElementById("respEvalDetalleResumen");
+    if (res) res.innerHTML = "<strong>" + esc(nombre) + "</strong> · " + esc(rg.texto) + " · " +
+      ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " +
+      (ev.modificados === null ? "modificaciones: sin historial para este período" : ev.modificados + " modificaciones") + " · " + ev.tareas + " tareas · " +
+      "<strong>" + ev.gestionados + " casos gestionados</strong> (casos distintos marcados “Sí”; un caso puede aparecer en varias filas). " +
+      "Crédito al responsable actual del caso; modificaciones según el historial de sincronizaciones" + (historialDesde() ? " (desde " + esc(historialDesde()) + ")" : "") + ".";
+    const sel = "#tableRespEvalDetalle";
+    if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (e) {} delete dtRegistry[sel]; }
+    const txt = function (d) { return esc(d); };
+    dtRegistry[sel] = $(sel).DataTable({
+      language: DT_LANG_ES, data: filas, deferRender: true,
+      columns: [
+        { data: "indicador", render: txt }, { data: "caso", render: txt }, { data: "fecha", render: txt }, { data: "detalle", render: txt },
+        { data: null, render: function (d, type, f) { return f.gestiona ? "Sí" : "No"; } },
+        { data: "estado", render: txt },
+        { data: null, render: function (d, type, f) { return f.n1 ? (type === "display" ? nivel1ChipHTML(f.n1) : f.n1) : ""; } },
+        { data: "categoria", render: txt }
+      ],
+      columnDefs: [{ targets: "_all", defaultContent: "" }],
+      paging: true, pageLength: 15, order: [], dom: "frtipB",
+      buttons: DT_BUTTONS.map(function (b) { return Object.assign({}, b, { title: "Evaluación " + nombre + " - " + rg.texto }); })
+    });
+  }
+
   function renderResponsableDetalle(d, ev) {
     if (!d) return;
     const panel = document.getElementById("panelRespDetalle"); if (panel) panel.style.display = "";
@@ -2177,6 +2272,7 @@
     }
     renderChart("chartRespCategorias", "bar", toChartDataBar(d.categorias, "#8C0F13", 8), horizontalBarOpts());
     renderTendenciaResponsable(d.nombre);
+    renderDetalleEvaluacion(d.nombre);
 
     // Sub-pestañas Casos / Tareas dentro del detalle
     const tabsEl = document.getElementById("respDetalleTabs");

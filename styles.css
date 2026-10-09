@@ -402,3 +402,7 @@ table.data-table td.eval-bajo{ color:var(--status-critico); font-weight:700; }
 /* Fuera del reporte: número de caso y fechas en una sola línea. */
 #tableFueraReporte td:nth-child(1), #tableFueraReporte td:nth-child(2), #tableFueraReporte td:nth-child(4),
 #tableFueraReporte td:nth-child(11), #tableFueraReporte td:nth-child(12), #tableFueraReporte td:nth-child(13){ white-space:nowrap; }
+/* Detalle de la evaluación: columna "Por qué cuenta" más ancha, fechas en una línea. */
+#tableRespEvalDetalle td:nth-child(3){ white-space:nowrap; }
+#tableRespEvalDetalle td:nth-child(4){ min-width:280px; }
+.tag-retirado{ display:inline-block; margin-top:2px; font-size:10.5px; font-weight:600; color:var(--t3); border:1px dashed var(--t3); border-radius:99px; padding:0 7px; cursor:help; }
