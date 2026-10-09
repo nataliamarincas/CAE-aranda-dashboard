@@ -1712,6 +1712,8 @@
      Por persona, en el rango de rangoGestion():
        - Registrados: casos que creó (Autor) con fecha de registro en el rango. Cuentan
          igual los que resolvió y los que pasó a otra área (no se evalúa el escalamiento).
+       - Asignados: casos de los que es Responsable pero NO Autor (se los asignó Aranda u
+         otra persona) con fecha de registro en el rango.
        - Desarrollados: casos de los que es Responsable con atención real o cierre en el rango
          (incluye los que le asigna el sistema).
        - Gestionados: casos distintos registrados, desarrollados o modificados (sin duplicar).
@@ -1731,13 +1733,15 @@
   }
   function evaluarPersona(nombre, rg) {
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
-    const e = { nombre: nombre, registrados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
+    const e = { nombre: nombre, registrados: 0, asignados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
       ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, edades: [] };
     const llaves = new Set();
     STATE.rawCasos.forEach(function (r) {
       if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
       if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) { e.registrados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id); }
       if (nombreNorm(r) !== n) return;
+      // Asignados: es responsable pero no autor (se lo asignó Aranda u otra persona) y llegó en el período.
+      if (autorNorm(r) !== n && enRango(r.fecha_registro, rg)) e.asignados++;
       const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg), mo = enRango(r.fecha_modificacion, rg);
       if (at || ce) e.desarrollados++;
       if (mo) e.modificados++;
@@ -1853,6 +1857,7 @@
       kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", rg.texto + " · registrados, desarrollados o modificados") +
       kpi("Clientes atendidos", clientesUnion(evals), "info", "bi-person-vcard", "clientes distintos detrás de esos casos") +
       kpi("Registrados", sum("registrados"), "info", "bi-pencil-square", "creados como autor (resueltos o escalados)") +
+      kpi("Asignados", sum("asignados"), "info", "bi-person-check", "es responsable sin ser autor: los asignó Aranda u otra persona") +
       kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre") +
       kpi("Tareas", sum("tareas"), "info", "bi-list-check", "tareas/eventos creados") +
       kpi("Mediana de atención", fmtHoras(mediana(todasHoras)), "normal", "bi-clock-history", "del registro a la atención real (" + todasHoras.length + " casos)") +
@@ -1869,6 +1874,7 @@
         '<td data-order="' + e.gestionados + '"><strong>' + e.gestionados + '</strong></td>' +
         '<td data-order="' + e.clientes + '">' + e.clientes + '</td>' +
         '<td data-order="' + e.registrados + '">' + e.registrados + '</td>' +
+        '<td data-order="' + e.asignados + '">' + e.asignados + '</td>' +
         '<td data-order="' + e.desarrollados + '">' + e.desarrollados + '</td>' +
         '<td data-order="' + e.modificados + '">' + e.modificados + '</td>' +
         '<td data-order="' + e.tareas + '">' + e.tareas + '</td>' +
@@ -1962,7 +1968,7 @@
     const idx = {}, por = {};
     nombres.forEach(function (nm) {
       idx[normalizeName(nm)] = nm;
-      por[nm] = { registrados: {}, desarrollados: {}, gestionados: {}, tareas: {}, cumplidos: {}, atendidosAns: {} };
+      por[nm] = { registrados: {}, asignados: {}, desarrollados: {}, gestionados: {}, tareas: {}, cumplidos: {}, atendidosAns: {} };
     });
     const suma = function (obj, sem) { if (sem) obj[sem] = (obj[sem] || 0) + 1; };
     let min = null;
@@ -1974,6 +1980,7 @@
       const gest = {};  // semanas en que este caso cuenta como gestionado, por persona
       if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); if (s) gest[autor + "|" + s] = [autor, s]; }
       if (resp) {
+        if (resp !== autor) suma(por[resp].asignados, lunesDe(r.fecha_registro));
         const sa = lunesDe(r.fecha_atencion_real), sc = lunesDe(r.fecha_cierre), sm = lunesDe(r.fecha_modificacion);
         [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); });
         [sa, sc, sm].forEach(function (s) { if (s) gest[resp + "|" + s] = [resp, s]; });
@@ -2022,6 +2029,7 @@
     anchoSemanal("respTendInner", sem.length);
     renderChart("chartRespTendencia", "bar", { labels: sem.map(etiquetaSemana), datasets: [
       { label: "Registrados", data: sem.map(function (s) { return valorSemanal(p, "registrados", s); }), backgroundColor: "#8C0F13", borderRadius: 3, yAxisID: "y" },
+      { label: "Asignados", data: sem.map(function (s) { return valorSemanal(p, "asignados", s); }), backgroundColor: "#9C8C7E", borderRadius: 3, yAxisID: "y" },
       { label: "Desarrollados", data: sem.map(function (s) { return valorSemanal(p, "desarrollados", s); }), backgroundColor: "#4A6B8C", borderRadius: 3, yAxisID: "y" },
       { label: "Tareas", data: sem.map(function (s) { return valorSemanal(p, "tareas", s); }), backgroundColor: "#D9A441", borderRadius: 3, yAxisID: "y" },
       { type: "line", label: "ANS real %", data: sem.map(function (s) { return valorSemanal(p, "ans", s); }), sufijo: "%",
@@ -2036,7 +2044,7 @@
   }
 
   // Comparativa semanal: una línea por persona de la evaluación (máx. 8, las de más actividad).
-  const COMPARATIVA_INDICADORES = { gestionados: "Casos gestionados", registrados: "Registrados", desarrollados: "Desarrollados", tareas: "Tareas", ans: "ANS real %" };
+  const COMPARATIVA_INDICADORES = { gestionados: "Casos gestionados", registrados: "Registrados", asignados: "Asignados", desarrollados: "Desarrollados", tareas: "Tareas", ans: "ANS real %" };
   let _respComparativa = "gestionados";
   function renderComparativaResponsables(evals) {
     const btns = document.getElementById("respCompBtns");
@@ -2078,7 +2086,7 @@
         kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
         kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "") +
         (ev ? kpi("Gestión (" + rangoGestion().nombre + ")", ev.gestionados, "info", "bi-calendar-check", rangoGestion().texto + " · " +
-          ev.registrados + " registrados · " + ev.desarrollados + " desarrollados · " + ev.tareas + " tareas") +
+          ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " + ev.tareas + " tareas") +
           kpi("ANS real (" + rangoGestion().nombre + ")", ev.ansPct === null ? "—" : ev.ansPct + "%", "sla", "bi-stopwatch", (ev.ansCumplido + ev.ansIncumplido) + " atendidos en el período") +
           kpi("Mediana de atención", fmtHoras(ev.horasMediana), "normal", "bi-clock-history", "registro → atención real") : "");
     }

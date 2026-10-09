@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1791207932">
+<link rel="stylesheet" href="styles.css?v=1791562279">
 </head>
 <body>
 
@@ -518,13 +518,13 @@
               <label class="resp-dia-solo"><input type="checkbox" id="respSoloDia"> Solo con gestión en el período</label>
             </div>
           </div>
-          <p class="panel-sub" style="margin:-4px 0 12px">Período: el día elegido, su semana (lunes a domingo) o su mes. <strong>Clientes</strong>: personas distintas detrás de esos casos (se cuentan con un código anónimo, sin saber quiénes son). <strong>Registrados</strong>: casos que la persona creó como autor (los resuelva o los pase a otra área). <strong>Desarrollados</strong>: casos de los que es responsable, incluidos los que asigna el sistema, con atención real o cierre en el período. <strong>Mediana de atención</strong>: tiempo del registro a la atención real de lo que atendió en el período. Abiertos, vencidos sin atender y antigüedad son la foto de hoy. Se atribuye al responsable actual del caso.</p>
+          <p class="panel-sub" style="margin:-4px 0 12px">Período: el día elegido, su semana (lunes a domingo) o su mes. <strong>Clientes</strong>: personas distintas detrás de esos casos (se cuentan con un código anónimo, sin saber quiénes son). <strong>Registrados</strong>: casos que la persona creó como autor (los resuelva o los pase a otra área). <strong>Asignados</strong>: casos de los que es responsable sin ser autor (se los asignó Aranda u otra persona). <strong>Desarrollados</strong>: casos de los que es responsable, incluidos los que asigna el sistema, con atención real o cierre en el período. <strong>Mediana de atención</strong>: tiempo del registro a la atención real de lo que atendió en el período. Abiertos, vencidos sin atender y antigüedad son la foto de hoy. Se atribuye al responsable actual del caso.</p>
           <div class="kpi-grid" id="kpiRespDia"></div>
           <div class="table-responsive" style="margin-top:14px">
           <table class="table data-table resp-resumen-table" id="tableRespEval" style="width:100%">
             <thead>
               <tr>
-                <th>Responsable</th><th class="th-dia">Gestionados</th><th class="th-dia">Clientes</th><th class="th-dia">Registrados</th><th class="th-dia">Desarrollados</th>
+                <th>Responsable</th><th class="th-dia">Gestionados</th><th class="th-dia">Clientes</th><th class="th-dia">Registrados</th><th class="th-dia" title="Es responsable sin ser autor: se los asignó Aranda u otra persona">Asignados</th><th class="th-dia">Desarrollados</th>
                 <th class="th-dia">Modificados</th><th class="th-dia">Tareas</th><th class="th-dia">Mediana atención</th>
                 <th>Abiertos hoy</th><th title="Vencidos sin atender">Venc. sin atender</th><th title="Antigüedad promedio de los abiertos">Antigüedad</th>
               </tr>
@@ -538,7 +538,7 @@
           <div class="panel-header">
             <h2><i class="bi bi-people"></i> Comparativa semanal entre responsables</h2>
             <div class="tend-period-btns" id="respCompBtns">
-              <button class="tend-btn tend-btn--active" data-ind="gestionados">Casos gestionados</button><button class="tend-btn" data-ind="registrados">Registrados</button><button class="tend-btn" data-ind="desarrollados">Desarrollados</button><button class="tend-btn" data-ind="tareas">Tareas</button><button class="tend-btn" data-ind="ans">ANS real</button>
+              <button class="tend-btn tend-btn--active" data-ind="gestionados">Casos gestionados</button><button class="tend-btn" data-ind="registrados">Registrados</button><button class="tend-btn" data-ind="asignados">Asignados</button><button class="tend-btn" data-ind="desarrollados">Desarrollados</button><button class="tend-btn" data-ind="tareas">Tareas</button><button class="tend-btn" data-ind="ans">ANS real</button>
             </div>
           </div>
           <p class="panel-sub" style="margin:-4px 0 10px">Una línea por persona, semana a semana (lunes a domingo), hasta la semana de la fecha elegida · deslice para ver semanas anteriores. <span id="respCompNota"></span></p>
@@ -572,7 +572,7 @@
           </div>
           <div class="kpi-grid" id="kpiRespDetalle"></div>
           <div class="panel">
-            <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia semanal</h2><span class="panel-sub">Registrados · desarrollados · tareas · ANS real · deslice para ver semanas anteriores</span></div>
+            <div class="panel-header"><h2><i class="bi bi-graph-up-arrow"></i> Tendencia semanal</h2><span class="panel-sub">Registrados · asignados · desarrollados · tareas · ANS real · deslice para ver semanas anteriores</span></div>
             <div class="chart-wrap chart-tall chart-wrap--hscroll"><div class="chart-scroll-inner" id="respTendInner"><canvas id="chartRespTendencia" class="chart-skeleton"></canvas></div></div>
           </div>
           <div class="panel">
@@ -633,6 +633,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1791400387"></script>
+<script src="app.js?v=1791562227"></script>
 </body>
 </html>

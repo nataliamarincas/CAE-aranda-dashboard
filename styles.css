@@ -396,9 +396,9 @@ table.data-table td.eval-ok{ color:#2a7a3b; font-weight:700; }
 table.data-table td.eval-medio{ color:#B07D1A; font-weight:700; }
 table.data-table td.eval-bajo{ color:var(--status-critico); font-weight:700; }
 /* Tabla de evaluación (12 columnas): más compacta para que quepa sin desplazamiento. */
-#tableRespEval thead th, #tableRespEval tbody td{ padding-left:6px; padding-right:6px; }
+#tableRespEval thead th, #tableRespEval tbody td{ padding-left:5px; padding-right:5px; }
 #tableRespEval thead th.sorting, #tableRespEval thead th.sorting_asc, #tableRespEval thead th.sorting_desc{ padding-right:14px !important; }
-#tableRespEval td:first-child{ min-width:130px; }
+#tableRespEval td:first-child{ min-width:120px; }
 /* Fuera del reporte: número de caso y fechas en una sola línea. */
 #tableFueraReporte td:nth-child(1), #tableFueraReporte td:nth-child(2), #tableFueraReporte td:nth-child(4),
 #tableFueraReporte td:nth-child(11), #tableFueraReporte td:nth-child(12), #tableFueraReporte td:nth-child(13){ white-space:nowrap; }
