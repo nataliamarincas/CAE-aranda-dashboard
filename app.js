@@ -1759,7 +1759,8 @@
     const grupos = {};
     ev.eventos.forEach(function (x) {
       const k = x.llave + "|" + x.detectado_en;
-      if (!grupos[k]) grupos[k] = { llave: x.llave, campos: {}, responsable: x.responsable, fecha: null, detectado: x.detectado_en };
+      if (!grupos[k]) grupos[k] = { llave: x.llave, campos: {}, responsable: x.responsable, fecha: null, detectado: x.detectado_en, estadoCreado: null };
+      if (x.campo === "creado") grupos[k].estadoCreado = x.despues;
       const g = grupos[k]; g.campos[x.campo] = true;
       if (x.campo === "fecha_modificacion_dt" && fechaValida(x.despues)) g.fecha = String(x.despues).slice(0, 10);
       else if (!g.fecha && fechaValida(x.fecha_modificacion)) g.fecha = String(x.fecha_modificacion).slice(0, 10);
@@ -1767,7 +1768,14 @@
     const out = [];
     Object.keys(grupos).forEach(function (k) {
       const g = grupos[k];
-      const trabajo = CAMPOS_TRABAJO.some(function (c) { return g.campos[c]; });
+      // Caso que aparece por primera vez ya trabajado (p. ej. registrado y solucionado entre dos
+      // sincronizaciones) por quien lo registró y es su responsable: también cuenta como gestión.
+      let creadoTrabajado = false;
+      if (g.campos.creado && g.estadoCreado && g.estadoCreado !== "Registrado") {
+        const r = casoPorLlave(g.llave);
+        creadoTrabajado = !!(r && autorNorm(r) && autorNorm(r) === normalizeName(g.responsable));
+      }
+      const trabajo = creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return g.campos[c]; });
       const asignacion = CAMPOS_ASIGNACION.some(function (c) { return g.campos[c]; });
       if (!trabajo || asignacion || !g.responsable) return;
       // Sin fecha de Aranda, la del día en que se detectó (hora local).
