@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-20T00:04:47.086345",
+  "generado_en": "2026-10-20T14:43:45.181936",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 26.7,
+  "avance_general": 25.0,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -85,9 +85,9 @@
       "plazo_fin": null,
       "responsables": [],
       "documentos": "",
-      "tareas_total": 5,
+      "tareas_total": 6,
       "tareas_completas": 2,
-      "progreso": 40.0,
+      "progreso": 33.3,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -107,10 +107,29 @@
   ],
   "tareas": [
     {
+      "id": "3ff8758f4cc2801d9eb3e1d0a3c7b9ef",
+      "nombre": "ACTUALIZACION INFORMACION GUIA DE MATRICULA",
+      "estado": "En proceso",
+      "grupo": "en_curso",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-30",
+      "asignados": [
+        "Miguel Angel Medina Ospina",
+        "NATALIA MARIN CASTRO"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/ACTUALIZACION-INFORMACION-GUIA-DE-MATRICULA-3ff8758f4cc2801d9eb3e1d0a3c7b9ef"
+    },
+    {
       "id": "3f28758f4cc280468fc7d41af5defcff",
       "nombre": "JOURNEY REINTEGROS",
-      "estado": "No iniciado",
-      "grupo": "pendiente",
+      "estado": "En proceso",
+      "grupo": "en_curso",
       "prioridad": "Sin prioridad",
       "vencimiento": null,
       "asignados": [
@@ -176,9 +195,9 @@
       "proyecto_id": "3de8758f4cc28041811bc315ae889f03",
       "proyecto": "RE-MATRÍCULA 2027-1S / 2027-1C",
       "descripcion": "",
-      "subtareas_total": 0,
-      "subtareas_listas": 0,
-      "progreso": 0.0,
+      "subtareas_total": 3,
+      "subtareas_listas": 1,
+      "progreso": 33.3,
       "url": "https://app.notion.com/p/CREACI-N-DE-PIEZAS-REINTEGRO-3de8758f4cc2806f9bddfa17c37c2e72"
     },
     {
@@ -220,8 +239,8 @@
     {
       "id": "3de8758f4cc280f4b5cecd8ba60d8e17",
       "nombre": "JOURNEY GRADOS",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
       "prioridad": "Alta",
       "vencimiento": "2026-10-14",
       "asignados": [
@@ -383,6 +402,39 @@
     }
   ],
   "subtareas": [
+    {
+      "id": "3ff8758f4cc280d29a2dd25d1e76b595",
+      "nombre": "Creación de Bases",
+      "estado": "Sin empezar",
+      "grupo": "pendiente",
+      "fecha": "2026-10-31",
+      "tareas": [
+        "3de8758f4cc2806f9bddfa17c37c2e72"
+      ],
+      "url": "https://app.notion.com/p/Creaci-n-de-Bases-3ff8758f4cc280d29a2dd25d1e76b595"
+    },
+    {
+      "id": "3ff8758f4cc280408343fb91c46bbad8",
+      "nombre": "Creación de Piezas",
+      "estado": "Pendiente de Aprobación",
+      "grupo": "en_curso",
+      "fecha": "2026-10-31",
+      "tareas": [
+        "3de8758f4cc2806f9bddfa17c37c2e72"
+      ],
+      "url": "https://app.notion.com/p/Creaci-n-de-Piezas-3ff8758f4cc280408343fb91c46bbad8"
+    },
+    {
+      "id": "3ff8758f4cc2804fbafcdbb09f31f40b",
+      "nombre": "Creación de Textos",
+      "estado": "Listo",
+      "grupo": "completo",
+      "fecha": "2026-10-31",
+      "tareas": [
+        "3de8758f4cc2806f9bddfa17c37c2e72"
+      ],
+      "url": "https://app.notion.com/p/Creaci-n-de-Textos-3ff8758f4cc2804fbafcdbb09f31f40b"
+    },
     {
       "id": "3f28758f4cc280de8ef8f8084253567b",
       "nombre": "Hacerle Seguimiento a los datos finalizados.",
