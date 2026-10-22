@@ -10,7 +10,7 @@
      Todos los casos vienen bajo un único Proyecto ("Punto UAO").
    - La clasificación temática ahora es 'Jerarquía' = Nivel1.Nivel2[.Nivel3][.Nivel4],
      ej. "Financiero.Matrícula financiera.Reliquidación de Matrícula Financiera".
-     Nivel1 ∈ {Financiero, Académicos, PQRS, Tecnologías, Bienestar} (confirmado
+     Nivel1 ∈ {Financiero, Académicos, PQRS, Tecnológicos, Bienestar} (confirmado
      con Natalia el 2026-sep); cualquier otro valor cae en "Otros / Histórico".
      Los casos históricos toman nivel1 de 'TIPO SERVICIO' y nivel2 de 'CATEGORÍA
      NUEVA (TIPO DE SERVICIO)', salvo los del proyecto PQRS, que van a PQRS con
@@ -41,10 +41,10 @@
     refreshIntervalMs: 5 * 60 * 1000
   };
 
-  const NIVEL1_CATS = ["Financiero", "Académicos", "PQRS", "Tecnologías", "Bienestar"];
+  const NIVEL1_CATS = ["Financiero", "Académicos", "PQRS", "Tecnológicos", "Bienestar"];
   const NIVEL1_OTROS = "Otros / Histórico";
-  const NIVEL1_KEY = { "Financiero": "financiero", "Tecnologías": "tecnologias", "Académicos": "academicos", "Bienestar": "bienestar", "PQRS": "pqrs" };
-  const NIVEL1_ICON = { "Financiero": "bi-cash-coin", "Tecnologías": "bi-cpu", "Académicos": "bi-mortarboard", "Bienestar": "bi-heart-pulse", "PQRS": "bi-chat-left-text" };
+  const NIVEL1_KEY = { "Financiero": "financiero", "Tecnológicos": "tecnologias", "Académicos": "academicos", "Bienestar": "bienestar", "PQRS": "pqrs" };
+  const NIVEL1_ICON = { "Financiero": "bi-cash-coin", "Tecnológicos": "bi-cpu", "Académicos": "bi-mortarboard", "Bienestar": "bi-heart-pulse", "PQRS": "bi-chat-left-text" };
 
   const STATUS_COLORS = { "Normal": "#9C8C7E", "Riesgo": "#D9A441", "Critico": "#C0151A", "Vencido": "#4A0608" };
   const STATUS_LABELS = { "Normal": "Normal", "Riesgo": "Riesgo", "Critico": "Crítico", "Vencido": "Vencido" };
@@ -368,7 +368,9 @@
     return classify(effectiveProgreso(r));
   }
   function nivel1Effective(r) {
-    return NIVEL1_CATS.indexOf(r.nivel1) !== -1 ? r.nivel1 : NIVEL1_OTROS;
+    // "Tecnologías" (nombre anterior / de Aranda) se muestra como "Tecnológicos".
+    const n1 = r.nivel1 === "Tecnologías" ? "Tecnológicos" : r.nivel1;
+    return NIVEL1_CATS.indexOf(n1) !== -1 ? n1 : NIVEL1_OTROS;
   }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
   // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
@@ -627,7 +629,7 @@
     const ans = { Normal: 0, Riesgo: 0, Critico: 0, Vencido: 0 };
     const ansRealCnt = contadorAnsReal();
     records.forEach(function (r) {
-      const cls = effectiveClass(r);
+      const cls = clasifAbierto(r);  // vencido por Progreso o por fecha (ver clasifAbierto)
       const resAns = ansResultado(r);
       const real = ansReal(r);
       // Vencidos cerrados = cerrados fuera de ANS según la Condición real de ANS.
@@ -1162,9 +1164,20 @@
     initDataTable("#tableComparativo", { paging: false, searching: false, info: false, order: [] });
 
     renderAnsPorCategoria("chartComparativoStack", s, cats);
+    renderCategoriasChart("chartExecCategorias", STATE.execCasos);
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
+  // Casos por categoría (campo "categoria", la más específica que asigna Aranda): top 15, con el %
+  // sobre todos los casos con categoría (pctTotal) y la altura según la cantidad de barras.
+  function renderCategoriasChart(canvasId, records) {
+    const conteo = {};
+    records.forEach(function (r) { const c = r.categoria; if (c && c !== "N/A") conteo[c] = (conteo[c] || 0) + 1; });
+    const datos = toChartDataBar(conteo, "#4A0608", 15);
+    const cv = document.getElementById(canvasId);
+    if (cv && cv.parentElement) cv.parentElement.style.height = Math.max(240, datos.labels.length * 28 + 60) + "px";
+    renderChart(canvasId, "bar", datos, horizontalBarOpts());
+  }
   function renderAnsPorCategoria(canvasId, stats, cats) {
     renderChart(canvasId, "bar", { labels: cats, datasets: datasetsAnsReal(cats, function (c) { const d = stats.porNivel1[c]; return d ? d.ansReal : null; }) }, stackedBarOpts());
   }
@@ -1190,6 +1203,15 @@
     if (cls === "Vencido") return "Vencido";
     if (cls === "Critico") return "Crítico";
     return ansReal(r) === "Vencido sin atender" ? "Vencido por fecha" : null;
+  }
+  // Clasificación única de un caso abierto para todos los indicadores de vencidos (Resumen, Casos,
+  // Atención, Grupos, Responsables y evaluación): Vencido = por Progreso O por fecha (Vencido sin
+  // atender), Crítico y En riesgo por Progreso. Cerrados y fuera del reporte -> "Normal".
+  function clasifAbierto(r) {
+    const m = motivoAtencion(r);
+    if (m === "Vencido" || m === "Vencido por fecha") return "Vencido";
+    if (m === "Crítico") return "Critico";
+    return esAbierto(r) && effectiveClass(r) === "Riesgo" ? "Riesgo" : "Normal";
   }
   function casosEnAtencion() {
     return STATE.rawCasos.filter(function (r) { return motivoAtencion(r) !== null; });
@@ -1488,7 +1510,7 @@
         ],
         columnDefs: [{ targets: "_all", defaultContent: "" }],
         createdRow: function (row, r) {
-          const cls = effectiveClass(r);
+          const cls = clasifAbierto(r);
           if (cls === "Vencido") row.classList.add("row--vencido"); else if (cls === "Critico") row.classList.add("row--critico");
         },
         paging: true, pageLength: 15, order: [[16, "desc"], [15, "desc"]], dom: "frtipB", buttons: DT_BUTTONS
@@ -1545,6 +1567,7 @@
       porResp[resp] = (porResp[resp] || 0) + 1;
     });
     renderChart("chartCasosNivel2", "bar", toChartDataBar(porNivel2, "#8C0F13", 12), horizontalBarOpts());
+    renderCategoriasChart("chartCasosCategorias", recs);
 
     // Casos por grupo responsable (hasta 15), apilados en abiertos y cerrados.
     const porGrupo = {};
@@ -1662,7 +1685,7 @@
     if (tbody) {
       tbody.innerHTML = STATE.tareas.slice().sort(function (a, b) { return (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""); }).map(function (t) {
         const rowClass = tareaCompletada(t) ? "" : "row--critico";
-        return ('<tr class="' + rowClass + '"><td>' + esc(t.tarea_id) + '</td><td>' + esc(t.fecha_creacion) + '</td><td>' + esc(t.asunto) + '</td><td>' + esc(t.estado) + '</td>' +
+        return ('<tr class="' + rowClass + '"><td>' + esc(t.fecha_creacion) + '</td><td>' + esc(t.asunto) + '</td><td>' + esc(t.estado) + '</td>' +
           '<td>' + esc(t.tipo_servicio) + '</td><td>' + esc(t.linea_atencion) + '</td><td>' + esc(t.causa) + '</td><td>' + esc(t.criterios) + '</td><td>' + esc(t.responsable) + '</td></tr>');
       }).join("");
     }
@@ -1689,7 +1712,7 @@
       d.categorias[r.categoria || "Sin categoría"] = (d.categorias[r.categoria || "Sin categoría"] || 0) + 1;
       if (esAbierto(r)) {
         d.abiertos++;
-        const cls = classify(effectiveProgreso(r));
+        const cls = clasifAbierto(r);  // vencido por Progreso o por fecha
         if (cls === "Vencido") d.vencidosActivos++; else if (cls === "Critico") d.criticosActivos++;
       } else if (esCerrado(r)) {
         d.solucionados++;
@@ -1877,7 +1900,7 @@
       }
       if (esAbierto(r)) {
         e.abiertos++;
-        if (ansReal(r) === "Vencido sin atender") e.vencidosSinAtender++;
+        if (clasifAbierto(r) === "Vencido") e.vencidosSinAtender++;  // misma regla que las demás tablas
         if (fechaValida(r.fecha_registro)) e.edades.push((hoy - new Date(r.fecha_registro.slice(0, 10) + "T00:00:00")) / 86400000);
       }
     });
@@ -1896,7 +1919,7 @@
     STATE.rawTareas.forEach(function (t) {
       if (!enRango(t.fecha_creacion, rg) || !mismaPersona(nombreNorm(t), n)) return;
       e.tareas++;
-      if (filas) filas.push({ indicador: "Tarea", caso: t.tarea_id, fecha: t.fecha_creacion, detalle: [t.linea_atencion, t.causa, t.asunto].filter(function (v) { return v && v !== "N/A"; }).join(" · "),
+      if (filas) filas.push({ indicador: "Tarea", caso: "(tarea)", fecha: t.fecha_creacion, detalle: [t.linea_atencion, t.causa, t.asunto].filter(function (v) { return v && v !== "N/A"; }).join(" · "),
         gestiona: false, estado: t.estado, n1: "", categoria: t.criterios && t.criterios !== "N/A" ? t.criterios : "" });
     });
     e.gestionados = llaves.size;
@@ -1999,7 +2022,7 @@
       kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre") +
       kpi("Tareas", sum("tareas"), "info", "bi-list-check", "tareas/eventos creados") +
       kpi("Mediana de atención", fmtHoras(mediana(todasHoras)), "normal", "bi-clock-history", "del registro a la atención real (" + todasHoras.length + " casos)") +
-      kpi("Vencidos sin atender", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "hoy · " + sum("abiertos") + " abiertos") +
+      kpi("Vencidos abiertos", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "hoy · por Progreso o por fecha · " + sum("abiertos") + " abiertos") +
       kpi("Con gestión", activos.length, "info", "bi-people",
         activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionados + " casos, " + activos[0].tareas + " tareas)" : "sin gestión registrada");
 
@@ -2335,7 +2358,7 @@
       d.ansReal[res]++;
       if (esAbierto(r)) {
         d.abiertos++;
-        const cls = effectiveClass(r);
+        const cls = clasifAbierto(r);  // vencido por Progreso o por fecha
         if (cls === "Vencido") d.vencidosAbiertos++; else if (cls === "Critico") d.criticosAbiertos++;
       } else if (esCerrado(r) && res === "Incumplido") d.vencidosCerrados++;
     });
