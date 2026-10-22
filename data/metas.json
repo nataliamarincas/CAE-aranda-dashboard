@@ -1,5 +1,5 @@
 {
-  "generado_en": "2026-10-22T15:49:11.346153",
+  "generado_en": "2026-10-22T18:11:55.113984",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
   "avance_general": 25.0,
@@ -196,8 +196,8 @@
       "proyecto": "RE-MATRÍCULA 2027-1S / 2027-1C",
       "descripcion": "",
       "subtareas_total": 3,
-      "subtareas_listas": 1,
-      "progreso": 33.3,
+      "subtareas_listas": 2,
+      "progreso": 66.7,
       "url": "https://app.notion.com/p/CREACI-N-DE-PIEZAS-REINTEGRO-3de8758f4cc2806f9bddfa17c37c2e72"
     },
     {
@@ -287,8 +287,8 @@
       "proyecto": "JOURNEY MAP",
       "descripcion": "El jueves 29 de OCT se revisará journey completo (piezas creadas y fechas de envío).",
       "subtareas_total": 3,
-      "subtareas_listas": 1,
-      "progreso": 33.3,
+      "subtareas_listas": 2,
+      "progreso": 66.7,
       "url": "https://app.notion.com/p/JOURNEY-SEMESTRAL-3de8758f4cc2807085a5f2b55a6a7503"
     },
     {
@@ -305,8 +305,8 @@
       "proyecto": "JOURNEY MAP",
       "descripcion": "El jueves 19 de nov revisar journey cuatrimestral completo y hecho (qué piezas y cuándo vamos a enviar)",
       "subtareas_total": 3,
-      "subtareas_listas": 1,
-      "progreso": 33.3,
+      "subtareas_listas": 2,
+      "progreso": 66.7,
       "url": "https://app.notion.com/p/JOURNEY-CUATRIMESTRAL-a3e8758f4cc283ccaa79818f76e4d6a3"
     },
     {
@@ -416,8 +416,8 @@
     {
       "id": "3ff8758f4cc280408343fb91c46bbad8",
       "nombre": "Creación de Piezas",
-      "estado": "Pendiente de Aprobación",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": "2026-10-31",
       "tareas": [
         "3de8758f4cc2806f9bddfa17c37c2e72"
@@ -571,8 +571,8 @@
     {
       "id": "3df8758f4cc280888570ea3837af5eaf",
       "nombre": "Creación de Piezas",
-      "estado": "Solicitadas a Publicidad",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": null,
       "tareas": [
         "a3e8758f4cc283ccaa79818f76e4d6a3"
@@ -604,8 +604,8 @@
     {
       "id": "3df8758f4cc280d9b2dedfe692c4c26e",
       "nombre": "Creación de Piezas",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
+      "estado": "En curso",
+      "grupo": "en_curso",
       "fecha": null,
       "tareas": [
         "3de8758f4cc280c9a9f2c1a51875d003"
@@ -637,8 +637,8 @@
     {
       "id": "3de8758f4cc280fda8dad6ba5e1af69a",
       "nombre": "Creación de Piezas",
-      "estado": "Solicitadas a Publicidad",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": null,
       "tareas": [
         "3de8758f4cc2807085a5f2b55a6a7503"
