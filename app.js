@@ -97,7 +97,7 @@
   // Clasificación del caso = resultado de ANS, para abiertos y cerrados (ver ansResultado:
   // histórico = TIEMPO RESPUESTA del archivo; nuevo = según Progreso). Abierto/cerrado es
   // otra cosa: el filtro "Condición".
-  const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo"];
+  const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Sin dato"];
   const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
     clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
@@ -110,6 +110,9 @@
   // Atención Prioritaria: filtros propios sobre los casos abiertos vencidos o críticos.
   const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
 
+  // Todo estado que no esté aquí cuenta como abierto, p. ej. "Validación superior" (el caso lo
+  // revisa el consejo u otra instancia de la universidad: aún no está resuelto; confirmado por
+  // Natalia el 2026-10-22).
   const ESTADOS_CERRADOS = ["Solucionado", "Cerrado", "Anulado"];
 
   const chartRegistry = {};
@@ -381,8 +384,20 @@
   function esAbierto(r) { return !esFueraReporte(r) && ESTADOS_CERRADOS.indexOf(r.estado) === -1; }
   function esCerrado(r) { return !esFueraReporte(r) && ESTADOS_CERRADOS.indexOf(r.estado) !== -1; }
   function condicionCaso(r) { return esFueraReporte(r) ? "Fuera del reporte" : esAbierto(r) ? "Abiertos" : "Cerrados"; }
-  const CLASIF_LABEL = { Vencido: "Vencido", Critico: "Crítico", Riesgo: "En riesgo", Normal: "A tiempo" };
-  function clasificacionCaso(r) { return CLASIF_LABEL[ansResultado(r)]; }
+  const CLASIF_LABEL = { Vencido: "Vencido", Critico: "Crítico", Riesgo: "En riesgo", Normal: "A tiempo", SinDato: "Sin dato" };
+  // Clasificación del caso, con las mismas reglas que las tarjetas:
+  //   - abiertos: clasifAbierto (vencido por Progreso o por fecha, como "Vencidos abiertos");
+  //   - cerrados: Vencido solo si la Condición real de ANS es Incumplido (como "Vencidos
+  //     cerrados"); si es Cumplido, el nivel del Progreso / TIEMPO RESPUESTA sin llegar a Vencido;
+  //     si no hay datos para la Condición real, "Sin dato".
+  function clasificacionCaso(r) {
+    if (esAbierto(r)) return CLASIF_LABEL[clasifAbierto(r)];
+    const real = ansReal(r);
+    if (real === "Incumplido") return CLASIF_LABEL.Vencido;
+    if (real === "Sin dato") return CLASIF_LABEL.SinDato;
+    const base = ansResultado(r);
+    return CLASIF_LABEL[base === "Vencido" ? "Normal" : base];
+  }
   const CLASIF_PILL = { "Vencido": "vencido", "Crítico": "critico", "En riesgo": "riesgo", "A tiempo": "normal" };
   function clasificacionPillHTML(c) {
     return CLASIF_PILL[c] ? '<span class="status-pill status-pill--' + CLASIF_PILL[c] + '">' + esc(c) + '</span>' : '<span class="area-chip">' + esc(c) + '</span>';
