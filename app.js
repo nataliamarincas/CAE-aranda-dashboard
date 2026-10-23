@@ -387,15 +387,24 @@
   function cat2(r) { return r.categoria2 || (r.categoria && r.categoria !== "N/A" ? r.categoria : SIN_CLASIFICAR); }
   function cat3(r) { return r.categoria3 || SIN_ESPECIFICAR; }
   function catDefinida(c) { return c !== SIN_ESPECIFICAR && c !== SIN_CLASIFICAR; }
-  // Categoría para gráficos y conteos: la Categoría 2 o, si el caso no la trae, la 1.
+  // Categoría que muestran tablas y gráficos: la Categoría 3 (pedido de Natalia, 2026-10-23).
+  // Si el caso no la trae, el nivel más específico que sí tenga + "(sin especificar)".
+  // Un mismo nombre en lugares distintos ("Inquietud, Dudas o Información General" bajo
+  // Crédito Corto Plazo, Largo Plazo y PILO CMM; temas de PQRS iguales a categorías del
+  // catálogo) se distingue con su padre para no sumar casos de cosas distintas.
+  let _padresCat3 = null;
   function categoriaCaso(r) {
-    const c2 = cat2(r); if (catDefinida(c2)) return c2;
-    const c1 = cat1(r); return catDefinida(c1) ? c1 + " (sin especificar)" : c1;
-  }
-  // Para las tablas: además la Categoría 3 cuando agrega algo ("Crédito Corto Plazo › Renovación…").
-  function categoriaDetalle(r) {
     const c3 = cat3(r);
-    return categoriaCaso(r) + (catDefinida(c3) && c3 !== cat2(r) ? " › " + c3 : "");
+    if (!catDefinida(c3)) {
+      const c = [cat2(r), cat1(r)].find(catDefinida);
+      return c ? c + " (sin especificar)" : c3;
+    }
+    if (nivel1Effective(r) === "PQRS") return c3 + " (PQRS)";
+    if (!_padresCat3) {
+      _padresCat3 = {};
+      STATE.rawCasos.forEach(function (x) { if (nivel1Effective(x) !== "PQRS") (_padresCat3[cat3(x)] = _padresCat3[cat3(x)] || new Set()).add(cat2(x)); });
+    }
+    return _padresCat3[c3] && _padresCat3[c3].size > 1 ? c3 + " (" + cat2(r) + ")" : c3;
   }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
   // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
@@ -1204,7 +1213,7 @@
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
-  // Casos por categoría (Categoría 2 del catálogo; ver categoriaCaso): top 15, con el %
+  // Casos por categoría (Categoría 3 del catálogo; ver categoriaCaso): top 15, con el %
   // sobre todos los casos (pctTotal) y la altura según la cantidad de barras.
   function renderCategoriasChart(canvasId, records) {
     const conteo = {};
@@ -1307,7 +1316,7 @@
         { data: "estado", render: txt }, { data: "fuera_export_desde", render: txt },
         { data: "grupo_responsable", render: txt }, { data: "responsable", render: txt }, { data: "autor", render: txt },
         { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
-        { data: null, render: function (d, type, r) { return esc(categoriaDetalle(r)); } },
+        { data: null, render: function (d, type, r) { return esc(categoriaCaso(r)); } },
         { data: null, render: function (d, type, r) { const c = ansReal(r); return type === "display" ? ansRealPillHTML(c) : c; } },
         { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, type); } },
         { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_atencion_real_dt || r.fecha_atencion_real, type); } },
@@ -1382,7 +1391,7 @@
     if (includeFecha) html += '<td>' + esc(r.fecha_registro) + '</td>';
     html += '<td>' + esc(r.estado) + '</td>';
     html += '<td data-order="' + ANS_REAL.indexOf(real) + '">' + ansRealPillHTML(real) + '</td>';
-    html += '<td>' + esc(categoriaDetalle(r)) + '</td>';
+    html += '<td>' + esc(categoriaCaso(r)) + '</td>';
     html += '<td>' + esc(r.responsable) + '</td>';
     html += '<td data-order="' + esc(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion || "") + '">' + fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, "display") + '</td>';
     html += '<td data-order="' + (r.tiempo_transcurrido_dias || 0) + '">' + fmtDuracion(r.tiempo_transcurrido_dias || 0) + '</td>';
@@ -1535,8 +1544,7 @@
             return type === "sort" ? ANS_REAL.indexOf(c) : c;
           } },
           { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
-          { data: null, render: function (d, type, r) { return esc(cat1(r)); } },
-          { data: null, render: function (d, type, r) { return esc(categoriaDetalle(r)); } },
+          { data: null, render: function (d, type, r) { return esc(categoriaCaso(r)); } },
           { data: "autor", render: txt }, { data: "responsable", render: txt },
           { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt },
           { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, type); } },
@@ -1905,7 +1913,7 @@
   function evaluarPersona(nombre, rg, filas) {
     const fila = function (indicador, r, fecha, detalle, gestiona) {
       if (filas) filas.push({ indicador: indicador, caso: r ? r.caso : "", fecha: fecha || "", detalle: detalle, gestiona: gestiona,
-        estado: r ? (esFueraReporte(r) ? r.estado + " (fuera del reporte)" : r.estado) : "", n1: r ? nivel1Effective(r) : "", categoria: r ? categoriaDetalle(r) : "" });
+        estado: r ? (esFueraReporte(r) ? r.estado + " (fuera del reporte)" : r.estado) : "", n1: r ? nivel1Effective(r) : "", categoria: r ? categoriaCaso(r) : "" });
     };
     const fh = function (v) { return (fechaValida(v) || "").replace("T", " ").slice(0, 16); };
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
