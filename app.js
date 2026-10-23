@@ -16,6 +16,8 @@
      NUEVA (TIPO DE SERVICIO)', salvo los del proyecto PQRS, que van a PQRS con
      el tipo (Petición, Queja…) como nivel2. Lo calcula el pipeline, que además
      une los casos migrados al Aranda nuevo con su fecha de registro original.
+     Desde 2026-10-23 los filtros, tablas y gráficos usan Categoría 1/2/3 del
+     catálogo de servicios de Aranda (ver cat1/cat2/cat3), no nivel2/categoria.
    - ANS: el histórico trae el resultado en 'cumplimiento_ans' (A TIEMPO, EN
      RIESGO, CRITICO, VENCIDO); para el nuevo se deriva del Progreso (ver ansResultado).
    - Tareas es una fuente independiente (sin Progreso/SLA), con sus propios
@@ -98,7 +100,7 @@
   // histórico = TIEMPO RESPUESTA del archivo; nuevo = según Progreso). Abierto/cerrado es
   // otra cosa: el filtro "Condición".
   const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Sin dato"];
-  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
+  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], nivel4: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
     clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
   const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
@@ -375,6 +377,26 @@
     const n1 = r.nivel1 === "Tecnologías" ? "Tecnológicos" : r.nivel1;
     return NIVEL1_CATS.indexOf(n1) !== -1 ? n1 : NIVEL1_OTROS;
   }
+  // Categoría 1/2/3 según el catálogo de servicios de Aranda (desde 2026-10-23). Las
+  // asigna el pipeline (processors/catalogo.py); "Sin especificar" = el caso no trae ese
+  // nivel, "Sin clasificar" = su categoría no está en el catálogo. PQRS conserva su
+  // división: Categoría 1 = tipo (Petición, Queja…), 2 = categoría de Aranda, 3 = tema.
+  // Si el dato aún no trae los campos, se usan los anteriores (nivel2 / categoria).
+  const SIN_ESPECIFICAR = "Sin especificar", SIN_CLASIFICAR = "Sin clasificar";
+  function cat1(r) { return r.categoria1 || (r.nivel2 && r.nivel2 !== "N/A" ? r.nivel2 : SIN_CLASIFICAR); }
+  function cat2(r) { return r.categoria2 || (r.categoria && r.categoria !== "N/A" ? r.categoria : SIN_CLASIFICAR); }
+  function cat3(r) { return r.categoria3 || SIN_ESPECIFICAR; }
+  function catDefinida(c) { return c !== SIN_ESPECIFICAR && c !== SIN_CLASIFICAR; }
+  // Categoría para gráficos y conteos: la Categoría 2 o, si el caso no la trae, la 1.
+  function categoriaCaso(r) {
+    const c2 = cat2(r); if (catDefinida(c2)) return c2;
+    const c1 = cat1(r); return catDefinida(c1) ? c1 + " (sin especificar)" : c1;
+  }
+  // Para las tablas: además la Categoría 3 cuando agrega algo ("Crédito Corto Plazo › Renovación…").
+  function categoriaDetalle(r) {
+    const c3 = cat3(r);
+    return categoriaCaso(r) + (catDefinida(c3) && c3 !== cat2(r) ? " › " + c3 : "");
+  }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
   // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
   // conocido, pero ese estado ya no es confiable: no cuenta como abierto ni como cerrado.
@@ -570,11 +592,10 @@
     STATE.casos = STATE.rawCasos.filter(function (r) {
       const n1 = nivel1Effective(r);
       if (CASOS_FILTER.nivel1.length && CASOS_FILTER.nivel1.indexOf(n1) === -1) return false;
-      if (CASOS_FILTER.nivel2.length && CASOS_FILTER.nivel2.indexOf(r.nivel2) === -1) return false;
-      // Nivel 3 se alimenta de 'categoria' (el nivel más específico que ya calcula Aranda),
-      // no del nivel3 parseado de Jerarquía: éste queda vacío cuando la Jerarquía solo tiene
-      // 2 niveles (ej. "Académicos.Grados" -> categoria="Grados", nivel3="N/A").
-      if (CASOS_FILTER.nivel3.length && CASOS_FILTER.nivel3.indexOf(r.categoria) === -1) return false;
+      // nivel2/3/4 = Categoría 1/2/3 del catálogo.
+      if (CASOS_FILTER.nivel2.length && CASOS_FILTER.nivel2.indexOf(cat1(r)) === -1) return false;
+      if (CASOS_FILTER.nivel3.length && CASOS_FILTER.nivel3.indexOf(cat2(r)) === -1) return false;
+      if (CASOS_FILTER.nivel4.length && CASOS_FILTER.nivel4.indexOf(cat3(r)) === -1) return false;
       if (CASOS_FILTER.grupo.length && CASOS_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (CASOS_FILTER.responsable.length && CASOS_FILTER.responsable.indexOf(r.responsable) === -1) return false;
       if (CASOS_FILTER.estado.length && CASOS_FILTER.estado.indexOf(r.estado) === -1) return false;
@@ -599,7 +620,7 @@
     const f = EXEC_FILTER;
     return STATE.rawCasos.filter(function (r) {
       if (f.nivel1.length && f.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
-      if (f.nivel2.length && f.nivel2.indexOf(r.nivel2) === -1) return false;
+      if (f.nivel2.length && f.nivel2.indexOf(cat1(r)) === -1) return false;
       if (f.clasificacion.length && f.clasificacion.indexOf(clasificacionCaso(r)) === -1) return false;
       if (f.autor.length && f.autor.indexOf(autorGrupo(r)) === -1) return false;
       if (f.grupo.length && f.grupo.indexOf(r.grupo_responsable) === -1) return false;
@@ -659,7 +680,7 @@
       if (esAbierto(r)) porNivel1[n1].abiertos++; else if (esCerrado(r) && real === "Incumplido") porNivel1[n1].vencidosCerrados++;
       porNivel1[n1].ans[resAns]++;
       porNivel1[n1].ansReal[real]++;
-      if (cls === "Vencido") { porNivel1[n1].vencidos++; vencidosPorResponsable[r.responsable || "Sin asignar"] = (vencidosPorResponsable[r.responsable || "Sin asignar"] || 0) + 1; vencidosPorCategoria[r.categoria || "Sin categoría"] = (vencidosPorCategoria[r.categoria || "Sin categoría"] || 0) + 1; }
+      if (cls === "Vencido") { porNivel1[n1].vencidos++; vencidosPorResponsable[r.responsable || "Sin asignar"] = (vencidosPorResponsable[r.responsable || "Sin asignar"] || 0) + 1; vencidosPorCategoria[categoriaCaso(r)] = (vencidosPorCategoria[categoriaCaso(r)] || 0) + 1; }
       else if (cls === "Critico") porNivel1[n1].criticos++;
       else if (cls === "Riesgo") porNivel1[n1].riesgo++;
     });
@@ -1054,10 +1075,10 @@
     function uniqueVals(field) { return Array.from(new Set(STATE.rawCasos.map(function (r) { return r[field] || ""; }).filter(Boolean))).sort(); }
     const nivel2Opts = Array.from(new Set(STATE.rawCasos.filter(function (r) {
       return !EXEC_FILTER.nivel1.length || EXEC_FILTER.nivel1.indexOf(nivel1Effective(r)) !== -1;
-    }).map(function (r) { return r.nivel2; }).filter(function (v) { return v && v !== "N/A"; }))).sort();
+    }).map(cat1))).sort();
     const dropsHtml =
       buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), EXEC_FILTER) +
-      buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", nivel2Opts, EXEC_FILTER) +
+      buildMsDropHTML("nivel2", "Categoría 1", "bi-diagram-2", nivel2Opts, EXEC_FILTER) +
       buildMsDropHTML("clasificacion", "Clasificación", "bi-exclamation-triangle", CLASIFICACIONES, EXEC_FILTER) +
       buildMsDropHTML("autor", "Autor", "bi-person-plus", AUTORES_GESTORES, EXEC_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals("grupo_responsable"), EXEC_FILTER) +
@@ -1183,11 +1204,11 @@
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
-  // Casos por categoría (campo "categoria", la más específica que asigna Aranda): top 15, con el %
-  // sobre todos los casos con categoría (pctTotal) y la altura según la cantidad de barras.
+  // Casos por categoría (Categoría 2 del catálogo; ver categoriaCaso): top 15, con el %
+  // sobre todos los casos (pctTotal) y la altura según la cantidad de barras.
   function renderCategoriasChart(canvasId, records) {
     const conteo = {};
-    records.forEach(function (r) { const c = r.categoria; if (c && c !== "N/A") conteo[c] = (conteo[c] || 0) + 1; });
+    records.forEach(function (r) { const c = categoriaCaso(r); conteo[c] = (conteo[c] || 0) + 1; });
     const datos = toChartDataBar(conteo, "#4A0608", 15);
     const cv = document.getElementById(canvasId);
     if (cv && cv.parentElement) cv.parentElement.style.height = Math.max(240, datos.labels.length * 28 + 60) + "px";
@@ -1239,7 +1260,7 @@
     const dropsHtml =
       buildMsDropHTML("clasificacion", "Motivo", "bi-exclamation-triangle", MOTIVOS_ATENCION, ATENCION_FILTER) +
       buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes().filter(function (c) { return base.some(function (r) { return nivel1Effective(r) === c; }); }), ATENCION_FILTER) +
-      buildMsDropHTML("nivel2", "Subcategoría", "bi-diagram-2", uniqueVals(enCat, "nivel2"), ATENCION_FILTER) +
+      buildMsDropHTML("nivel2", "Categoría 1", "bi-diagram-2", Array.from(new Set(enCat.map(cat1))).sort(), ATENCION_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals(base, "grupo_responsable"), ATENCION_FILTER) +
       buildMsDropHTML("responsable", "Responsable", "bi-person", uniqueVals(base, "responsable"), ATENCION_FILTER) +
       buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals(base, "estado"), ATENCION_FILTER);
@@ -1286,7 +1307,7 @@
         { data: "estado", render: txt }, { data: "fuera_export_desde", render: txt },
         { data: "grupo_responsable", render: txt }, { data: "responsable", render: txt }, { data: "autor", render: txt },
         { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
-        { data: "categoria", render: txt },
+        { data: null, render: function (d, type, r) { return esc(categoriaDetalle(r)); } },
         { data: null, render: function (d, type, r) { const c = ansReal(r); return type === "display" ? ansRealPillHTML(c) : c; } },
         { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, type); } },
         { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_atencion_real_dt || r.fecha_atencion_real, type); } },
@@ -1305,7 +1326,7 @@
       const n1 = nivel1Effective(r);
       if (f.clasificacion.length && f.clasificacion.indexOf(motivoAtencion(r)) === -1) return false;
       if (f.nivel1.length && f.nivel1.indexOf(n1) === -1) return false;
-      if (f.nivel2.length && f.nivel2.indexOf(r.nivel2) === -1) return false;
+      if (f.nivel2.length && f.nivel2.indexOf(cat1(r)) === -1) return false;
       if (f.grupo.length && f.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (f.responsable.length && f.responsable.indexOf(r.responsable) === -1) return false;
       if (f.estado.length && f.estado.indexOf(r.estado) === -1) return false;
@@ -1319,7 +1340,7 @@
       const m = motivoAtencion(r); porMotivo[m]++;
       if (m === "Crítico") return;  // los destacados cuentan vencidos (por progreso o por fecha)
       const suma = function (o, k) { o[k] = (o[k] || 0) + 1; };
-      suma(vencPorResp, r.responsable || "Sin asignar"); suma(vencPorCat, r.categoria || "Sin categoría"); suma(vencPorN1, nivel1Effective(r));
+      suma(vencPorResp, r.responsable || "Sin asignar"); suma(vencPorCat, categoriaCaso(r)); suma(vencPorN1, nivel1Effective(r));
     });
     const grid = document.getElementById("kpiAttentionGrid");
     if (grid) {
@@ -1361,7 +1382,7 @@
     if (includeFecha) html += '<td>' + esc(r.fecha_registro) + '</td>';
     html += '<td>' + esc(r.estado) + '</td>';
     html += '<td data-order="' + ANS_REAL.indexOf(real) + '">' + ansRealPillHTML(real) + '</td>';
-    html += '<td>' + esc(r.categoria) + '</td>';
+    html += '<td>' + esc(categoriaDetalle(r)) + '</td>';
     html += '<td>' + esc(r.responsable) + '</td>';
     html += '<td data-order="' + esc(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion || "") + '">' + fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, "display") + '</td>';
     html += '<td data-order="' + (r.tiempo_transcurrido_dias || 0) + '">' + fmtDuracion(r.tiempo_transcurrido_dias || 0) + '</td>';
@@ -1380,8 +1401,9 @@
     const fields = [
       // Tipo de servicio solo en "Todas": dentro de una categoría ya está fijo.
       _casosActiveCat ? null : { key: "nivel1", label: "Tipo de servicio", icon: "bi-collection", opts: catsPresentes() },
-      { key: "nivel2", label: "Subcategoría", icon: "bi-diagram-2", field: "nivel2" },
-      { key: "nivel3", label: "Categoría específica", icon: "bi-diagram-3", field: "categoria" },
+      { key: "nivel2", label: "Categoría 1", icon: "bi-diagram-2", opts: Array.from(new Set(base.map(cat1))).sort() },
+      { key: "nivel3", label: "Categoría 2", icon: "bi-diagram-3", opts: Array.from(new Set(base.map(cat2))).sort() },
+      { key: "nivel4", label: "Categoría 3", icon: "bi-diagram-3-fill", opts: Array.from(new Set(base.map(cat3))).sort() },
       { key: "clasificacion", label: "Clasificación", icon: "bi-exclamation-triangle", opts: CLASIFICACIONES },
       { key: "ansReal", label: "Condición real ANS", icon: "bi-stopwatch", opts: ANS_REAL },
       { key: "autor", label: "Autor", icon: "bi-person-plus", opts: AUTORES_GESTORES },
@@ -1513,7 +1535,9 @@
             return type === "sort" ? ANS_REAL.indexOf(c) : c;
           } },
           { data: null, render: function (d, type, r) { const n1 = nivel1Effective(r); return type === "display" ? nivel1ChipHTML(n1) : n1; } },
-          { data: "categoria", render: txt }, { data: "autor", render: txt }, { data: "responsable", render: txt },
+          { data: null, render: function (d, type, r) { return esc(cat1(r)); } },
+          { data: null, render: function (d, type, r) { return esc(categoriaDetalle(r)); } },
+          { data: "autor", render: txt }, { data: "responsable", render: txt },
           { data: "grupo_responsable", render: txt }, { data: "tipo_registro", render: txt },
           { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion, type); } },
           { data: null, render: function (d, type, r) { return fechaHoraTxt(r.fecha_atencion_real_dt || r.fecha_atencion_real, type); } },
@@ -1541,7 +1565,7 @@
     if (periodContainer) { periodContainer.innerHTML = buildPeriodBtnsHTML(true); wireTendencyBtns(periodContainer); }
     const series = _casosActiveCat ? [_casosActiveCat] : cats;
     const tendTitle = document.getElementById("casosTendTitle");
-    if (tendTitle) tendTitle.textContent = _casosActiveCat ? "Casos registrados" : "Casos registrados por categoría";
+    if (tendTitle) tendTitle.textContent = _casosActiveCat ? "Casos registrados" : "Casos registrados por tipo de servicio";
     if (TENDENCY_PERIOD === "hora") {
       // Franja horaria: barras por hora, apiladas por tipo de servicio.
       const porHora = series.map(function (c) {
@@ -1577,7 +1601,7 @@
 
     const porNivel2 = {}, porResp = {};
     recs.forEach(function (r) {
-      if (r.nivel2 && r.nivel2 !== "N/A") porNivel2[r.nivel2] = (porNivel2[r.nivel2] || 0) + 1;
+      porNivel2[cat1(r)] = (porNivel2[cat1(r)] || 0) + 1;  // Categoría 1
       const resp = r.responsable && r.responsable !== "N/A" ? r.responsable : "Sin asignar";
       porResp[resp] = (porResp[resp] || 0) + 1;
     });
@@ -1603,16 +1627,17 @@
       { label: "Fuera del reporte", data: topGrupos.map(function (g) { return porGrupo[g].fuera; }), backgroundColor: "#D9CFC6" }] : [])
     }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
     renderChart("chartCasosAns", "doughnut", toChartDataDoughnut(s.ansReal, null, ANS_REAL_COLORS), doughnutOpts());
-    // En "Todas": ANS por categoría. Dentro de una categoría: ANS por subcategoría (top 10).
+    // En "Todas": ANS por tipo de servicio. Dentro de uno: ANS por Categoría 1 (top 10).
     const ansTitle = document.getElementById("casosAnsCatTitle");
-    if (ansTitle) ansTitle.textContent = _casosActiveCat ? "Cumplimiento de ANS por subcategoría" : "Cumplimiento de ANS por categoría";
+    if (ansTitle) ansTitle.textContent = _casosActiveCat ? "Cumplimiento de ANS por Categoría 1" : "Cumplimiento de ANS por tipo de servicio";
     if (_casosActiveCat) {
       const topSub = sortedEntries(porNivel2, 10).map(function (e) { return e[0]; });
       const ansSub = {};
       recs.forEach(function (r) {
-        if (topSub.indexOf(r.nivel2) === -1) return;
-        if (!ansSub[r.nivel2]) ansSub[r.nivel2] = contadorAnsReal();
-        ansSub[r.nivel2][ansReal(r)]++;
+        const c1 = cat1(r);
+        if (topSub.indexOf(c1) === -1) return;
+        if (!ansSub[c1]) ansSub[c1] = contadorAnsReal();
+        ansSub[c1][ansReal(r)]++;
       });
       renderChart("chartCasosAnsCat", "bar", { labels: topSub, datasets: datasetsAnsReal(topSub, function (n2) { return ansSub[n2]; }) }, Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
     } else {
@@ -1724,7 +1749,7 @@
       if (RESP_FILTER.fechaHasta && (r.fecha_registro || "") > RESP_FILTER.fechaHasta) return;
       const d = ensure(nombre);
       d.totalCasos++;
-      d.categorias[r.categoria || "Sin categoría"] = (d.categorias[r.categoria || "Sin categoría"] || 0) + 1;
+      d.categorias[categoriaCaso(r)] = (d.categorias[categoriaCaso(r)] || 0) + 1;
       if (esAbierto(r)) {
         d.abiertos++;
         const cls = clasifAbierto(r);  // vencido por Progreso o por fecha
@@ -1880,7 +1905,7 @@
   function evaluarPersona(nombre, rg, filas) {
     const fila = function (indicador, r, fecha, detalle, gestiona) {
       if (filas) filas.push({ indicador: indicador, caso: r ? r.caso : "", fecha: fecha || "", detalle: detalle, gestiona: gestiona,
-        estado: r ? (esFueraReporte(r) ? r.estado + " (fuera del reporte)" : r.estado) : "", n1: r ? nivel1Effective(r) : "", categoria: r ? r.categoria : "" });
+        estado: r ? (esFueraReporte(r) ? r.estado + " (fuera del reporte)" : r.estado) : "", n1: r ? nivel1Effective(r) : "", categoria: r ? categoriaDetalle(r) : "" });
     };
     const fh = function (v) { return (fechaValida(v) || "").replace("T", " ").slice(0, 16); };
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");

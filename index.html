@@ -165,7 +165,7 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h2><i class="bi bi-bricks"></i> Cumplimiento de ANS por categoría</h2>
+            <h2><i class="bi bi-bricks"></i> Cumplimiento de ANS por tipo de servicio</h2>
           </div>
           <div class="chart-wrap chart-tall">
             <canvas id="chartComparativoStack" class="chart-skeleton"></canvas>
@@ -175,7 +175,7 @@
         <div class="panel">
           <div class="panel-header">
             <h2><i class="bi bi-tags"></i> Casos por categoría</h2>
-            <span class="panel-sub">Las 15 categorías con más casos · % sobre todos los casos con categoría · según filtros</span>
+            <span class="panel-sub">Categoría 2 del catálogo de Aranda · las 15 con más casos · % sobre todos los casos · según filtros</span>
           </div>
           <div class="chart-wrap"><canvas id="chartExecCategorias" class="chart-skeleton"></canvas></div>
         </div>
@@ -188,8 +188,8 @@
         <!-- Solo en "Todas": resumen por categoría. Dentro de una categoría se oculta. -->
         <div id="casosCatOverview">
           <div class="panel-header" style="margin-bottom:10px">
-            <h2><i class="bi bi-collection"></i> Categorías principales</h2>
-            <span class="panel-sub">Haga clic en una tarjeta o use el menú lateral para entrar a la categoría</span>
+            <h2><i class="bi bi-collection"></i> Tipos de servicio</h2>
+            <span class="panel-sub">Haga clic en una tarjeta o use el menú lateral para entrar al tipo de servicio</span>
           </div>
           <div class="kpi-grid kpi-grid--categorias" id="kpiCategoriasGrid" style="margin-bottom:14px"></div>
         </div>
@@ -200,7 +200,7 @@
 
         <div class="panel" style="margin-bottom:18px">
           <div class="panel-header">
-            <h2><i class="bi bi-graph-up-arrow"></i> <span id="casosTendTitle">Casos registrados por categoría</span></h2>
+            <h2><i class="bi bi-graph-up-arrow"></i> <span id="casosTendTitle">Casos registrados por tipo de servicio</span></h2>
             <div id="casosTendPeriod"></div>
           </div>
           <div class="chart-wrap chart-tall chart-wrap--hscroll">
@@ -213,7 +213,7 @@
         <div class="panel">
           <div class="panel-header">
             <h2><i class="bi bi-tags"></i> Casos por categoría</h2>
-            <span class="panel-sub">Las 15 categorías con más casos · % sobre todos los casos con categoría · según filtros y tipo de servicio</span>
+            <span class="panel-sub">Categoría 2 del catálogo de Aranda · las 15 con más casos · % sobre todos los casos · según filtros y tipo de servicio</span>
           </div>
           <div class="chart-wrap"><canvas id="chartCasosCategorias" class="chart-skeleton"></canvas></div>
         </div>
@@ -221,8 +221,8 @@
         <div class="grid-2col">
           <div class="panel">
             <div class="panel-header">
-              <h2><i class="bi bi-diagram-2"></i> Subcategorías más frecuentes</h2>
-              <span class="panel-sub">Nivel 2 · top 12</span>
+              <h2><i class="bi bi-diagram-2"></i> Categoría 1 más frecuentes</h2>
+              <span class="panel-sub">Catálogo de Aranda · top 12</span>
             </div>
             <div class="chart-wrap chart-tall"><canvas id="chartCasosNivel2" class="chart-skeleton"></canvas></div>
           </div>
@@ -237,7 +237,7 @@
 
         <div class="grid-2col">
           <div class="panel">
-            <div class="panel-header"><h2><i class="bi bi-bar-chart-steps"></i> <span id="casosAnsCatTitle">Cumplimiento de ANS por categoría</span></h2></div>
+            <div class="panel-header"><h2><i class="bi bi-bar-chart-steps"></i> <span id="casosAnsCatTitle">Cumplimiento de ANS por tipo de servicio</span></h2></div>
             <div class="chart-wrap chart-tall"><canvas id="chartCasosAnsCat" class="chart-skeleton"></canvas></div>
           </div>
           <div class="panel">
@@ -278,7 +278,7 @@
               <thead>
                 <tr>
                   <th>No. Caso</th><th>Fecha Reg.</th><th>Estado</th><th>Condición</th><th>Clasificación</th><th>Condición real ANS</th><th>Tipo de servicio</th>
-                  <th>Categoría</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
+                  <th>Categoría 1</th><th>Categoría</th><th>Autor</th><th>Responsable</th><th>Grupo</th>
                   <th>Canal de registro</th><th>Fecha atención estimada</th><th>Fecha atención real</th><th>Fecha modificación</th><th>Progreso</th>
                 </tr>
               </thead>
@@ -445,7 +445,7 @@
             <table class="table data-table" id="tableAtencion" style="width:100%">
               <thead>
                 <tr>
-                  <th>No. Caso</th><th>Categoría</th><th>Fecha de registro</th><th>Estado</th><th>Condición real ANS</th><th>Categoría (detalle)</th>
+                  <th>No. Caso</th><th>Tipo de servicio</th><th>Fecha de registro</th><th>Estado</th><th>Condición real ANS</th><th>Categoría</th>
                   <th>Responsable</th><th>Fecha atención estimada</th><th>Tiempo transcurrido</th><th>Progreso</th>
                 </tr>
               </thead>
@@ -607,7 +607,7 @@
               <table class="table data-table" id="tableRespCasos" style="width:100%">
                 <thead>
                   <tr>
-                    <th>No. Caso</th><th>Categoría</th><th>Fecha Reg.</th><th>Estado</th><th>Condición real ANS</th><th>Categoría (detalle)</th>
+                    <th>No. Caso</th><th>Tipo de servicio</th><th>Fecha Reg.</th><th>Estado</th><th>Condición real ANS</th><th>Categoría</th>
                     <th>Responsable</th><th>Fecha atención estimada</th><th>Tiempo transcurrido</th><th>Progreso</th>
                   </tr>
                 </thead>
@@ -659,6 +659,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1792695273"></script>
+<script src="app.js?v=1792768038"></script>
 </body>
 </html>
