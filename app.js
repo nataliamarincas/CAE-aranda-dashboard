@@ -16,8 +16,8 @@
      NUEVA (TIPO DE SERVICIO)', salvo los del proyecto PQRS, que van a PQRS con
      el tipo (Petición, Queja…) como nivel2. Lo calcula el pipeline, que además
      une los casos migrados al Aranda nuevo con su fecha de registro original.
-     Desde 2026-10-23 los filtros, tablas y gráficos usan Categoría 1/2/3 del
-     catálogo de servicios de Aranda (ver cat1/cat2/cat3), no nivel2/categoria.
+     Desde 2026-10-23 los filtros, tablas y gráficos usan Categoría 1/2 del
+     catálogo de servicios de Aranda (ver cat1/cat2), no nivel2/categoria.
    - ANS: el histórico trae el resultado en 'cumplimiento_ans' (A TIEMPO, EN
      RIESGO, CRITICO, VENCIDO); para el nuevo se deriva del Progreso (ver ansResultado).
    - Tareas es una fuente independiente (sin Progreso/SLA), con sus propios
@@ -100,7 +100,7 @@
   // histórico = TIEMPO RESPUESTA del archivo; nuevo = según Progreso). Abierto/cerrado es
   // otra cosa: el filtro "Condición".
   const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Sin dato"];
-  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], nivel4: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
+  const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
     clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
   const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
@@ -377,34 +377,25 @@
     const n1 = r.nivel1 === "Tecnologías" ? "Tecnológicos" : r.nivel1;
     return NIVEL1_CATS.indexOf(n1) !== -1 ? n1 : NIVEL1_OTROS;
   }
-  // Categoría 1/2/3 según el catálogo de servicios de Aranda (desde 2026-10-23). Las
-  // asigna el pipeline (processors/catalogo.py); "Sin especificar" = el caso no trae ese
-  // nivel, "Sin clasificar" = su categoría no está en el catálogo. PQRS conserva su
-  // división: Categoría 1 = tipo (Petición, Queja…), 2 = categoría de Aranda, 3 = tema.
-  // Si el dato aún no trae los campos, se usan los anteriores (nivel2 / categoria).
+  // Categoría 1/2 según el catálogo de servicios de Aranda (desde 2026-10-23): Aranda tiene
+  // solo dos niveles debajo del tipo de servicio; si la Categoría 1 no tiene hijos (Grados,
+  // Gestión cobranzas…), la Categoría 2 la repite. Las asigna el pipeline
+  // (processors/catalogo.py); "Sin especificar" = el caso no trae ese nivel, "Sin
+  // clasificar" = su categoría no está en el catálogo. PQRS conserva su división:
+  // Categoría 1 = tipo (Petición, Queja…), Categoría 2 = tema.
+  // Datos generados antes del cambio traen categoria3 (último nivel del Excel anterior): se
+  // usa como Categoría 2 hasta que corra el pipeline. Sin ningún campo: nivel2 / categoria.
   const SIN_ESPECIFICAR = "Sin especificar", SIN_CLASIFICAR = "Sin clasificar";
   function cat1(r) { return r.categoria1 || (r.nivel2 && r.nivel2 !== "N/A" ? r.nivel2 : SIN_CLASIFICAR); }
-  function cat2(r) { return r.categoria2 || (r.categoria && r.categoria !== "N/A" ? r.categoria : SIN_CLASIFICAR); }
-  function cat3(r) { return r.categoria3 || SIN_ESPECIFICAR; }
+  function cat2(r) { return r.categoria3 || r.categoria2 || (r.categoria && r.categoria !== "N/A" ? r.categoria : SIN_CLASIFICAR); }
   function catDefinida(c) { return c !== SIN_ESPECIFICAR && c !== SIN_CLASIFICAR; }
-  // Categoría que muestran tablas y gráficos: la Categoría 3 (pedido de Natalia, 2026-10-23).
-  // Si el caso no la trae, el nivel más específico que sí tenga + "(sin especificar)".
-  // Un mismo nombre en lugares distintos ("Inquietud, Dudas o Información General" bajo
-  // Crédito Corto Plazo, Largo Plazo y PILO CMM; temas de PQRS iguales a categorías del
-  // catálogo) se distingue con su padre para no sumar casos de cosas distintas.
-  let _padresCat3 = null;
+  // Categoría que muestran tablas y gráficos: la Categoría 2 (el servicio final de Aranda).
+  // Si el caso no la trae, su Categoría 1 + "(sin especificar)". Los temas de PQRS llevan
+  // "(PQRS)" para no sumarse con el servicio del mismo nombre.
   function categoriaCaso(r) {
-    const c3 = cat3(r);
-    if (!catDefinida(c3)) {
-      const c = [cat2(r), cat1(r)].find(catDefinida);
-      return c ? c + " (sin especificar)" : c3;
-    }
-    if (nivel1Effective(r) === "PQRS") return c3 + " (PQRS)";
-    if (!_padresCat3) {
-      _padresCat3 = {};
-      STATE.rawCasos.forEach(function (x) { if (nivel1Effective(x) !== "PQRS") (_padresCat3[cat3(x)] = _padresCat3[cat3(x)] || new Set()).add(cat2(x)); });
-    }
-    return _padresCat3[c3] && _padresCat3[c3].size > 1 ? c3 + " (" + cat2(r) + ")" : c3;
+    const c2 = cat2(r);
+    if (!catDefinida(c2)) { const c1 = cat1(r); return catDefinida(c1) ? c1 + " (sin especificar)" : c2; }
+    return nivel1Effective(r) === "PQRS" ? c2 + " (PQRS)" : c2;
   }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
   // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
@@ -601,10 +592,9 @@
     STATE.casos = STATE.rawCasos.filter(function (r) {
       const n1 = nivel1Effective(r);
       if (CASOS_FILTER.nivel1.length && CASOS_FILTER.nivel1.indexOf(n1) === -1) return false;
-      // nivel2/3/4 = Categoría 1/2/3 del catálogo.
+      // nivel2/3 = Categoría 1/2 del catálogo.
       if (CASOS_FILTER.nivel2.length && CASOS_FILTER.nivel2.indexOf(cat1(r)) === -1) return false;
       if (CASOS_FILTER.nivel3.length && CASOS_FILTER.nivel3.indexOf(cat2(r)) === -1) return false;
-      if (CASOS_FILTER.nivel4.length && CASOS_FILTER.nivel4.indexOf(cat3(r)) === -1) return false;
       if (CASOS_FILTER.grupo.length && CASOS_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (CASOS_FILTER.responsable.length && CASOS_FILTER.responsable.indexOf(r.responsable) === -1) return false;
       if (CASOS_FILTER.estado.length && CASOS_FILTER.estado.indexOf(r.estado) === -1) return false;
@@ -1213,7 +1203,7 @@
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
-  // Casos por categoría (Categoría 3 del catálogo; ver categoriaCaso): top 15, con el %
+  // Casos por categoría (Categoría 2 del catálogo; ver categoriaCaso): top 15, con el %
   // sobre todos los casos (pctTotal) y la altura según la cantidad de barras.
   function renderCategoriasChart(canvasId, records) {
     const conteo = {};
@@ -1412,7 +1402,6 @@
       _casosActiveCat ? null : { key: "nivel1", label: "Tipo de servicio", icon: "bi-collection", opts: catsPresentes() },
       { key: "nivel2", label: "Categoría 1", icon: "bi-diagram-2", opts: Array.from(new Set(base.map(cat1))).sort() },
       { key: "nivel3", label: "Categoría 2", icon: "bi-diagram-3", opts: Array.from(new Set(base.map(cat2))).sort() },
-      { key: "nivel4", label: "Categoría 3", icon: "bi-diagram-3-fill", opts: Array.from(new Set(base.map(cat3))).sort() },
       { key: "clasificacion", label: "Clasificación", icon: "bi-exclamation-triangle", opts: CLASIFICACIONES },
       { key: "ansReal", label: "Condición real ANS", icon: "bi-stopwatch", opts: ANS_REAL },
       { key: "autor", label: "Autor", icon: "bi-person-plus", opts: AUTORES_GESTORES },
