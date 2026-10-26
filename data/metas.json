@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-25T22:59:45.774854",
+  "generado_en": "2026-10-26T14:54:34.781472",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 25.0,
+  "avance_general": 37.5,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -100,8 +100,8 @@
       "responsables": [],
       "documentos": "https://app.notion.com/p/Journey-Rematr-cula-2026-3ce8758f4cc280daa475da39fcd1a557",
       "tareas_total": 5,
-      "tareas_completas": 0,
-      "progreso": 0.0,
+      "tareas_completas": 2,
+      "progreso": 40.0,
       "url": "https://app.notion.com/p/JOURNEY-MAP-3de8758f4cc2808f883bd91bc1e72b83"
     }
   ],
@@ -276,8 +276,8 @@
     {
       "id": "3de8758f4cc2807085a5f2b55a6a7503",
       "nombre": "JOURNEY SEMESTRAL",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Alta",
       "vencimiento": "2026-10-29",
       "asignados": [
@@ -294,8 +294,8 @@
     {
       "id": "a3e8758f4cc283ccaa79818f76e4d6a3",
       "nombre": "JOURNEY CUATRIMESTRAL",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Alta",
       "vencimiento": "2026-11-19",
       "asignados": [
