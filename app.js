@@ -397,6 +397,11 @@
     if (!catDefinida(c2)) { const c1 = cat1(r); return catDefinida(c1) ? c1 + " (sin especificar)" : c2; }
     return nivel1Effective(r) === "PQRS" ? c2 + " (PQRS)" : c2;
   }
+  // Nivel de atención (pedido de Natalia, 2026-10-26): el CAE es el primer nivel; los demás
+  // grupos, el segundo. Se toma el grupo responsable ACTUAL: un caso escalado cuenta en nivel 2.
+  const GRUPOS_NIVEL1 = ["Gestores de CAE"];
+  const NIVELES_ATENCION = ["Nivel 1 · CAE", "Nivel 2 · Otras áreas"];
+  function nivelAtencion(r) { return GRUPOS_NIVEL1.indexOf(r.grupo_responsable) !== -1 ? NIVELES_ATENCION[0] : NIVELES_ATENCION[1]; }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
   // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
   // conocido, pero ese estado ya no es confiable: no cuenta como abierto ni como cerrado.
@@ -1200,6 +1205,7 @@
 
     renderAnsPorCategoria("chartComparativoStack", s, cats);
     renderCategoriasChart("chartExecCategorias", STATE.execCasos);
+    renderNivelAtencionChart("chartExecNivelAtencion", STATE.execCasos);
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
@@ -1212,6 +1218,17 @@
     const cv = document.getElementById(canvasId);
     if (cv && cv.parentElement) cv.parentElement.style.height = Math.max(240, datos.labels.length * 28 + 60) + "px";
     renderChart(canvasId, "bar", datos, horizontalBarOpts());
+  }
+  // Barras apiladas por nivel de atención: Condición real de ANS; la etiqueta trae el total y su %.
+  function renderNivelAtencionChart(canvasId, records) {
+    const cnt = {};
+    NIVELES_ATENCION.forEach(function (n) { cnt[n] = contadorAnsReal(); });
+    records.forEach(function (r) { cnt[nivelAtencion(r)][ansReal(r)]++; });
+    const tot = function (n) { return sumar(ANS_REAL.map(function (k) { return cnt[n][k]; })); };
+    const total = records.length;
+    const labels = NIVELES_ATENCION.map(function (n) { return n + ": " + tot(n).toLocaleString("es-CO") + " (" + (fmtPct(tot(n), total) || "0%") + ")"; });
+    renderChart(canvasId, "bar", { labels: labels, datasets: datasetsAnsReal(labels, function (l, i) { return cnt[NIVELES_ATENCION[i]]; }) },
+      Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, grid: gridOpts(), ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
   }
   function renderAnsPorCategoria(canvasId, stats, cats) {
     renderChart(canvasId, "bar", { labels: cats, datasets: datasetsAnsReal(cats, function (c) { const d = stats.porNivel1[c]; return d ? d.ansReal : null; }) }, stackedBarOpts());
@@ -2372,14 +2389,16 @@
 
   /* ---------------------- COMPARATIVA POR GRUPOS ---------------------- */
 
-  function computeGrupoStats() {
-    const filtered = STATE.rawCasos.filter(function (r) {
+  function filtrarCasosGrupos() {
+    return STATE.rawCasos.filter(function (r) {
       if (GRUPO_FILTER.grupo.length && GRUPO_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (GRUPO_FILTER.nivel1.length && GRUPO_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
       if (GRUPO_FILTER.fechaDesde && (r.fecha_registro || "") < GRUPO_FILTER.fechaDesde) return false;
       if (GRUPO_FILTER.fechaHasta && (r.fecha_registro || "") > GRUPO_FILTER.fechaHasta) return false;
       return true;
     });
+  }
+  function computeGrupoStats(filtered) {
     const byGrupo = {};
     filtered.forEach(function (r) {
       const g = r.grupo_responsable || "Sin grupo";
@@ -2434,7 +2453,9 @@
   function renderGrupos() { populateGrupoFilterBar(); renderGruposContent(); }
 
   function renderGruposContent() {
-    const byGrupo = computeGrupoStats();
+    const filtrados = filtrarCasosGrupos();
+    const byGrupo = computeGrupoStats(filtrados);
+    renderNivelAtencionChart("chartGruposNivelAtencion", filtrados);
     const grupos = Object.values(byGrupo).sort(function (a, b) { return b.total - a.total; });
 
     const kpiGrid = document.getElementById("kpiGruposGrid");
