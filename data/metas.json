@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-27T00:12:12.216588",
+  "generado_en": "2026-10-27T15:00:17.303113",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 37.5,
+  "avance_general": 41.7,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -71,9 +71,9 @@
       "plazo_fin": null,
       "responsables": [],
       "documentos": "",
-      "tareas_total": 2,
-      "tareas_completas": 2,
-      "progreso": 100.0,
+      "tareas_total": 9,
+      "tareas_completas": 6,
+      "progreso": 66.7,
       "url": "https://app.notion.com/p/DASHBOARD-CANALES-DE-ATENCI-N-3de8758f4cc280d3a75ac7662d4e4a31"
     },
     {
@@ -85,9 +85,9 @@
       "plazo_fin": null,
       "responsables": [],
       "documentos": "",
-      "tareas_total": 6,
+      "tareas_total": 7,
       "tareas_completas": 2,
-      "progreso": 33.3,
+      "progreso": 28.6,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -106,6 +106,158 @@
     }
   ],
   "tareas": [
+    {
+      "id": "4068758f4cc280ab806cf21470161b82",
+      "nombre": "APARTADO “VIDEOS INSTRUCTIVOS”",
+      "estado": "En proceso",
+      "grupo": "en_curso",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-16",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280698d93ee43ceb42d69",
+      "proyecto": "GUÍA DE MATRÍCULA",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/APARTADO-VIDEOS-INSTRUCTIVOS-4068758f4cc280ab806cf21470161b82"
+    },
+    {
+      "id": "4068758f4cc280f0a8b9d6ee53f6a33b",
+      "nombre": "ANS POR A´REA Y X NIVEL DE ATENCIÓN (SERVICIO).",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-16",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/ANS-POR-A-REA-Y-X-NIVEL-DE-ATENCI-N-SERVICIO-4068758f4cc280f0a8b9d6ee53f6a33b"
+    },
+    {
+      "id": "4068758f4cc280529518f5b4cfdd70e5",
+      "nombre": "JOUNEY TRANSFERENCIA EXTERNA",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-16",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/JOUNEY-TRANSFERENCIA-EXTERNA-4068758f4cc280529518f5b4cfdd70e5"
+    },
+    {
+      "id": "4068758f4cc2802cb909d11a645b53da",
+      "nombre": "ESCONDER NO PUBLICAR ID TAREA.",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-10-01",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/ESCONDER-NO-PUBLICAR-ID-TAREA-4068758f4cc2802cb909d11a645b53da"
+    },
+    {
+      "id": "4068758f4cc28019a832d8da6ef5498b",
+      "nombre": "PUBLICIDAD - ROFORZAR CAMPAÑA CAE",
+      "estado": "No iniciado",
+      "grupo": "pendiente",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-16",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/PUBLICIDAD-ROFORZAR-CAMPA-A-CAE-4068758f4cc28019a832d8da6ef5498b"
+    },
+    {
+      "id": "4068758f4cc2809d9fa2ecb288586e74",
+      "nombre": "TOTALES POR NIVEL DE ATENCIÓN. CIFRAS TOTALES.",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-01",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/TOTALES-POR-NIVEL-DE-ATENCI-N-CIFRAS-TOTALES-4068758f4cc2809d9fa2ecb288586e74"
+    },
+    {
+      "id": "4068758f4cc28010bb6edcb9bff3bef2",
+      "nombre": "SERVICIOS DE MAYOR AUGE, QUEJA PARA MEJORA ANS O TIEMPOS PROCESO.",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-01",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/SERVICIOS-DE-MAYOR-AUGE-QUEJA-PARA-MEJORA-ANS-O-TIEMPOS-PROCESO-4068758f4cc28010bb6edcb9bff3bef2"
+    },
+    {
+      "id": "4068758f4cc28039b059e4b9a618691b",
+      "nombre": "CAMBIO NOMBRE \"SERVICIOS TECNOLÓGICOS\"",
+      "estado": "Finalizado",
+      "grupo": "completo",
+      "prioridad": "Sin prioridad",
+      "vencimiento": "2026-11-01",
+      "asignados": [
+        "NATALIA MARIN CASTRO",
+        "Miguel Angel Medina Ospina"
+      ],
+      "proyecto_id": "3de8758f4cc280d3a75ac7662d4e4a31",
+      "proyecto": "DASHBOARD CANALES  DE ATENCIÓN",
+      "descripcion": "",
+      "subtareas_total": 0,
+      "subtareas_listas": 0,
+      "progreso": 0.0,
+      "url": "https://app.notion.com/p/CAMBIO-NOMBRE-SERVICIOS-TECNOL-GICOS-4068758f4cc28039b059e4b9a618691b"
+    },
     {
       "id": "3ff8758f4cc2801d9eb3e1d0a3c7b9ef",
       "nombre": "ACTUALIZACION INFORMACION GUIA DE MATRICULA",
