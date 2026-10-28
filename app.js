@@ -41,6 +41,7 @@
     metasSource: "data/metas.json",
     eventosSource: "data/eventos.json",
     perfilSource: "data/perfil.json",
+    perfilCasosSource: "data/perfil_casos.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
 
@@ -102,16 +103,16 @@
   // otra cosa: el filtro "Condición".
   const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Sin dato"];
   const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
-    clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
+    clasificacion: [], autor: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
-  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], tipoRegistro: [], fechaDesde: "", fechaHasta: "" };
-  const GRUPO_FILTER = { grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
+  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], tipoRegistro: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
+  const GRUPO_FILTER = { grupo: [], nivel1: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
   // Resumen ejecutivo: filtros propios (independientes de la pestaña Casos).
   // Las fechas también recortan las Tareas.
   const EXEC_FILTER = { nivel1: [], nivel2: [], clasificacion: [], autor: [], grupo: [], responsable: [], estado: [], condicion: [],
-    tipoRegistro: [], fuente: [], fechaDesde: "", fechaHasta: "" };
+    tipoRegistro: [], fuente: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
   // Atención Prioritaria: filtros propios sobre los casos abiertos vencidos o críticos.
-  const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
+  const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
 
   // Todo estado que no esté aquí cuenta como abierto, p. ej. "Validación superior" (el caso lo
   // revisa el consejo u otra instancia de la universidad: aún no está resuelto; confirmado por
@@ -402,6 +403,28 @@
   // grupos, el segundo. Se toma el grupo responsable ACTUAL: un caso escalado cuenta en nivel 2.
   const GRUPOS_NIVEL1 = ["Gestores de CAE"];
   const NIVELES_ATENCION = ["Nivel 1 · CAE", "Nivel 2 · Otras áreas"];
+  /* Nivel de estudio y periodicidad del estudiante por caso (data/perfil_casos.json; aprobado por
+     Natalia el 2026-10-28 para filtrar todo el dashboard). Solo esos dos campos: plan de estudio,
+     beneficio y convocatoria siguen solo en conteos. Sin dato del estudiante = "Sin dato". */
+  const SIN_DATO_PERFIL = "Sin dato";
+  function anotarPerfilCasos() {
+    const P = STATE.perfilCasos;
+    STATE.rawCasos.forEach(function (r) {
+      const f = P && P.casos ? P.casos[r.llave] : null;
+      r.nivel_estudio = f ? P.valores.nivel[f[0]] : SIN_DATO_PERFIL;
+      r.periodicidad = f ? P.valores.periodicidad[f[1]] : SIN_DATO_PERFIL;
+    });
+  }
+  function pasaPerfilCaso(f, r) {
+    if (f.nivelEstudio && f.nivelEstudio.length && f.nivelEstudio.indexOf(r.nivel_estudio) === -1) return false;
+    if (f.periodicidad && f.periodicidad.length && f.periodicidad.indexOf(r.periodicidad) === -1) return false;
+    return true;
+  }
+  function dropsPerfil(filterObj) {
+    const P = STATE.perfilCasos; if (!P || !P.valores) return "";
+    return buildMsDropHTML("nivelEstudio", "Nivel de estudio", "bi-mortarboard", P.valores.nivel.slice().sort().concat([SIN_DATO_PERFIL]), filterObj) +
+      buildMsDropHTML("periodicidad", "Periodicidad", "bi-calendar3", P.valores.periodicidad.slice().sort().concat([SIN_DATO_PERFIL]), filterObj);
+  }
   function nivelAtencion(r) { return GRUPOS_NIVEL1.indexOf(r.grupo_responsable) !== -1 ? NIVELES_ATENCION[0] : NIVELES_ATENCION[1]; }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
   // se escaló a un grupo que no está en el reporte). Se conserva con su último estado
@@ -609,6 +632,7 @@
       if (CASOS_FILTER.clasificacion.length && CASOS_FILTER.clasificacion.indexOf(clasificacionCaso(r)) === -1) return false;
       if (CASOS_FILTER.ansReal.length && CASOS_FILTER.ansReal.indexOf(ansReal(r)) === -1) return false;
       if (CASOS_FILTER.autor.length && CASOS_FILTER.autor.indexOf(autorGrupo(r)) === -1) return false;
+      if (!pasaPerfilCaso(CASOS_FILTER, r)) return false;
       if (CASOS_FILTER.condicion.length) {
         const cond = condicionCaso(r);
         if (CASOS_FILTER.condicion.indexOf(cond) === -1) return false;
@@ -634,6 +658,7 @@
       if (f.tipoRegistro.length && f.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
       if (f.fuente.length && f.fuente.indexOf(r.fuente) === -1) return false;
       if (f.condicion.length && f.condicion.indexOf(condicionCaso(r)) === -1) return false;
+      if (!pasaPerfilCaso(f, r)) return false;
       if (f.fechaDesde && (r.fecha_registro || "") < f.fechaDesde) return false;
       if (f.fechaHasta && (r.fecha_registro || "") > f.fechaHasta) return false;
       return true;
@@ -941,10 +966,20 @@
       })
       .catch(function () { /* sin perfil.json todavía: la sección no se muestra */ });
   }
+  // Nivel de estudio y periodicidad por caso (ver anotarPerfilCasos). Opcional: sin el archivo no hay filtros.
+  function loadPerfilCasos() {
+    return fetch(CONFIG.perfilCasosSource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        const firma = json ? (json.generado_en || Object.keys(json.casos || {}).length) : null;
+        if (json && firma !== STATE._perfilCasosFirma) { STATE.perfilCasos = json; STATE._perfilCasosFirma = firma; STATE.datosCambiaron = true; }
+      })
+      .catch(function () { /* sin perfil_casos.json: no se muestran los filtros de nivel y periodicidad */ });
+  }
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos()]).then(function () {
+      anotarPerfilCasos();
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
       const allError = !!(STATE.errorCasos && STATE.errorTareas);
@@ -1117,7 +1152,7 @@
       buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals("estado"), EXEC_FILTER) +
       buildMsDropHTML("condicion", "Condición", "bi-toggle2-on", CONDICIONES, EXEC_FILTER) +
       buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", uniqueVals("tipo_registro"), EXEC_FILTER) +
-      buildMsDropHTML("fuente", "Origen", "bi-database", uniqueVals("fuente"), EXEC_FILTER);
+      buildMsDropHTML("fuente", "Origen", "bi-database", uniqueVals("fuente"), EXEC_FILTER) + dropsPerfil(EXEC_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="execFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="execFechaDesde">Desde</label>' +
@@ -1233,7 +1268,7 @@
     renderAnsPorCategoria("chartComparativoStack", s, cats);
     renderCategoriasChart("chartExecCategorias", STATE.execCasos);
     renderNivelAtencionChart("chartExecNivelAtencion", STATE.execCasos);
-    renderPerfil("exec", EXEC_FILTER.nivel1, EXEC_FILTER.fechaDesde, EXEC_FILTER.fechaHasta);
+    renderPerfil("exec", EXEC_FILTER.nivel1, EXEC_FILTER.fechaDesde, EXEC_FILTER.fechaHasta, EXEC_FILTER);
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
@@ -1270,7 +1305,7 @@
     { campo: "convocatoria", titulo: "Convocatoria DigiCampus", explica: "casos de beneficiarios DigiCampus por versión de la convocatoria · % sobre todos los casos con dato", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
     { campo: "plan", titulo: "Plan de estudio", explica: "casos por plan de estudio del estudiante, los 15 con más casos · % sobre los casos con dato", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
   ];
-  function renderPerfil(prefijo, nivel1s, desde, hasta) {
+  function renderPerfil(prefijo, nivel1s, desde, hasta, filtros) {
     const cont = document.getElementById(prefijo + "Perfil"); if (!cont) return;
     const P = STATE.perfil;
     if (!P || !P.filas) { cont.innerHTML = ""; return; }
@@ -1295,7 +1330,8 @@
     }
     const nota = document.getElementById(prefijo + "PerfilNota");
     if (nota) nota.textContent = conDato.toLocaleString("es-CO") + " de " + total.toLocaleString("es-CO") + " casos con datos del estudiante (" + (fmtPct(conDato, total) || "0%") +
-      ") · solo responde al tipo de servicio y a las fechas (por mes): por privacidad no se publica el dato por caso · % sobre los casos con datos";
+      ") · solo responde al tipo de servicio y a las fechas (por mes): por privacidad no se publica el dato por caso · % sobre los casos con datos" +
+      (filtros && ((filtros.nivelEstudio || []).length || (filtros.periodicidad || []).length) ? " · este panel no aplica los filtros de nivel de estudio y periodicidad" : "");
     PERFIL_GRAFICOS.forEach(function (g, i) {
       const c = {}; Object.keys(conteo[g.campo] || {}).forEach(function (v) { if (v !== "Sin dato" && (g.quitar || []).indexOf(v) === -1) c[v] = conteo[g.campo][v]; });
       const id = prefijo + "Perfil" + i, wrap = document.getElementById(prefijo + "PerfilWrap" + i);
@@ -1355,7 +1391,7 @@
       buildMsDropHTML("nivel2", "Categoría 1", "bi-diagram-2", Array.from(new Set(enCat.map(cat1))).sort(), ATENCION_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", uniqueVals(base, "grupo_responsable"), ATENCION_FILTER) +
       buildMsDropHTML("responsable", "Responsable", "bi-person", uniqueVals(base, "responsable"), ATENCION_FILTER) +
-      buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals(base, "estado"), ATENCION_FILTER);
+      buildMsDropHTML("estado", "Estado", "bi-circle-half", uniqueVals(base, "estado"), ATENCION_FILTER) + dropsPerfil(ATENCION_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="atencionFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="atencionFechaDesde">Desde</label>' +
@@ -1422,6 +1458,7 @@
       if (f.grupo.length && f.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (f.responsable.length && f.responsable.indexOf(r.responsable) === -1) return false;
       if (f.estado.length && f.estado.indexOf(r.estado) === -1) return false;
+      if (!pasaPerfilCaso(f, r)) return false;
       if (f.fechaDesde && (r.fecha_registro || "") < f.fechaDesde) return false;
       if (f.fechaHasta && (r.fecha_registro || "") > f.fechaHasta) return false;
       return true;
@@ -1505,7 +1542,7 @@
       { key: "tipoRegistro", label: "Canal de registro", icon: "bi-tag", field: "tipo_registro" },
       { key: "fuente", label: "Origen", icon: "bi-database", field: "fuente" }
     ].filter(Boolean);
-    const dropsHtml = fields.map(function (f) { return buildMsDropHTML(f.key, f.label, f.icon, f.field ? uniqueVals(f.field) : f.opts, CASOS_FILTER); }).join("");
+    const dropsHtml = fields.map(function (f) { return buildMsDropHTML(f.key, f.label, f.icon, f.field ? uniqueVals(f.field) : f.opts, CASOS_FILTER); }).join("") + dropsPerfil(CASOS_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="casosFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="casosFechaDesde">Desde</label>' +
@@ -1697,7 +1734,7 @@
     });
     renderChart("chartCasosNivel2", "bar", toChartDataBar(porNivel2, "#8C0F13", 12), horizontalBarOpts());
     renderCategoriasChart("chartCasosCategorias", recs);
-    renderPerfil("casos", _casosActiveCat ? [_casosActiveCat] : CASOS_FILTER.nivel1, CASOS_FILTER.fechaDesde, CASOS_FILTER.fechaHasta);
+    renderPerfil("casos", _casosActiveCat ? [_casosActiveCat] : CASOS_FILTER.nivel1, CASOS_FILTER.fechaDesde, CASOS_FILTER.fechaHasta, CASOS_FILTER);
 
     // Casos por grupo responsable (hasta 15), apilados en abiertos y cerrados.
     const porGrupo = {};
@@ -1836,9 +1873,9 @@
     if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
     if (RESP_FILTER.tipoRegistro.length && RESP_FILTER.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
     if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
-    return true;
+    return pasaPerfilCaso(RESP_FILTER, r);
   }
-  function hayFiltroCasoResp() { return !!(RESP_FILTER.nivel1.length || RESP_FILTER.tipoRegistro.length || RESP_FILTER.grupo.length); }
+  function hayFiltroCasoResp() { return !!(RESP_FILTER.nivel1.length || RESP_FILTER.tipoRegistro.length || RESP_FILTER.grupo.length || RESP_FILTER.nivelEstudio.length || RESP_FILTER.periodicidad.length); }
 
   // Personas a evaluar: responsables de los casos filtrados y (sin filtros de casos) quienes solo
   // tienen tareas; con "Solo asesores del CAE", también los asesores sin casos en la vista.
@@ -2076,14 +2113,14 @@
     const dropsHtml = buildMsDropHTML("responsable", "Responsable", "bi-person", Array.from(respSet).sort(), RESP_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), RESP_FILTER) +
       buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), RESP_FILTER) +
-      buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", Array.from(canalSet).sort(), RESP_FILTER);
+      buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", Array.from(canalSet).sort(), RESP_FILTER) + dropsPerfil(RESP_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="respFilterDrops">' + dropsHtml + '</div>' +
       '<button class="gfb-clear" id="respFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
     wireFilterBar("respFilterBar", "respFilterDrops", RESP_FILTER, function () { renderResponsablesContent(); }, []);
     const clearBtn = document.getElementById("respFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = [];
+      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = []; RESP_FILTER.nivelEstudio = []; RESP_FILTER.periodicidad = [];
       populateRespFilterBar(); renderResponsablesContent();
     });
   }
@@ -2513,6 +2550,7 @@
     return STATE.rawCasos.filter(function (r) {
       if (GRUPO_FILTER.grupo.length && GRUPO_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
       if (GRUPO_FILTER.nivel1.length && GRUPO_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
+      if (!pasaPerfilCaso(GRUPO_FILTER, r)) return false;
       if (GRUPO_FILTER.fechaDesde && (r.fecha_registro || "") < GRUPO_FILTER.fechaDesde) return false;
       if (GRUPO_FILTER.fechaHasta && (r.fecha_registro || "") > GRUPO_FILTER.fechaHasta) return false;
       return true;
@@ -2554,7 +2592,7 @@
     const grupoSet = new Set();
     STATE.rawCasos.forEach(function (r) { if (r.grupo_responsable) grupoSet.add(r.grupo_responsable); });
     const dropsHtml = buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), GRUPO_FILTER) +
-      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-diagram-2", catsPresentes(), GRUPO_FILTER);
+      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-diagram-2", catsPresentes(), GRUPO_FILTER) + dropsPerfil(GRUPO_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="gruposFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="gruposFechaDesde">Desde</label>' +
@@ -2565,7 +2603,7 @@
     wireFilterBar("gruposFilterBar", "gruposFilterDrops", GRUPO_FILTER, function () { renderGruposContent(); }, ["gruposFechaDesde", "gruposFechaHasta"]);
     const clearBtn = document.getElementById("gruposFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      GRUPO_FILTER.grupo = []; GRUPO_FILTER.nivel1 = []; GRUPO_FILTER.fechaDesde = ""; GRUPO_FILTER.fechaHasta = "";
+      GRUPO_FILTER.grupo = []; GRUPO_FILTER.nivel1 = []; GRUPO_FILTER.nivelEstudio = []; GRUPO_FILTER.periodicidad = []; GRUPO_FILTER.fechaDesde = ""; GRUPO_FILTER.fechaHasta = "";
       populateGrupoFilterBar(); renderGruposContent();
     });
   }
