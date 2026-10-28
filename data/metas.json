@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-28T20:38:40.328754",
+  "generado_en": "2026-10-28T22:02:06.202008",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 45.8,
+  "avance_general": 54.2,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -72,8 +72,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 9,
-      "tareas_completas": 6,
-      "progreso": 66.7,
+      "tareas_completas": 7,
+      "progreso": 77.8,
       "url": "https://app.notion.com/p/DASHBOARD-CANALES-DE-ATENCI-N-3de8758f4cc280d3a75ac7662d4e4a31"
     },
     {
@@ -86,8 +86,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 7,
-      "tareas_completas": 3,
-      "progreso": 42.9,
+      "tareas_completas": 4,
+      "progreso": 57.1,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -109,8 +109,8 @@
     {
       "id": "4068758f4cc280ab806cf21470161b82",
       "nombre": "APARTADO “VIDEOS INSTRUCTIVOS”",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Sin prioridad",
       "vencimiento": "2026-11-16",
       "asignados": [
@@ -127,9 +127,9 @@
     },
     {
       "id": "4068758f4cc280f0a8b9d6ee53f6a33b",
-      "nombre": "ANS POR A´REA Y X NIVEL DE ATENCIÓN (SERVICIO).",
-      "estado": "No iniciado",
-      "grupo": "pendiente",
+      "nombre": "ANS POR AREA Y POR NIVEL DE ATENCIÓN (SERVICIO).",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Sin prioridad",
       "vencimiento": "2026-11-16",
       "asignados": [
@@ -142,7 +142,7 @@
       "subtareas_total": 0,
       "subtareas_listas": 0,
       "progreso": 0.0,
-      "url": "https://app.notion.com/p/ANS-POR-A-REA-Y-X-NIVEL-DE-ATENCI-N-SERVICIO-4068758f4cc280f0a8b9d6ee53f6a33b"
+      "url": "https://app.notion.com/p/ANS-POR-AREA-Y-POR-NIVEL-DE-ATENCI-N-SERVICIO-4068758f4cc280f0a8b9d6ee53f6a33b"
     },
     {
       "id": "4068758f4cc280529518f5b4cfdd70e5",
