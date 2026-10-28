@@ -104,7 +104,7 @@
   const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
     clasificacion: [], autor: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
-  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
+  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], tipoRegistro: [], fechaDesde: "", fechaHasta: "" };
   const GRUPO_FILTER = { grupo: [], nivel1: [], fechaDesde: "", fechaHasta: "" };
   // Resumen ejecutivo: filtros propios (independientes de la pestaña Casos).
   // Las fechas también recortan las Tareas.
@@ -727,7 +727,9 @@
      - Donas: % de cada porción sobre el total.
      - Barras simples: "n (x%)" sobre el total del conjunto. Si el gráfico solo
        muestra el top N, dataset.pctTotal trae el total real (ver toChartDataBar).
-     - Barras apiladas: % de cada segmento dentro de su barra.
+     - Barras apiladas verticales: % de cada segmento dentro de su barra. Horizontales: el
+       total por fuera y el % de cada segmento en el tooltip.
+     - Barras horizontales simples: siempre por fuera de la barra.
      - Líneas: % de cada punto sobre el total de su serie en el periodo (sin "<1%").
      Una etiqueta se omite si no cabe o si se superpone con otra ya dibujada. */
   function fmtPct(v, total) {
@@ -787,8 +789,10 @@
             if (largoArco < ctx.measureText(t).width + 6 || p.outerRadius - p.innerRadius < 14) return;
             poner(t, pos.x, pos.y, textoSobre(colorDe(ds, j, "backgroundColor")), "center");
 
-          } else if (tipo === "bar" && stacked && enValor) {
-            // Una etiqueta por barra: el total, sobre la última serie con valor (la de más arriba).
+          } else if (tipo === "bar" && stacked && (enValor || horizontal)) {
+            // Una etiqueta por barra: el total, fuera de la barra, sobre la última serie con valor.
+            // Barras horizontales: siempre así (pedido de Natalia, 2026-10-28: el valor por fuera);
+            // el % de cada segmento queda en el tooltip (tooltipPctApilado).
             const arriba = visibles.filter(function (k) { return +chart.data.datasets[k].data[j]; }).pop();
             if (i !== arriba) return;
             const tot = sumar(visibles.map(function (k) { return chart.data.datasets[k].data[j]; })); if (!tot) return;
@@ -811,7 +815,7 @@
             const texto = enValor ? v.toLocaleString("es-CO") : v.toLocaleString("es-CO") + " (" + t + ")";
             const b = el.getProps(["x", "y", "base"]);
             const dentro = textoSobre(colorDe(ds, j, "backgroundColor"));
-            if (horizontal) { poner(texto, b.x + 5, b.y, "#4A3F38", "left") || poner(texto, b.x - 5, b.y, dentro, "right"); }
+            if (horizontal) poner(texto, b.x + 5, b.y, "#4A3F38", "left");  // siempre por fuera (margen en paddingPct)
             else { const tv = enValor ? texto : t; poner(tv, b.x, b.y - 8, "#4A3F38", "center") || poner(tv, b.x, b.y + 9, dentro, "center"); }
 
           } else if (tipo === "line") {
@@ -829,7 +833,8 @@
   function paddingPct(type, options) {
     const o = options || {}, stacked = !!(o.scales && o.scales.x && o.scales.x.stacked);
     const enValor = !!(o.plugins && o.plugins.pctLabels && o.plugins.pctLabels.modo === "valor");
-    if (type === "bar" && (!stacked || enValor)) return o.indexAxis === "y" ? { right: 78 } : { top: 18 };
+    if (type === "bar" && o.indexAxis === "y") return { right: stacked ? 52 : 92 };
+    if (type === "bar" && (!stacked || enValor)) return { top: 18 };
     if (type === "line") return { top: 16 };
     return null;
   }
@@ -840,8 +845,21 @@
     options = options || {};
     const pad = paddingPct(type, options);
     if (pad && !(options.layout && options.layout.padding !== undefined)) options.layout = Object.assign({}, options.layout, { padding: pad });
+    if (type === "bar" && options.indexAxis === "y" && options.scales && options.scales.x && options.scales.x.stacked) tooltipPctApilado(options);
     chartRegistry[canvasId] = new Chart(ctx, { type: type, data: data, options: options });
     return chartRegistry[canvasId];
+  }
+  // Barras apiladas horizontales: el total va por fuera y el % de cada segmento, en el tooltip.
+  function tooltipPctApilado(options) {
+    options.plugins = options.plugins || {};
+    const tt = options.plugins.tooltip = options.plugins.tooltip || {};
+    tt.callbacks = tt.callbacks || {};
+    if (tt.callbacks.label) return;
+    tt.callbacks.label = function (c) {
+      const tot = sumar(c.chart.data.datasets.map(function (d, k) { return c.chart.isDatasetVisible(k) ? d.data[c.dataIndex] : 0; }));
+      const v = +c.raw || 0;
+      return c.dataset.label + ": " + v.toLocaleString("es-CO") + (tot ? " (" + (fmtPct(v, tot) || "0%") + ")" : "");
+    };
   }
   function gridOpts() { return { color: "#EEEBE7", drawBorder: false }; }
   function horizontalBarOpts(extra) {
@@ -1246,11 +1264,11 @@
      tipo de servicio (sin números de caso): estos gráficos responden únicamente al tipo de
      servicio y a las fechas (por mes), no a los demás filtros. */
   const PERFIL_GRAFICOS = [
-    { campo: "nivel", titulo: "Nivel de estudio", icono: "bi-mortarboard", tipo: "doughnut" },
-    { campo: "periodicidad", titulo: "Periodicidad", icono: "bi-calendar3", tipo: "doughnut" },
-    { campo: "beneficio", titulo: "Beneficiarios DigiCampus y Comfandi", icono: "bi-award", tipo: "bar", quitar: ["Sin beneficio"] },
-    { campo: "convocatoria", titulo: "Convocatoria DigiCampus (beneficiarios)", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
-    { campo: "plan", titulo: "Plan de estudio · los 15 con más casos", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
+    { campo: "nivel", titulo: "Nivel de estudio", explica: "casos por nivel de estudio del estudiante · % sobre los casos con dato", icono: "bi-mortarboard", tipo: "doughnut" },
+    { campo: "periodicidad", titulo: "Periodicidad", explica: "casos por periodicidad del programa del estudiante · % sobre los casos con dato", icono: "bi-calendar3", tipo: "doughnut" },
+    { campo: "beneficio", titulo: "Beneficiarios DigiCampus y Comfandi", explica: "casos de estudiantes con beneficio, por porcentaje DigiCampus o Comfandi · % sobre todos los casos con dato", icono: "bi-award", tipo: "bar", quitar: ["Sin beneficio"] },
+    { campo: "convocatoria", titulo: "Convocatoria DigiCampus", explica: "casos de beneficiarios DigiCampus por versión de la convocatoria · % sobre todos los casos con dato", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
+    { campo: "plan", titulo: "Plan de estudio", explica: "casos por plan de estudio del estudiante, los 15 con más casos · % sobre los casos con dato", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
   ];
   function renderPerfil(prefijo, nivel1s, desde, hasta) {
     const cont = document.getElementById(prefijo + "Perfil"); if (!cont) return;
@@ -1270,7 +1288,7 @@
       cont.innerHTML = '<div class="panel" style="margin-bottom:18px"><div class="panel-header"><h2><i class="bi bi-person-vcard"></i> Perfil del estudiante</h2>' +
         '<span class="panel-sub" id="' + prefijo + 'PerfilNota"></span></div><div class="grid-2col" style="margin-bottom:0">' +
         PERFIL_GRAFICOS.map(function (g, i) {
-          return '<div' + (g.ancho ? ' style="grid-column:1 / -1"' : '') + '><h3 class="perfil-sub"><i class="bi ' + g.icono + '"></i> ' + esc(g.titulo) + '</h3>' +
+          return '<div' + (g.ancho ? ' style="grid-column:1 / -1"' : '') + '><h3 class="perfil-sub"><i class="bi ' + g.icono + '"></i> ' + esc(g.titulo) + ' <span class="perfil-explica">(' + esc(g.explica) + ')</span></h3>' +
             '<div class="chart-wrap" id="' + prefijo + 'PerfilWrap' + i + '"><canvas id="' + prefijo + 'Perfil' + i + '" class="chart-skeleton"></canvas></div></div>';
         }).join("") + '</div></div>';
       cont.dataset.armado = "1";
@@ -1807,6 +1825,14 @@
 
   /* ---------------------- RESPONSABLES (Casos + Tareas combinados) ---------------------- */
 
+  // Tipo de servicio y canal de registro: aplican a los casos en todas las tablas y gráficos de
+  // Responsables (las tareas no tienen canal de registro: no se filtran por él).
+  function pasaTipoYCanalResp(r) {
+    if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
+    if (RESP_FILTER.tipoRegistro.length && RESP_FILTER.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
+    return true;
+  }
+
   function computeResponsablesCombined() {
     const byResp = {};
     function ensure(nombre) {
@@ -1817,7 +1843,7 @@
       const nombre = r.responsable || "Sin asignar";
       if (RESP_FILTER.responsable.length && RESP_FILTER.responsable.indexOf(nombre) === -1) return;
       if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return;
-      if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      if (!pasaTipoYCanalResp(r)) return;
       if (RESP_FILTER.fechaDesde && (r.fecha_registro || "") < RESP_FILTER.fechaDesde) return;
       if (RESP_FILTER.fechaHasta && (r.fecha_registro || "") > RESP_FILTER.fechaHasta) return;
       const d = ensure(nombre);
@@ -1986,7 +2012,7 @@
       ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, edades: [] };
     const llaves = new Set();
     STATE.rawCasos.forEach(function (r) {
-      if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      if (!pasaTipoYCanalResp(r)) return;
       if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) {
         e.registrados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id);
         fila("Registrado", r, fh(r.fecha_registro_dt || r.fecha_registro), "lo registró (autor)" + (nombreNorm(r) === n ? " y es el responsable" : " · responsable actual: " + (r.responsable || "—")), true);
@@ -2024,7 +2050,7 @@
     else gestionesReales().forEach(function (g) {
       if (g.n !== n || g.fecha < rg.desde || g.fecha > rg.hasta) return;
       const r = casoPorLlave(g.llave);
-      if (r && RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      if (r && !pasaTipoYCanalResp(r)) return;
       e.modificados++;
       fila("Modificación", r, g.fecha, g.detalle + " · detectado en la sincronización del " + horaLocal(g.detectado) + (g.reconstruido ? " (reconstruido de fotos anteriores)" : ""), true);
       llaves.add(g.llave); if (r && r.cliente_id) e.clientesSet.add(r.cliente_id);
@@ -2055,11 +2081,12 @@
 
   function populateRespFilterBar() {
     const bar = document.getElementById("respFilterBar"); if (!bar) return;
-    const respSet = new Set(), grupoSet = new Set();
-    STATE.rawCasos.forEach(function (r) { if (r.responsable) respSet.add(r.responsable); if (r.grupo_responsable) grupoSet.add(r.grupo_responsable); });
+    const respSet = new Set(), grupoSet = new Set(), canalSet = new Set();
+    STATE.rawCasos.forEach(function (r) { if (r.responsable) respSet.add(r.responsable); if (r.grupo_responsable) grupoSet.add(r.grupo_responsable); if (r.tipo_registro) canalSet.add(r.tipo_registro); });
     const dropsHtml = buildMsDropHTML("responsable", "Responsable", "bi-person", Array.from(respSet).sort(), RESP_FILTER) +
       buildMsDropHTML("grupo", "Grupo", "bi-building", Array.from(grupoSet).sort(), RESP_FILTER) +
-      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), RESP_FILTER);
+      buildMsDropHTML("nivel1", "Tipo de servicio", "bi-collection", catsPresentes(), RESP_FILTER) +
+      buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", Array.from(canalSet).sort(), RESP_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="respFilterDrops">' + dropsHtml + '</div>' +
       '<div class="gfb-dates"><div class="filter-group"><label for="respFechaDesde">Desde</label>' +
@@ -2070,7 +2097,7 @@
     wireFilterBar("respFilterBar", "respFilterDrops", RESP_FILTER, function () { renderResponsablesContent(); }, ["respFechaDesde", "respFechaHasta"]);
     const clearBtn = document.getElementById("respFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.fechaDesde = ""; RESP_FILTER.fechaHasta = "";
+      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = []; RESP_FILTER.fechaDesde = ""; RESP_FILTER.fechaHasta = "";
       populateRespFilterBar(); renderResponsablesContent();
     });
   }
@@ -2254,7 +2281,7 @@
       if (sem && !vistos[k]) { vistos[k] = true; suma(por[nm].gestionados, sem); }
     };
     STATE.rawCasos.forEach(function (r) {
-      if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      if (!pasaTipoYCanalResp(r)) return;
       const autor = idx[autorNorm(r)], resp = idx[nombreNorm(r)];
       if (!autor && !resp) return;
       if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); gestionado(autor, s, r.llave); }
@@ -2272,7 +2299,7 @@
     gestionesReales().forEach(function (g) {
       const nm = idx[g.n]; if (!nm) return;
       const r = casoPorLlave(g.llave);
-      if (r && RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return;
+      if (r && !pasaTipoYCanalResp(r)) return;
       const s = lunesDe(g.fecha); suma(por[nm].modificaciones, s); verSem(s); gestionado(nm, s, g.llave);
     });
     STATE.rawTareas.forEach(function (t) {
