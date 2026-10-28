@@ -40,6 +40,7 @@
     tareasSource: "data/tareas.json",
     metasSource: "data/metas.json",
     eventosSource: "data/eventos.json",
+    perfilSource: "data/perfil.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
 
@@ -914,10 +915,18 @@
       })
       .catch(function () { /* sin eventos.json todavía: las modificaciones quedan en "—" */ });
   }
+  // Perfil del estudiante: solo conteos por mes y tipo de servicio (ver renderPerfil). Opcional.
+  function loadPerfil() {
+    return fetch(CONFIG.perfilSource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        if (json && json.generado_en !== (STATE.perfil && STATE.perfil.generado_en)) { STATE.perfil = json; STATE.datosCambiaron = true; }
+      })
+      .catch(function () { /* sin perfil.json todavía: la sección no se muestra */ });
+  }
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil()]).then(function () {
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
       const allError = !!(STATE.errorCasos && STATE.errorTareas);
@@ -1206,6 +1215,7 @@
     renderAnsPorCategoria("chartComparativoStack", s, cats);
     renderCategoriasChart("chartExecCategorias", STATE.execCasos);
     renderNivelAtencionChart("chartExecNivelAtencion", STATE.execCasos);
+    renderPerfil("exec", EXEC_FILTER.nivel1, EXEC_FILTER.fechaDesde, EXEC_FILTER.fechaHasta);
   }
 
   // Barras apiladas: Condición real de ANS por categoría.
@@ -1229,6 +1239,54 @@
     const labels = NIVELES_ATENCION.map(function (n) { return n + ": " + tot(n).toLocaleString("es-CO") + " (" + (fmtPct(tot(n), total) || "0%") + ")"; });
     renderChart(canvasId, "bar", { labels: labels, datasets: datasetsAnsReal(labels, function (l, i) { return cnt[NIVELES_ATENCION[i]]; }) },
       Object.assign(stackedBarOpts(), { indexAxis: "y", scales: { x: { stacked: true, beginAtZero: true, grid: gridOpts(), ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }));
+  }
+  /* Perfil del estudiante (pedido de Natalia, 2026-10-28; opción A de privacidad): nivel de
+     estudio, periodicidad, beneficio DigiCampus/Comfandi, convocatoria y plan de estudio.
+     El dashboard es público, así que data/perfil.json trae SOLO conteos por mes de registro y
+     tipo de servicio (sin números de caso): estos gráficos responden únicamente al tipo de
+     servicio y a las fechas (por mes), no a los demás filtros. */
+  const PERFIL_GRAFICOS = [
+    { campo: "nivel", titulo: "Nivel de estudio", icono: "bi-mortarboard", tipo: "doughnut" },
+    { campo: "periodicidad", titulo: "Periodicidad", icono: "bi-calendar3", tipo: "doughnut" },
+    { campo: "beneficio", titulo: "Beneficiarios DigiCampus y Comfandi", icono: "bi-award", tipo: "bar", quitar: ["Sin beneficio"] },
+    { campo: "convocatoria", titulo: "Convocatoria DigiCampus (beneficiarios)", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
+    { campo: "plan", titulo: "Plan de estudio · los 15 con más casos", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
+  ];
+  function renderPerfil(prefijo, nivel1s, desde, hasta) {
+    const cont = document.getElementById(prefijo + "Perfil"); if (!cont) return;
+    const P = STATE.perfil;
+    if (!P || !P.filas) { cont.innerHTML = ""; return; }
+    const mDesde = (desde || "").slice(0, 7), mHasta = (hasta || "").slice(0, 7);
+    const conteo = {}; let total = 0, conDato = 0;
+    P.filas.forEach(function (f) {
+      const mes = f[0], n1 = f[1], campo = f[2], valor = f[3], n = f[4];
+      if (nivel1s && nivel1s.length && nivel1s.indexOf(n1) === -1) return;
+      if (mDesde && mes < mDesde) return;
+      if (mHasta && mes > mHasta) return;
+      (conteo[campo] = conteo[campo] || {})[valor] = ((conteo[campo] || {})[valor] || 0) + n;
+      if (campo === "nivel") { total += n; if (valor !== "Sin dato") conDato += n; }
+    });
+    if (!cont.dataset.armado) {
+      cont.innerHTML = '<div class="panel" style="margin-bottom:18px"><div class="panel-header"><h2><i class="bi bi-person-vcard"></i> Perfil del estudiante</h2>' +
+        '<span class="panel-sub" id="' + prefijo + 'PerfilNota"></span></div><div class="grid-2col" style="margin-bottom:0">' +
+        PERFIL_GRAFICOS.map(function (g, i) {
+          return '<div' + (g.ancho ? ' style="grid-column:1 / -1"' : '') + '><h3 class="perfil-sub"><i class="bi ' + g.icono + '"></i> ' + esc(g.titulo) + '</h3>' +
+            '<div class="chart-wrap" id="' + prefijo + 'PerfilWrap' + i + '"><canvas id="' + prefijo + 'Perfil' + i + '" class="chart-skeleton"></canvas></div></div>';
+        }).join("") + '</div></div>';
+      cont.dataset.armado = "1";
+    }
+    const nota = document.getElementById(prefijo + "PerfilNota");
+    if (nota) nota.textContent = conDato.toLocaleString("es-CO") + " de " + total.toLocaleString("es-CO") + " casos con datos del estudiante (" + (fmtPct(conDato, total) || "0%") +
+      ") · solo responde al tipo de servicio y a las fechas (por mes): por privacidad no se publica el dato por caso · % sobre los casos con datos";
+    PERFIL_GRAFICOS.forEach(function (g, i) {
+      const c = {}; Object.keys(conteo[g.campo] || {}).forEach(function (v) { if (v !== "Sin dato" && (g.quitar || []).indexOf(v) === -1) c[v] = conteo[g.campo][v]; });
+      const id = prefijo + "Perfil" + i, wrap = document.getElementById(prefijo + "PerfilWrap" + i);
+      if (g.tipo === "doughnut") { if (wrap) wrap.style.height = "240px"; renderChart(id, "doughnut", toChartDataDoughnut(c, null, null), doughnutOpts()); return; }
+      const datos = toChartDataBar(c, "#8C0F13", g.top || 10);
+      datos.datasets[0].pctTotal = conDato;  // % sobre los casos con datos del estudiante
+      if (wrap) wrap.style.height = Math.max(160, datos.labels.length * 28 + 50) + "px";
+      renderChart(id, "bar", datos, horizontalBarOpts());
+    });
   }
   function renderAnsPorCategoria(canvasId, stats, cats) {
     renderChart(canvasId, "bar", { labels: cats, datasets: datasetsAnsReal(cats, function (c) { const d = stats.porNivel1[c]; return d ? d.ansReal : null; }) }, stackedBarOpts());
@@ -1621,6 +1679,7 @@
     });
     renderChart("chartCasosNivel2", "bar", toChartDataBar(porNivel2, "#8C0F13", 12), horizontalBarOpts());
     renderCategoriasChart("chartCasosCategorias", recs);
+    renderPerfil("casos", _casosActiveCat ? [_casosActiveCat] : CASOS_FILTER.nivel1, CASOS_FILTER.fechaDesde, CASOS_FILTER.fechaHasta);
 
     // Casos por grupo responsable (hasta 15), apilados en abiertos y cerrados.
     const porGrupo = {};
