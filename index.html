@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1793216628">
+<link rel="stylesheet" href="styles.css?v=1793217858">
 </head>
 <body>
 
@@ -559,7 +559,7 @@
 
         <div class="grid-2col resp-graficos">
           <div class="panel">
-            <div class="panel-header"><h2><i class="bi bi-bar-chart-line"></i> Casos gestionados por persona</h2><span class="panel-sub">registrados como autor + atendidos, cerrados o modificados · en el período</span></div>
+            <div class="panel-header"><h2><i class="bi bi-bar-chart-line"></i> Casos gestionados por persona</h2><span class="panel-sub">registrados como autor + atendidos o modificados · en el período (los cierres no cuentan: los hace el sistema)</span></div>
             <div class="chart-wrap"><canvas id="chartRespGestionados" class="chart-skeleton"></canvas></div>
           </div>
           <div class="panel">
@@ -573,6 +573,10 @@
           <div class="panel">
             <div class="panel-header"><h2><i class="bi bi-clock-history"></i> Mediana de atención por persona</h2><span class="panel-sub">días del registro a la atención real · la más lenta arriba · personas con 5 o más atenciones en el período</span></div>
             <div class="chart-wrap"><canvas id="chartRespMediana" class="chart-skeleton"></canvas></div>
+          </div>
+          <div class="panel" style="grid-column:1 / -1">
+            <div class="panel-header"><h2><i class="bi bi-tag"></i> Canal de registro de los casos gestionados</h2><span class="panel-sub">por persona · en el período · los 5 canales con más casos y "Otros"</span></div>
+            <div class="chart-wrap"><canvas id="chartRespCanal" class="chart-skeleton"></canvas></div>
           </div>
         </div>
 
@@ -594,7 +598,7 @@
           </div>
           <details class="resp-como">
             <summary><i class="bi bi-info-circle"></i> ¿Cómo se calcula cada columna?</summary>
-            <p><strong>Lo que hizo en el período</strong> · <strong>Gestionados</strong>: casos distintos que registró, atendió, cerró o modificó (no es la suma de las columnas: un caso registrado y atendido por la misma persona cuenta una vez). <strong>Registrados</strong>: casos que creó como autor (los resuelva o los pase a otra área). <strong>Asignados</strong>: casos de los que es responsable sin ser autor. <strong>Desarrollados</strong>: casos de los que es responsable con atención real en el período, o que cerró directamente sin atención previa (no cuentan los cierres por aprobación del usuario ni por vencimiento del plazo). <strong>Modificaciones</strong>: veces que trabajó casos según el historial de sincronizaciones (desde el 29-sep-2026), sin contar asignaciones.</p>
+            <p><strong>Lo que hizo en el período</strong> · <strong>Gestionados</strong>: casos distintos que registró, atendió o modificó (no es la suma de las columnas: un caso registrado y atendido por la misma persona cuenta una vez). <strong>Registrados</strong>: casos que creó como autor (los resuelva o los pase a otra área). <strong>Asignados</strong>: casos de los que es responsable sin ser autor. <strong>Desarrollados</strong>: casos de los que es responsable con atención real en el período. Los cierres no cuentan en ninguna columna de gestión: los hace el sistema. <strong>Modificaciones</strong>: veces que trabajó casos según el historial de sincronizaciones (desde el 29-sep-2026), sin contar asignaciones ni cierres.</p>
             <p><strong>Calidad en el período</strong> · <strong>ANS cumplido</strong>: de los casos que atendió en el período, % atendidos antes de la fecha estimada (Condición real). <strong>Mediana de atención</strong>: del registro a la atención real. <strong>Cerrados fuera de ANS</strong>: de sus casos cerrados en el período (por fecha de cierre), los que se atendieron después de la fecha estimada.</p>
             <p><strong>Carga hoy</strong> · abiertos, vencidos (por Progreso o porque pasó la fecha estimada sin atención), críticos y antigüedad: foto de hoy. Clientes atendidos y tareas pendientes están en los indicadores de arriba y en el detalle de cada persona. Tipo de servicio, canal de registro y grupo filtran los casos; las tareas no tienen canal ni grupo. Se atribuye al responsable actual del caso (salvo Registrados, que es del autor).</p>
           </details>
@@ -609,7 +613,7 @@
               </tr>
               <tr>
                 <th class="th-dia">Gestionados</th><th class="th-dia">Registrados</th><th class="th-dia" title="Es responsable sin ser autor: se los asignó Aranda u otra persona">Asignados</th><th class="th-dia">Desarrollados</th>
-                <th class="th-dia" title="Veces que trabajó casos como responsable (estado, atención, cierre o modificación), sin contar asignaciones">Modificaciones</th><th class="th-dia">Tareas</th>
+                <th class="th-dia" title="Veces que trabajó casos como responsable (estado, atención o modificación), sin contar asignaciones ni cierres">Modificaciones</th><th class="th-dia">Tareas</th>
                 <th class="th-cal" title="De los casos que atendió en el período, % atendidos antes de la fecha estimada">ANS cumplido</th><th class="th-cal">Mediana atención</th><th class="th-cal" title="De sus casos cerrados en el período (por fecha de cierre), los atendidos después de la fecha estimada">Cerrados fuera de ANS</th>
                 <th class="th-hoy">Abiertos</th><th class="th-hoy" title="Por Progreso o porque pasó la fecha de atención estimada sin atención real (misma regla en todas las pestañas)">Vencidos</th><th class="th-hoy">Críticos</th><th class="th-hoy" title="Antigüedad promedio de los abiertos">Antigüedad</th>
               </tr>
@@ -700,6 +704,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1793216628"></script>
+<script src="app.js?v=1793217858"></script>
 </body>
 </html>

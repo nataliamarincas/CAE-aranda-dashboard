@@ -1863,13 +1863,12 @@
          igual los que resolvió y los que pasó a otra área (no se evalúa el escalamiento).
        - Asignados: casos de los que es Responsable pero NO Autor (se los asignó Aranda u
          otra persona) con fecha de registro en el rango.
-       - Desarrollados: casos de los que es Responsable con atención real en el rango, o que cerró
-         directamente sin atención previa (cierreDelAsesor; no cuentan los cierres por aprobación
-         del usuario ni por vencimiento del plazo, que llegan días después de la solución)
-         (incluye los que le asigna el sistema).
+       - Desarrollados: casos de los que es Responsable con atención real en el rango (incluye
+         los que le asigna el sistema). Los cierres NO cuentan: los hace el sistema (Natalia,
+         2026-10-28), también los de casos sin atención previa.
        - Modificaciones: veces que trabajó casos como responsable según el historial (gestionesReales).
-       - Gestionados: casos distintos que registró (autor) o que, como responsable, atendió,
-         cerró o modificó (historial, sin asignaciones) en el rango. La fecha de modificación del
+       - Gestionados: casos distintos que registró (autor) o que, como responsable, atendió
+         o modificó (historial, sin asignaciones ni cierres) en el rango. La fecha de modificación del
          export ya no se usa: Aranda la cambia al asignar, aunque el asesor no haya trabajado el caso.
        - ANS real y horas de atención de lo que atendió en el rango (horas: solo casos
          nacidos en el Aranda nuevo; los migrados conservan su fecha de registro original).
@@ -1889,7 +1888,8 @@
      data/eventos.json trae cada cambio detectado entre sincronizaciones (estado, fechas,
      responsable, grupo…) con el responsable del momento. Una "modificación" del asesor es un
      grupo de cambios de un caso en una misma sincronización que:
-       - tiene trabajo sobre el caso (estado, fecha de modificación, atención o cierre), y
+       - tiene trabajo sobre el caso (estado, fecha de modificación o atención; un cambio a
+         "Cerrado" no, porque lo hace el sistema), y
        - NO cambia el responsable ni el grupo (eso es una asignación o reasignación).
      Se atribuye al responsable que tenía el caso en ese momento. Cuenta veces, no casos; varias
      modificaciones entre dos sincronizaciones cuentan como una. */
@@ -1936,10 +1936,12 @@
         const r = casoPorLlave(g.llave);
         creadoTrabajado = !!(r && autorNorm(r) && autorNorm(r) === normalizeName(g.responsable));
       }
-      // Solucionado -> Cerrado es el cierre del usuario al aprobar (o de Aranda al vencer el plazo),
-      // no trabajo del asesor; tampoco un cambio que solo trae la fecha de cierre.
-      const cierreAutomatico = g.cambios.some(function (x) { return x.campo === "estado" && x.antes === "Solucionado" && x.despues === "Cerrado"; });
-      const trabajo = !cierreAutomatico && (creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return c !== "fecha_cierre" && g.campos[c]; }));
+      // El cierre lo hace el sistema, no el asesor (Natalia, 2026-10-28): un cambio a "Cerrado" (desde
+      // cualquier estado) o que solo trae la fecha de cierre no es trabajo, salvo que en la misma
+      // sincronización también llegue la atención real.
+      const cierreSistema = g.cambios.some(function (x) { return x.campo === "estado" && x.despues === "Cerrado"; });
+      const trabajo = cierreSistema ? !!g.campos.fecha_atencion_real
+        : (creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return c !== "fecha_cierre" && g.campos[c]; }));
       const asignacion = CAMPOS_ASIGNACION.some(function (c) { return g.campos[c]; });
       if (!trabajo || asignacion || !g.responsable) return;
       // Sin fecha de Aranda, la del día en que se detectó (hora local).
@@ -1960,16 +1962,6 @@
     return STATE._porLlave[llave];
   }
 
-  // ¿El cierre del caso es trabajo del asesor? No lo es cuando el caso ya tenía atención real
-  // (el cierre posterior lo hace el usuario al aprobar la solución, o Aranda al vencer el plazo,
-  // unos 6-8 días después) ni cuando la razón es una de esas. Sí cuando lo cerró directamente,
-  // sin atención previa (p. ej. "No procede la solicitud").
-  const RAZONES_CIERRE_AUTOMATICO = ["cerrado por aprobacion del usuario", "vencimiento del plazo de validacion de solucion"];
-  function cierreDelAsesor(r) {
-    if (!fechaValida(r.fecha_cierre) || fechaValida(r.fecha_atencion_real)) return false;
-    return RAZONES_CIERRE_AUTOMATICO.indexOf(normTexto(r.razon)) === -1;
-  }
-  function normTexto(s) { return normalizeName(s).replace(/[.]/g, ""); }
   // filas (opcional): si se pasa un arreglo, se llena con cada caso o tarea que cuenta y por qué
   // (detalle de la evaluación). Las mismas reglas producen los números y el detalle.
   function evaluarPersona(nombre, rg, filas) {
@@ -1995,11 +1987,10 @@
         e.asignados++;
         fila("Asignado", r, fh(r.fecha_registro_dt || r.fecha_registro), "es responsable sin ser autor (llegó por asignación)", false);
       }
-      const at = enRango(r.fecha_atencion_real, rg), ce = enRango(r.fecha_cierre, rg) && cierreDelAsesor(r);
-      if (at || ce) {
+      const at = enRango(r.fecha_atencion_real, rg);
+      if (at) {
         e.desarrollados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id);
-        fila("Desarrollado", r, fh(at ? (r.fecha_atencion_real_dt || r.fecha_atencion_real) : r.fecha_cierre),
-          [at ? "atención real " + fh(r.fecha_atencion_real_dt || r.fecha_atencion_real) : "", ce ? "lo cerró directamente el " + fh(r.fecha_cierre) + " (sin atención previa; razón: " + (r.razon || "—") + ")" : ""].filter(Boolean).join(" · ") + (at ? " · ANS: " + ansReal(r) : ""), true);
+        fila("Desarrollado", r, fh(r.fecha_atencion_real_dt || r.fecha_atencion_real), "atención real " + fh(r.fecha_atencion_real_dt || r.fecha_atencion_real) + " · ANS: " + ansReal(r), true);
       }
       if (at) {
         const res = ansReal(r);
@@ -2047,7 +2038,14 @@
         gestiona: false, estado: t.estado, n1: "", categoria: t.criterios && t.criterios !== "N/A" ? t.criterios : "" });
     });
     e.gestionados = llaves.size;
-    llaves.forEach(function (k) { const r = casoPorLlave(k); if (r) { const c = categoriaCaso(r); e.categorias[c] = (e.categorias[c] || 0) + 1; } });
+    e.canales = {};
+    llaves.forEach(function (k) {
+      const r = casoPorLlave(k);
+      // Caso modificado que ya no viene en los datos: cuenta igual, para que el canal sume lo mismo que Gestionados.
+      if (!r) { e.canales["Sin dato del caso"] = (e.canales["Sin dato del caso"] || 0) + 1; return; }
+      const c = categoriaCaso(r), cn = r.tipo_registro && r.tipo_registro !== "N/A" ? r.tipo_registro : "Sin canal";
+      e.categorias[c] = (e.categorias[c] || 0) + 1; e.canales[cn] = (e.canales[cn] || 0) + 1;
+    });
     e.clientes = e.clientesSet.size;  // clientes distintos detrás de sus casos gestionados
     e.ansPct = (e.ansCumplido + e.ansIncumplido) ? pct(e.ansCumplido, e.ansCumplido + e.ansIncumplido) : null;
     e.horasMediana = mediana(e.horas);
@@ -2198,6 +2196,15 @@
   /* Gráficos por persona del período (las mismas cifras de la tabla), hasta 12 personas cada uno:
      casos gestionados, ANS de lo atendido, carga de hoy y mediana de atención. */
   const RESP_TOP = 12, RESP_MIN_MEDIANA = 5;
+  const COLORES_CANAL = ["#8C0F13", "#4A6B8C", "#D9A441", "#6B4E8C", "#2a7a3b", "#B5654A", "#4A0608", "#9C8C7E"];
+  function colorCanal(canal) {
+    if (!STATE._ordenCanal) {
+      const n = {}; STATE.rawCasos.forEach(function (r) { const k = r.tipo_registro && r.tipo_registro !== "N/A" ? r.tipo_registro : "Sin canal"; n[k] = (n[k] || 0) + 1; });
+      STATE._ordenCanal = Object.keys(n).sort(function (a, b) { return n[b] - n[a]; });
+    }
+    const i = STATE._ordenCanal.indexOf(canal);
+    return i >= 0 && i < COLORES_CANAL.length ? COLORES_CANAL[i] : "#D9CFC6";
+  }
   function alturaBarras(canvasId, n) {
     const cv = document.getElementById(canvasId);
     if (cv && cv.parentElement) cv.parentElement.style.height = Math.max(150, n * 26 + 70) + "px";
@@ -2218,7 +2225,7 @@
     alturaBarras("chartRespGestionados", g.length);
     renderChart("chartRespGestionados", "bar", { labels: g.map(corto), datasets: [
       { label: "Registrados (autor)", data: g.map(function (e) { return e.registrados; }), backgroundColor: "#8C0F13" },
-      { label: "Otros gestionados (atendidos, cerrados o modificados)", data: g.map(function (e) { return e.gestionados - Math.min(e.registrados, e.gestionados); }), backgroundColor: "#4A6B8C" }
+      { label: "Otros gestionados (atendidos o modificados)", data: g.map(function (e) { return e.gestionados - Math.min(e.registrados, e.gestionados); }), backgroundColor: "#4A6B8C" }
     ] }, apilado());
     nota("respNotaGestionados", g, evals.filter(function (e) { return e.gestionados > 0; }).length);
 
@@ -2236,6 +2243,17 @@
       { label: "Críticos", data: c.map(function (e) { return e.criticos; }), backgroundColor: "#D9A441" },
       { label: "Al día", data: c.map(function (e) { return e.abiertos - e.vencidosSinAtender - e.criticos; }), backgroundColor: "#9C8C7E" }
     ] }, apilado());
+
+    // Canal de registro de los casos gestionados: los 5 canales con más casos en la vista y "Otros".
+    // El color sigue al canal (orden por frecuencia en todos los casos), no al puesto en el filtro.
+    const totCanal = {};
+    g.forEach(function (e) { Object.keys(e.canales).forEach(function (k) { totCanal[k] = (totCanal[k] || 0) + e.canales[k]; }); });
+    const canales = Object.keys(totCanal).sort(function (x, y) { return totCanal[y] - totCanal[x]; });
+    const mostrar = canales.slice(0, 5), otros = canales.slice(5);
+    alturaBarras("chartRespCanal", g.length);
+    renderChart("chartRespCanal", "bar", { labels: g.map(corto), datasets: mostrar.map(function (k) {
+      return { label: k, data: g.map(function (e) { return e.canales[k] || 0; }), backgroundColor: colorCanal(k) };
+    }).concat(otros.length ? [{ label: "Otros (" + otros.join(", ") + ")", data: g.map(function (e) { return otros.reduce(function (s, k) { return s + (e.canales[k] || 0); }, 0); }), backgroundColor: "#D9CFC6" }] : []) }, apilado());
 
     // Mediana en días, solo con al menos RESP_MIN_MEDIANA atenciones (con 1 o 2 casos la mediana no es representativa).
     const m = top(function (e) { return e.horasMediana; }, function (e) { return e.horasMediana !== null && e.horas.length >= RESP_MIN_MEDIANA; });
@@ -2305,8 +2323,8 @@
       if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); gestionado(autor, s, r.llave); }
       if (resp) {
         if (resp !== autor) suma(por[resp].asignados, lunesDe(r.fecha_registro));
-        const sa = lunesDe(r.fecha_atencion_real), sc = cierreDelAsesor(r) ? lunesDe(r.fecha_cierre) : null;
-        [sa, sc].filter(function (s, i, a) { return s && a.indexOf(s) === i; }).forEach(function (s) { suma(por[resp].desarrollados, s); verSem(s); gestionado(resp, s, r.llave); });
+        const sa = lunesDe(r.fecha_atencion_real);  // los cierres no cuentan (los hace el sistema)
+        if (sa) { suma(por[resp].desarrollados, sa); verSem(sa); gestionado(resp, sa, r.llave); }
         if (sa) {
           const res = ansReal(r);
           if (res === "Cumplido" || res === "Incumplido") { suma(por[resp].atendidosAns, sa); if (res === "Cumplido") suma(por[resp].cumplidos, sa); }
