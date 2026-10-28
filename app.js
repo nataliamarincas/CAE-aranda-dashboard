@@ -1825,65 +1825,36 @@
 
   /* ---------------------- RESPONSABLES (Casos + Tareas combinados) ---------------------- */
 
-  // Tipo de servicio y canal de registro: aplican a los casos en todas las tablas y gráficos de
-  // Responsables (las tareas no tienen canal de registro: no se filtran por él).
-  function pasaTipoYCanalResp(r) {
+  /* Sección unificada (pedido de Natalia, 2026-10-28): UNA tabla por persona, UN período para
+     toda la sección (día, semana, mes o rango) y los MISMOS filtros para todo. Reemplaza la
+     tabla "Desempeño por responsable", que contaba el histórico por fecha de registro y no
+     cuadraba con la Gestión del período.
+     Filtros de casos (tipo de servicio, canal de registro y grupo del caso): aplican a todas
+     las columnas, KPIs, comparativa y detalle. Las tareas no tienen canal ni grupo: no se
+     filtran por ellos. El filtro de Responsable elige qué personas aparecen. */
+  function pasaFiltroCasoResp(r) {
     if (RESP_FILTER.nivel1.length && RESP_FILTER.nivel1.indexOf(nivel1Effective(r)) === -1) return false;
     if (RESP_FILTER.tipoRegistro.length && RESP_FILTER.tipoRegistro.indexOf(r.tipo_registro) === -1) return false;
+    if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
     return true;
   }
+  function hayFiltroCasoResp() { return !!(RESP_FILTER.nivel1.length || RESP_FILTER.tipoRegistro.length || RESP_FILTER.grupo.length); }
 
-  function computeResponsablesCombined() {
-    const byResp = {};
-    function ensure(nombre) {
-      if (!byResp[nombre]) byResp[nombre] = { nombre: nombre, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0, tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {} };
-      return byResp[nombre];
-    }
-    STATE.rawCasos.forEach(function (r) {
-      const nombre = r.responsable || "Sin asignar";
-      if (RESP_FILTER.responsable.length && RESP_FILTER.responsable.indexOf(nombre) === -1) return;
-      if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return;
-      if (!pasaTipoYCanalResp(r)) return;
-      if (RESP_FILTER.fechaDesde && (r.fecha_registro || "") < RESP_FILTER.fechaDesde) return;
-      if (RESP_FILTER.fechaHasta && (r.fecha_registro || "") > RESP_FILTER.fechaHasta) return;
-      const d = ensure(nombre);
-      d.totalCasos++;
-      d.categorias[categoriaCaso(r)] = (d.categorias[categoriaCaso(r)] || 0) + 1;
-      if (esAbierto(r)) {
-        d.abiertos++;
-        const cls = clasifAbierto(r);  // vencido por Progreso o por fecha
-        if (cls === "Vencido") d.vencidosActivos++; else if (cls === "Critico") d.criticosActivos++;
-      } else if (esCerrado(r)) {
-        d.solucionados++;
-        if (ansReal(r) === "Incumplido") d.vencidosCerrados++;  // cerrado fuera del ANS (Condición real)
-        if (r.tiempo_transcurrido_dias != null) d.tiemposSol.push(r.tiempo_transcurrido_dias);
-      }
+  // Personas a evaluar: responsables de los casos filtrados y (sin filtros de casos) quienes solo
+  // tienen tareas; con "Solo asesores del CAE", también los asesores sin casos en la vista.
+  function personasResp(rg) {
+    const lista = [], visto = {};
+    const agregar = function (nm) { if (nm && nm !== "N/A" && !visto[nm]) { visto[nm] = true; lista.push(nm); } };
+    STATE.rawCasos.forEach(function (r) { if (pasaFiltroCasoResp(r)) agregar(r.responsable); });
+    if (!hayFiltroCasoResp()) STATE.rawTareas.forEach(function (t) {
+      if (t.responsable && !lista.some(function (k) { return namesMatch(t.responsable, k); })) agregar(t.responsable);
     });
-    // Hay pocos responsables distintos en Tareas: se cruza cada nombre una sola vez.
-    const cruce = {};
-    STATE.rawTareas.forEach(function (t) {
-      const f = t.fecha_creacion || "";
-      if (RESP_FILTER.fechaDesde && f < RESP_FILTER.fechaDesde) return;
-      if (RESP_FILTER.fechaHasta && f > RESP_FILTER.fechaHasta) return;
-      const clave = t.responsable || "";
-      if (!(clave in cruce)) {
-        let match = null;
-        Object.keys(byResp).forEach(function (k) { if (namesMatch(t.responsable, k)) match = k; });
-        if (!match && RESP_FILTER.responsable.length && !RESP_FILTER.responsable.some(function (r) { return namesMatch(t.responsable, r); })) match = false;
-        cruce[clave] = match === null ? (t.responsable || "Sin asignar") : match;
-      }
-      const nombre = cruce[clave];
-      if (nombre === false) return;
-      const d = ensure(nombre);
-      d.totalTareas++;
-      if (!tareaCompletada(t)) d.tareasPendientes++;
+    if (_respSoloAsesores) AUTORES_GESTORES.forEach(function (a) { if (!lista.some(function (k) { return namesMatch(k, a); })) agregar(a); });
+    return lista.filter(function (nm) {
+      if (RESP_FILTER.responsable.length && RESP_FILTER.responsable.indexOf(nm) === -1) return false;
+      const s = salidaAsesor(nm);
+      return !_respSoloAsesores || (esAsesorCAE(nm) && !(s && rg.desde > s));
     });
-    Object.keys(byResp).forEach(function (k) {
-      const d = byResp[k];
-      d.tasaResolucion = (d.totalCasos > 0) ? +((d.solucionados / d.totalCasos) * 100).toFixed(1) : 0;
-      d.avgTiempoSol = d.tiemposSol.length ? d.tiemposSol.reduce(function (s, v) { return s + v; }, 0) / d.tiemposSol.length : null;  // días
-    });
-    return byResp;
   }
 
   /* ---------- Evaluación por período (día / semana / mes) ----------
@@ -2009,10 +1980,11 @@
     const fh = function (v) { return (fechaValida(v) || "").replace("T", " ").slice(0, 16); };
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
     const e = { nombre: nombre, registrados: 0, asignados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
-      ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, edades: [] };
+      ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, criticos: 0, edades: [],
+      cerrados: 0, fueraAns: 0, tareasPendientes: 0, categorias: {} };
     const llaves = new Set();
     STATE.rawCasos.forEach(function (r) {
-      if (!pasaTipoYCanalResp(r)) return;
+      if (!pasaFiltroCasoResp(r)) return;
       if (autorNorm(r) === n && enRango(r.fecha_registro, rg)) {
         e.registrados++; llaves.add(r.llave); if (r.cliente_id) e.clientesSet.add(r.cliente_id);
         fila("Registrado", r, fh(r.fecha_registro_dt || r.fecha_registro), "lo registró (autor)" + (nombreNorm(r) === n ? " y es el responsable" : " · responsable actual: " + (r.responsable || "—")), true);
@@ -2037,9 +2009,20 @@
           if (h >= 0) e.horas.push(h);
         }
       }
+      // Cerrados en el período (por fecha de cierre; aprobado por Natalia, 2026-10-28) y, de esos,
+      // fuera del ANS por Condición real. Un Solucionado sin fecha de cierre cuenta cuando se cierre.
+      if (esCerrado(r) && enRango(r.fecha_cierre, rg)) {
+        e.cerrados++;
+        if (ansReal(r) === "Incumplido") {
+          e.fueraAns++;
+          fila("Cerrado fuera de ANS", r, fh(r.fecha_cierre), "cerrado el " + fh(r.fecha_cierre) + " · atención real " + (fh(r.fecha_atencion_real_dt || r.fecha_atencion_real) || "—") +
+            " · fecha estimada " + (fh(r.fecha_estimada_solucion_dt || r.fecha_estimada_solucion) || "—"), false);
+        }
+      }
       if (esAbierto(r)) {
         e.abiertos++;
-        if (clasifAbierto(r) === "Vencido") e.vencidosSinAtender++;  // misma regla que las demás tablas
+        const cls = clasifAbierto(r);  // misma regla que las demás tablas
+        if (cls === "Vencido") e.vencidosSinAtender++; else if (cls === "Critico") e.criticos++;
         if (fechaValida(r.fecha_registro)) e.edades.push((hoy - new Date(r.fecha_registro.slice(0, 10) + "T00:00:00")) / 86400000);
       }
     });
@@ -2050,18 +2033,21 @@
     else gestionesReales().forEach(function (g) {
       if (g.n !== n || g.fecha < rg.desde || g.fecha > rg.hasta) return;
       const r = casoPorLlave(g.llave);
-      if (r && !pasaTipoYCanalResp(r)) return;
+      if (r && !pasaFiltroCasoResp(r)) return;
       e.modificados++;
       fila("Modificación", r, g.fecha, g.detalle + " · detectado en la sincronización del " + horaLocal(g.detectado) + (g.reconstruido ? " (reconstruido de fotos anteriores)" : ""), true);
       llaves.add(g.llave); if (r && r.cliente_id) e.clientesSet.add(r.cliente_id);
     });
     STATE.rawTareas.forEach(function (t) {
-      if (!enRango(t.fecha_creacion, rg) || !mismaPersona(nombreNorm(t), n)) return;
+      if (!mismaPersona(nombreNorm(t), n)) return;
+      if (!tareaCompletada(t)) e.tareasPendientes++;  // carga de hoy, no del período
+      if (!enRango(t.fecha_creacion, rg)) return;
       e.tareas++;
       if (filas) filas.push({ indicador: "Tarea", caso: "(tarea)", fecha: t.fecha_creacion, detalle: [t.linea_atencion, t.causa, t.asunto].filter(function (v) { return v && v !== "N/A"; }).join(" · "),
         gestiona: false, estado: t.estado, n1: "", categoria: t.criterios && t.criterios !== "N/A" ? t.criterios : "" });
     });
     e.gestionados = llaves.size;
+    llaves.forEach(function (k) { const r = casoPorLlave(k); if (r) { const c = categoriaCaso(r); e.categorias[c] = (e.categorias[c] || 0) + 1; } });
     e.clientes = e.clientesSet.size;  // clientes distintos detrás de sus casos gestionados
     e.ansPct = (e.ansCumplido + e.ansIncumplido) ? pct(e.ansCumplido, e.ansCumplido + e.ansIncumplido) : null;
     e.horasMediana = mediana(e.horas);
@@ -2089,25 +2075,27 @@
       buildMsDropHTML("tipoRegistro", "Canal de registro", "bi-tag", Array.from(canalSet).sort(), RESP_FILTER);
     bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
       '<div class="gfb-drops" id="respFilterDrops">' + dropsHtml + '</div>' +
-      '<div class="gfb-dates"><div class="filter-group"><label for="respFechaDesde">Desde</label>' +
-      '<input type="date" id="respFechaDesde" class="filter-select filter-select--sm"' + (RESP_FILTER.fechaDesde ? ' value="' + RESP_FILTER.fechaDesde + '"' : '') + '></div>' +
-      '<div class="filter-group"><label for="respFechaHasta">Hasta</label>' +
-      '<input type="date" id="respFechaHasta" class="filter-select filter-select--sm"' + (RESP_FILTER.fechaHasta ? ' value="' + RESP_FILTER.fechaHasta + '"' : '') + '></div></div>' +
       '<button class="gfb-clear" id="respFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
-    wireFilterBar("respFilterBar", "respFilterDrops", RESP_FILTER, function () { renderResponsablesContent(); }, ["respFechaDesde", "respFechaHasta"]);
+    wireFilterBar("respFilterBar", "respFilterDrops", RESP_FILTER, function () { renderResponsablesContent(); }, []);
     const clearBtn = document.getElementById("respFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = []; RESP_FILTER.fechaDesde = ""; RESP_FILTER.fechaHasta = "";
+      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = [];
       populateRespFilterBar(); renderResponsablesContent();
     });
   }
 
   function renderResponsables() { populateRespFilterBar(); renderResponsablesContent(); }
 
-  // Rango de la Gestión: el día elegido, su semana (lunes a domingo) o su mes.
+  // Período de toda la sección: el día elegido, su semana (lunes a domingo), su mes o un rango
+  // (RESP_FILTER.fechaDesde / fechaHasta; si falta un extremo, se usa la fecha elegida).
   function rangoGestion() {
     const p = function (n) { return String(n).padStart(2, "0"); };
     const iso = function (d) { return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+    if (_respPeriodo === "rango") {
+      let a = RESP_FILTER.fechaDesde || _respDia, b = RESP_FILTER.fechaHasta || _respDia;
+      if (a > b) { const t = a; a = b; b = t; }
+      return { desde: a, hasta: b, nombre: "rango", texto: "del " + a + " al " + b };
+    }
     const ref = new Date(_respDia + "T00:00:00");
     if (_respPeriodo === "semana") {
       const lunes = new Date(ref); lunes.setDate(ref.getDate() - ((ref.getDay() + 6) % 7));
@@ -2128,6 +2116,16 @@
       input.value = _respDia;
       if (!input._wired) { input._wired = true; input.addEventListener("change", function () { _respDia = this.value || isoToday(); renderResponsablesContent(); }); }
     }
+    const esRango = _respPeriodo === "rango";
+    const fechaUna = document.getElementById("respFechaUna"), fechaRango = document.getElementById("respFechaRango");
+    if (fechaUna) fechaUna.style.display = esRango ? "none" : "";
+    if (fechaRango) fechaRango.style.display = esRango ? "" : "none";
+    ["respDesde", "respHasta"].forEach(function (id, i) {
+      const el = document.getElementById(id); if (!el) return;
+      const campo = i ? "fechaHasta" : "fechaDesde";
+      el.value = RESP_FILTER[campo] || _respDia;
+      if (!el._wired) { el._wired = true; el.addEventListener("change", function () { RESP_FILTER[campo] = this.value; renderResponsablesContent(); }); }
+    });
     const btns = document.getElementById("respPeriodoBtns");
     if (btns) btns.querySelectorAll(".tend-btn").forEach(function (b) {
       b.classList.toggle("tend-btn--active", b.getAttribute("data-periodo") === _respPeriodo);
@@ -2145,111 +2143,84 @@
     }
   }
 
-  // KPIs y tabla de evaluación del período.
+  // KPIs y tabla única de la sección. Los KPIs son la suma de la tabla (salvo Clientes, que no
+  // repite un cliente atendido por dos personas, y la mediana, sobre todas las atenciones).
   function renderEvaluacion(evals, rg) {
     const titulo = document.getElementById("respGestionTitulo");
-    if (titulo) titulo.textContent = { "día": "Gestión del día", "semana": "Gestión de la semana", "mes": "Gestión del mes" }[rg.nombre];
+    if (titulo) titulo.textContent = { "día": "Gestión del día", "semana": "Gestión de la semana", "mes": "Gestión del mes", "rango": "Gestión del período" }[rg.nombre];
     document.querySelectorAll(".resp-per-lbl").forEach(function (el) { el.textContent = rg.nombre; });
-    const sum = function (k) { return evals.reduce(function (s, e) { return s + e[k]; }, 0); };
+    const sum = function (k) { return evals.reduce(function (s, e) { return s + (e[k] || 0); }, 0); };
     const todasHoras = [].concat.apply([], evals.map(function (e) { return e.horas; }));
     const activos = evals.filter(function (e) { return e.actividad > 0; }).sort(function (a, b) { return b.actividad - a.actividad; });
+    const atendidosAns = sum("ansCumplido") + sum("ansIncumplido");
+    const hayHist = evals.some(function (e) { return e.modificados !== null; });
     const grid = document.getElementById("kpiRespDia");
     if (grid) grid.innerHTML =
-      kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", rg.texto + " · registrados por el asesor o atendidos / cerrados") +
+      '<div class="resp-kpi-grupo">Lo que hizo en el período · ' + esc(rg.texto) + '</div>' +
+      kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", "casos distintos que registró, atendió, cerró o modificó") +
       kpi("Clientes atendidos", clientesUnion(evals), "info", "bi-person-vcard", "clientes distintos detrás de esos casos") +
       kpi("Registrados", sum("registrados"), "info", "bi-pencil-square", "creados como autor (resueltos o escalados)") +
       kpi("Asignados", sum("asignados"), "info", "bi-person-check", "es responsable sin ser autor: los asignó Aranda u otra persona") +
-      kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre") +
+      kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre directo") +
+      kpi("Modificaciones", hayHist ? sum("modificados") : "—", "info", "bi-pencil", "veces que trabajó casos (historial), sin asignaciones") +
       kpi("Tareas", sum("tareas"), "info", "bi-list-check", "tareas/eventos creados") +
+      '<div class="resp-kpi-grupo">Calidad en el período</div>' +
+      kpi("ANS cumplido", atendidosAns ? pct(sum("ansCumplido"), atendidosAns) + "%" : "—", "sla", "bi-stopwatch", "de los " + atendidosAns + " casos que atendió en el período") +
       kpi("Mediana de atención", fmtHoras(mediana(todasHoras)), "normal", "bi-clock-history", "del registro a la atención real (" + todasHoras.length + " casos)") +
-      kpi("Vencidos abiertos", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "hoy · por Progreso o por fecha · " + sum("abiertos") + " abiertos") +
+      kpi("Cerrados fuera de ANS", sum("fueraAns"), "vencido", "bi-archive", "de " + sum("cerrados") + " cerrados en el período (por fecha de cierre)") +
+      '<div class="resp-kpi-grupo">Carga hoy (no depende del período)</div>' +
+      kpi("Abiertos", sum("abiertos"), "info", "bi-folder2-open", "casos abiertos hoy") +
+      kpi("Vencidos abiertos", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "por Progreso o porque pasó la fecha estimada sin atención") +
+      kpi("Críticos abiertos", sum("criticos"), "critico", "bi-exclamation-triangle", "por Progreso") +
+      kpi("Tareas pendientes", sum("tareasPendientes"), "info", "bi-hourglass-split", "sin completar hoy") +
       kpi("Con gestión", activos.length, "info", "bi-people",
         activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionados + " casos, " + activos[0].tareas + " tareas)" : "sin gestión registrada");
 
     const sel = "#tableRespEval";
     if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (x) {} delete dtRegistry[sel]; }
     const tbody = document.querySelector(sel + " tbody");
+    const celda = function (v, texto) { return '<td data-order="' + v + '">' + (texto === undefined ? v : texto) + '</td>'; };
+    const badge = function (v, cls) { return v ? '<span class="resp-badge resp-badge--' + cls + '">' + v + '</span>' : "0"; };
     if (tbody) tbody.innerHTML = evals.map(function (e) {
-      return '<tr class="resp-row" data-resp="' + esc(e.nombre) + '">' +
+      const rowCls = e.vencidosSinAtender > 0 ? " row--vencido" : (e.criticos > 0 ? " row--critico" : "");
+      return '<tr class="resp-row' + rowCls + '" data-resp="' + esc(e.nombre) + '">' +
         '<td><strong>' + esc(e.nombre) + '</strong>' + (salidaAsesor(e.nombre) ? '<br><span class="tag-retirado" title="Ya no está en el CAE · último día: ' + esc(salidaAsesor(e.nombre)) + '">ya no está en el CAE</span>' : '') + '</td>' +
-        '<td data-order="' + e.gestionados + '"><strong>' + e.gestionados + '</strong></td>' +
-        '<td data-order="' + e.clientes + '">' + e.clientes + '</td>' +
-        '<td data-order="' + e.registrados + '">' + e.registrados + '</td>' +
-        '<td data-order="' + e.asignados + '">' + e.asignados + '</td>' +
-        '<td data-order="' + e.desarrollados + '">' + e.desarrollados + '</td>' +
-        '<td data-order="' + (e.modificados === null ? -1 : e.modificados) + '">' + (e.modificados === null ? "—" : e.modificados) + '</td>' +
-        '<td data-order="' + e.tareas + '">' + e.tareas + '</td>' +
-        '<td data-order="' + (e.horasMediana === null ? 1e9 : e.horasMediana) + '">' + fmtHoras(e.horasMediana) + '</td>' +
-        '<td data-order="' + e.abiertos + '">' + e.abiertos + '</td>' +
-        '<td data-order="' + e.vencidosSinAtender + '">' + (e.vencidosSinAtender ? '<span class="resp-badge resp-badge--vencido">' + e.vencidosSinAtender + '</span>' : "0") + '</td>' +
-        '<td data-order="' + (e.edadPromedio === null ? -1 : e.edadPromedio) + '">' + (e.edadPromedio === null ? "—" : Math.round(e.edadPromedio) + " d") + '</td></tr>';
+        celda(e.gestionados, '<strong>' + e.gestionados + '</strong>') + celda(e.clientes) + celda(e.registrados) + celda(e.asignados) + celda(e.desarrollados) +
+        celda(e.modificados === null ? -1 : e.modificados, e.modificados === null ? "—" : e.modificados) + celda(e.tareas) +
+        celda(e.ansPct === null ? -1 : e.ansPct, e.ansPct === null ? "—" : e.ansPct + "%") +
+        celda(e.horasMediana === null ? 1e9 : e.horasMediana, fmtHoras(e.horasMediana)) +
+        celda(e.fueraAns, e.fueraAns + ' <span class="resp-de">de ' + e.cerrados + '</span>') +
+        celda(e.abiertos) + celda(e.vencidosSinAtender, badge(e.vencidosSinAtender, "vencido")) + celda(e.criticos, badge(e.criticos, "critico")) +
+        celda(e.edadPromedio === null ? -1 : e.edadPromedio, e.edadPromedio === null ? "—" : Math.round(e.edadPromedio) + " d") +
+        celda(e.tareasPendientes) + '</tr>';
     }).join("");
-    dtRegistry[sel] = $(sel).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
+    dtRegistry[sel] = $(sel).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[1, "desc"]], dom: "frtipB",
+      buttons: DT_BUTTONS.map(function (b) { return Object.assign({}, b, { title: "Responsables - " + rg.texto }); }) }));
     renderComparativaResponsables(evals);
   }
 
   function renderResponsablesContent() {
     const rg = rangoGestion();
     wireControlesPeriodo();
-    const byResp = computeResponsablesCombined();
-    // Asesores del CAE: aparecen aunque los filtros los dejen sin casos en el histórico de la vista.
-    if (_respSoloAsesores && !RESP_FILTER.responsable.length) AUTORES_GESTORES.forEach(function (a) {
-      if (!Object.keys(byResp).some(function (k) { return namesMatch(k, a); }))
-        byResp[a] = { nombre: a, totalCasos: 0, abiertos: 0, vencidosActivos: 0, criticosActivos: 0, vencidosCerrados: 0, solucionados: 0,
-          tiemposSol: [], totalTareas: 0, tareasPendientes: 0, categorias: {}, tasaResolucion: 0, avgTiempoSol: null };
-    });
     const evalDe = {};
-    // "Solo asesores del CAE" y "Solo con gestión en el período" filtran ambas tablas y los KPIs.
-    const responsables = Object.values(byResp)
-      .filter(function (r) { const s = salidaAsesor(r.nombre); return !_respSoloAsesores || (esAsesorCAE(r.nombre) && !(s && rg.desde > s)); })
-      .filter(function (r) { evalDe[r.nombre] = evaluarPersona(r.nombre, rg); return !_respSoloDia || evalDe[r.nombre].actividad > 0; })
-      .sort(function (a, b) { return b.totalCasos - a.totalCasos; });
-    renderEvaluacion(responsables.map(function (r) { return evalDe[r.nombre]; }), rg);
+    // Se muestra quien tiene algo en el período o carga hoy; "Solo con gestión en el período",
+    // solo quienes tienen actividad. Con "Solo asesores del CAE", todos los asesores vigentes.
+    const evals = personasResp(rg).map(function (nm) { return (evalDe[nm] = evaluarPersona(nm, rg)); })
+      .filter(function (e) {
+        if (_respSoloDia) return e.actividad > 0;
+        return _respSoloAsesores || e.actividad > 0 || e.asignados > 0 || e.abiertos > 0 || e.cerrados > 0 || e.tareasPendientes > 0;
+      })
+      .sort(function (a, b) { return (b.gestionados - a.gestionados) || (b.abiertos - a.abiertos); });
+    renderEvaluacion(evals, rg);
 
-    const kpiGrid = document.getElementById("kpiResponsablesGrid");
-    if (kpiGrid) {
-      const totalCasosResp = responsables.reduce(function (s, r) { return s + r.totalCasos; }, 0);
-      const totalTareasResp = responsables.reduce(function (s, r) { return s + r.totalTareas; }, 0);
-      const vencCerrResp = responsables.reduce(function (s, r) { return s + r.vencidosCerrados; }, 0);
-      const cerradosResp = responsables.reduce(function (s, r) { return s + r.solucionados; }, 0);
-      kpiGrid.innerHTML =
-        kpi("Responsables en vista", responsables.length, "info", "bi-people", "según filtros de sección") +
-        kpi("Total de casos", totalCasosResp, "info", "bi-folder2-open", "histórico completo en la vista") +
-        kpi("Vencidos cerrados", vencCerrResp, "vencido", "bi-archive", pct(vencCerrResp, cerradosResp) + "% de los cerrados") +
-        kpi("Total de tareas", totalTareasResp, "info", "bi-list-check", "reporte de tareas/eventos");
-    }
-
-    const selSum = "#tableRespResumen";
-    if (dtRegistry[selSum]) { try { dtRegistry[selSum].destroy(); } catch (e) {} delete dtRegistry[selSum]; }
-    const tbody = document.querySelector(selSum + " tbody");
-    if (tbody) {
-      tbody.innerHTML = responsables.map(function (r) {
-        const rowCls = r.vencidosActivos > 0 ? "row--vencido" : (r.criticosActivos > 0 ? "row--critico" : "");
-        const vBadge = r.vencidosActivos > 0 ? '<span class="resp-badge resp-badge--vencido">' + r.vencidosActivos + '</span>' : "0";
-        const cBadge = r.criticosActivos > 0 ? '<span class="resp-badge resp-badge--critico">' + r.criticosActivos + '</span>' : "0";
-        return ('<tr class="resp-row ' + rowCls + '" data-resp="' + esc(r.nombre) + '">' +
-          '<td><strong>' + esc(r.nombre) + '</strong></td>' +
-          '<td data-order="' + r.totalCasos + '">' + r.totalCasos.toLocaleString("es-CO") + '</td>' +
-          '<td data-order="' + r.abiertos + '">' + r.abiertos + '</td>' +
-          '<td data-order="' + r.vencidosActivos + '">' + vBadge + '</td>' +
-          '<td data-order="' + r.criticosActivos + '">' + cBadge + '</td>' +
-          '<td data-order="' + r.vencidosCerrados + '">' + r.vencidosCerrados + '</td>' +
-          '<td data-order="' + r.tasaResolucion + '">' + r.tasaResolucion + '%</td>' +
-          '<td data-order="' + r.totalTareas + '">' + r.totalTareas + '</td>' +
-          '<td data-order="' + r.tareasPendientes + '">' + r.tareasPendientes + '</td></tr>');
-      }).join("");
-    }
-    // Orden por defecto: columna 1 = Total casos.
-    dtRegistry[selSum] = $(selSum).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [[1, "desc"]], dom: "frtipB", buttons: DT_BUTTONS }));
-
-    // Clic en una fila de cualquiera de las dos tablas abre el detalle.
-    $("#tableRespResumen tbody, #tableRespEval tbody").off("click.resp").on("click.resp", "tr.resp-row", function () {
+    $("#tableRespEval tbody").off("click.resp").on("click.resp", "tr.resp-row", function () {
       const nombre = $(this).attr("data-resp");
-      if (nombre && byResp[nombre]) { _respDetalleActual = nombre; renderResponsableDetalle(byResp[nombre], evalDe[nombre]); }
+      if (nombre && evalDe[nombre]) { _respDetalleActual = nombre; renderResponsableDetalle(evalDe[nombre]); }
     });
     const closeBtn = document.getElementById("btnCerrarRespDetalle");
     if (closeBtn && !closeBtn._wired) { closeBtn._wired = true; closeBtn.addEventListener("click", function () { const p = document.getElementById("panelRespDetalle"); if (p) p.style.display = "none"; _respDetalleActual = null; }); }
-    if (_respDetalleActual && byResp[_respDetalleActual]) renderResponsableDetalle(byResp[_respDetalleActual], evalDe[_respDetalleActual]);
+    if (_respDetalleActual && evalDe[_respDetalleActual]) renderResponsableDetalle(evalDe[_respDetalleActual]);
+    else { const p = document.getElementById("panelRespDetalle"); if (p) p.style.display = "none"; }
   }
 
   /* ---------- Series semanales (tendencia del responsable y comparativa) ----------
@@ -2281,7 +2252,7 @@
       if (sem && !vistos[k]) { vistos[k] = true; suma(por[nm].gestionados, sem); }
     };
     STATE.rawCasos.forEach(function (r) {
-      if (!pasaTipoYCanalResp(r)) return;
+      if (!pasaFiltroCasoResp(r)) return;
       const autor = idx[autorNorm(r)], resp = idx[nombreNorm(r)];
       if (!autor && !resp) return;
       if (autor) { const s = lunesDe(r.fecha_registro); suma(por[autor].registrados, s); verSem(s); gestionado(autor, s, r.llave); }
@@ -2299,7 +2270,7 @@
     gestionesReales().forEach(function (g) {
       const nm = idx[g.n]; if (!nm) return;
       const r = casoPorLlave(g.llave);
-      if (r && !pasaTipoYCanalResp(r)) return;
+      if (r && !pasaFiltroCasoResp(r)) return;
       const s = lunesDe(g.fecha); suma(por[nm].modificaciones, s); verSem(s); gestionado(nm, s, g.llave);
     });
     STATE.rawTareas.forEach(function (t) {
@@ -2307,8 +2278,8 @@
       const nm = Object.keys(idx).find(function (n) { return mismaPersona(tn, n); });
       if (nm) { const s = lunesDe(t.fecha_creacion); suma(por[idx[nm]].tareas, s); verSem(s); }
     });
-    // Semanas desde la primera con actividad hasta la de la fecha elegida (máx. 2 años).
-    const fin = lunesDe(_respDia), semanas = [];
+    // Semanas desde la primera con actividad hasta la del fin del período (máx. 2 años).
+    const fin = lunesDe(rangoGestion().hasta), semanas = [];
     if (min && fin) {
       const d = new Date(fin + "T00:00:00"), limite = new Date(min + "T00:00:00");
       for (let k = 0; k < 104 && d >= limite; k++) { semanas.unshift(lunesDe(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"))); d.setDate(d.getDate() - 7); }
@@ -2383,7 +2354,7 @@
 
   // Detalle de la evaluación: cada caso o tarea que cuenta en los indicadores del período y por qué.
   // Sale de evaluarPersona() con las mismas reglas que los números (para revisar contra Aranda).
-  const ORDEN_INDICADOR = ["Registrado", "Asignado", "Desarrollado", "Modificación", "Tarea"];
+  const ORDEN_INDICADOR = ["Registrado", "Asignado", "Desarrollado", "Modificación", "Cerrado fuera de ANS", "Tarea"];
   function renderDetalleEvaluacion(nombre) {
     const rg = rangoGestion(), filas = [];
     const ev = evaluarPersona(nombre, rg, filas);
@@ -2392,6 +2363,7 @@
     if (res) res.innerHTML = "<strong>" + esc(nombre) + "</strong> · " + esc(rg.texto) + " · " +
       ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " +
       (ev.modificados === null ? "modificaciones: sin historial para este período" : ev.modificados + " modificaciones") + " · " + ev.tareas + " tareas · " +
+      ev.fueraAns + " cerrados fuera de ANS (de " + ev.cerrados + " cerrados) · " +
       "<strong>" + ev.gestionados + " casos gestionados</strong> (casos distintos marcados “Sí”; un caso puede aparecer en varias filas). " +
       "Crédito al responsable actual del caso; modificaciones según el historial de sincronizaciones" + (historialDesde() ? " (desde " + esc(historialDesde()) + ")" : "") + ".";
     const sel = "#tableRespEvalDetalle";
@@ -2412,28 +2384,25 @@
     });
   }
 
-  function renderResponsableDetalle(d, ev) {
-    if (!d) return;
+  // Detalle de una persona: los mismos números de su fila en la tabla (período + carga hoy).
+  function renderResponsableDetalle(ev) {
+    if (!ev) return;
+    const d = ev, rg = rangoGestion();
     const panel = document.getElementById("panelRespDetalle"); if (panel) panel.style.display = "";
     const nameEl = document.getElementById("respDetalleNombre"); if (nameEl) nameEl.innerHTML = '<i class="bi bi-person-circle"></i> ' + esc(d.nombre);
 
     const kpiGrid = document.getElementById("kpiRespDetalle");
-    if (kpiGrid) {
-      const tiempoStr = fmtDuracion(d.avgTiempoSol);
-      kpiGrid.innerHTML =
-        kpi("Casos abiertos", d.abiertos, "info", "bi-folder2-open", "En Espera · En Proceso · Registrado") +
-        kpi("Vencidos abiertos", d.vencidosActivos, "vencido", "bi-x-octagon", "") +
-        kpi("Críticos abiertos", d.criticosActivos, "critico", "bi-exclamation-triangle", "") +
-        kpi("Vencidos cerrados", d.vencidosCerrados, "vencido", "bi-archive", pct(d.vencidosCerrados, d.solucionados) + "% de sus cerrados") +
-        kpi("% Resolución", d.tasaResolucion + "%", "sla", "bi-graph-up", d.solucionados + " solucionados") +
-        kpi("Tiempo prom. solución", tiempoStr, "normal", "bi-clock-history", "") +
-        kpi("Tareas (total / pendientes)", d.totalTareas + " / " + d.tareasPendientes, "info", "bi-list-check", "") +
-        (ev ? kpi("Gestión (" + rangoGestion().nombre + ")", ev.gestionados, "info", "bi-calendar-check", rangoGestion().texto + " · " +
-          ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " + (ev.modificados === null ? "—" : ev.modificados) + " modificaciones · " + ev.tareas + " tareas") +
-          kpi("ANS real (" + rangoGestion().nombre + ")", ev.ansPct === null ? "—" : ev.ansPct + "%", "sla", "bi-stopwatch", (ev.ansCumplido + ev.ansIncumplido) + " atendidos en el período") +
-          kpi("Mediana de atención", fmtHoras(ev.horasMediana), "normal", "bi-clock-history", "registro → atención real") : "");
-    }
-    renderChart("chartRespCategorias", "bar", toChartDataBar(d.categorias, "#8C0F13", 8), horizontalBarOpts());
+    if (kpiGrid) kpiGrid.innerHTML =
+      kpi("Casos gestionados", ev.gestionados, "info", "bi-calendar-check", rg.texto + " · " + ev.registrados + " registrados · " + ev.asignados + " asignados · " +
+        ev.desarrollados + " desarrollados · " + (ev.modificados === null ? "—" : ev.modificados) + " modificaciones") +
+      kpi("Tareas", ev.tareas, "info", "bi-list-check", "creadas en el período · " + ev.tareasPendientes + " pendientes hoy") +
+      kpi("ANS cumplido", ev.ansPct === null ? "—" : ev.ansPct + "%", "sla", "bi-stopwatch", (ev.ansCumplido + ev.ansIncumplido) + " atendidos en el período") +
+      kpi("Mediana de atención", fmtHoras(ev.horasMediana), "normal", "bi-clock-history", "registro → atención real") +
+      kpi("Cerrados fuera de ANS", ev.fueraAns, "vencido", "bi-archive", "de " + ev.cerrados + " cerrados en el período") +
+      kpi("Abiertos hoy", ev.abiertos, "info", "bi-folder2-open", ev.edadPromedio === null ? "" : "antigüedad promedio " + Math.round(ev.edadPromedio) + " d") +
+      kpi("Vencidos abiertos", ev.vencidosSinAtender, "vencido", "bi-x-octagon", "hoy") +
+      kpi("Críticos abiertos", ev.criticos, "critico", "bi-exclamation-triangle", "hoy");
+    renderChart("chartRespCategorias", "bar", toChartDataBar(ev.categorias, "#8C0F13", 8), horizontalBarOpts());
     renderTendenciaResponsable(d.nombre);
     renderDetalleEvaluacion(d.nombre);
 
@@ -2452,7 +2421,7 @@
     if (tabsEl) tabsEl.querySelectorAll(".resp-tab-btn").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-tab") === _respDetalleTab); });
     document.querySelectorAll(".resp-subview").forEach(function (sv) { sv.classList.toggle("is-active", sv.id === "respSub-" + _respDetalleTab); });
 
-    const casosResp = STATE.rawCasos.filter(function (r) { return r.responsable === d.nombre && esAbierto(r); })
+    const casosResp = STATE.rawCasos.filter(function (r) { return nombreNorm(r) === normalizeName(d.nombre) && esAbierto(r) && pasaFiltroCasoResp(r); })
       .sort(function (a, b) { return effectiveProgreso(b) - effectiveProgreso(a); });
     const selCasos = "#tableRespCasos";
     if (dtRegistry[selCasos]) { try { dtRegistry[selCasos].destroy(); } catch (e) {} delete dtRegistry[selCasos]; }

@@ -375,6 +375,11 @@ div.dataTables_wrapper .dataTables_paginate .paginate_button:hover{ background:v
 .sidebar-nav::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.15); border-radius:99px; }
 /* Columnas de "Gestión del día" en Responsables: se distinguen del resto. */
 table.data-table thead th.th-dia{ background:#E9DFD3; color:var(--wine); }
+table.data-table thead th.th-cal{ background:#DDE7DA; color:#24572F; }
+table.data-table thead th.th-hoy{ background:#E3E6EC; color:#34495E; }
+table.data-table thead tr.resp-th-grupo th{ text-align:center; }
+.resp-kpi-grupo{ grid-column:1 / -1; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--t2); margin:6px 0 -6px; }
+.resp-de{ font-size:11px; color:var(--t2); }
 table.resp-resumen-table td:first-child{ min-width:150px; }
 table.resp-resumen-table thead th{ font-size:10.5px; letter-spacing:.2px; }
 .resp-dia-solo{ display:inline-flex; align-items:center; gap:6px; margin-left:10px; text-transform:none !important; letter-spacing:0 !important; font-weight:500 !important; color:var(--t2) !important; cursor:pointer; }
