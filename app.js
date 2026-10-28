@@ -403,18 +403,24 @@
   // grupos, el segundo. Se toma el grupo responsable ACTUAL: un caso escalado cuenta en nivel 2.
   const GRUPOS_NIVEL1 = ["Gestores de CAE"];
   const NIVELES_ATENCION = ["Nivel 1 · CAE", "Nivel 2 · Otras áreas"];
-  /* Nivel de estudio y periodicidad del estudiante por caso (data/perfil_casos.json; aprobado por
-     Natalia el 2026-10-28 para filtrar todo el dashboard). Solo esos dos campos: plan de estudio,
-     beneficio y convocatoria siguen solo en conteos. Sin dato del estudiante = "Sin dato". */
+  /* Perfil del estudiante por caso (data/perfil_casos.json; decisión de Natalia el 2026-10-28 para
+     que todo responda a los filtros): nivel, periodicidad, beneficio y convocatoria. El plan de
+     estudio sigue solo en conteos. Sin dato del estudiante = "Sin dato". */
   const SIN_DATO_PERFIL = "Sin dato";
+  const CAMPO_PERFIL_CASO = { nivel: "nivel_estudio", periodicidad: "periodicidad", beneficio: "beneficio", convocatoria: "convocatoria" };
   function anotarPerfilCasos() {
     const P = STATE.perfilCasos;
+    const campos = P && P.campos ? P.campos : [];
     STATE.rawCasos.forEach(function (r) {
       const f = P && P.casos ? P.casos[r.llave] : null;
-      r.nivel_estudio = f ? P.valores.nivel[f[0]] : SIN_DATO_PERFIL;
-      r.periodicidad = f ? P.valores.periodicidad[f[1]] : SIN_DATO_PERFIL;
+      Object.keys(CAMPO_PERFIL_CASO).forEach(function (k) {
+        const i = campos.indexOf(k);
+        r[CAMPO_PERFIL_CASO[k]] = f && i !== -1 ? P.valores[k][f[i]] : SIN_DATO_PERFIL;
+      });
     });
   }
+  // ¿El archivo por caso trae este campo? (si no, el gráfico usa los conteos de perfil.json).
+  function perfilCasoTiene(campo) { const P = STATE.perfilCasos; return !!(P && P.campos && P.campos.indexOf(campo) !== -1); }
   function pasaPerfilCaso(f, r) {
     if (f.nivelEstudio && f.nivelEstudio.length && f.nivelEstudio.indexOf(r.nivel_estudio) === -1) return false;
     if (f.periodicidad && f.periodicidad.length && f.periodicidad.indexOf(r.periodicidad) === -1) return false;
@@ -1295,17 +1301,16 @@
   }
   /* Perfil del estudiante (pedido de Natalia, 2026-10-28; opción A de privacidad): nivel de
      estudio, periodicidad, beneficio DigiCampus/Comfandi, convocatoria y plan de estudio.
-     - Nivel y periodicidad (porCaso): se cuentan sobre los casos de la vista (perfil_casos.json),
-       así que responden a TODOS los filtros.
-     - Beneficio, convocatoria y plan: data/perfil.json trae solo conteos por mes de registro y
-       tipo de servicio (por privacidad no se publican por caso): responden únicamente al tipo
-       de servicio y a las fechas (por mes). "Protegido" = celdas de menos de 5 casos que el
-       pipeline no desglosa. */
+     - Nivel, periodicidad, beneficio y convocatoria (porCaso): se cuentan sobre los casos de la
+       vista (perfil_casos.json), así que responden a TODOS los filtros.
+     - Plan de estudio: data/perfil.json trae solo conteos por mes de registro y tipo de servicio
+       (por privacidad no se publica por caso): responde únicamente al tipo de servicio y a las
+       fechas (por mes). "Protegido" = celdas de menos de 5 casos que el pipeline no desglosa. */
   const PERFIL_GRAFICOS = [
     { campo: "nivel", porCaso: "nivel_estudio", titulo: "Nivel de estudio", explica: "casos por nivel de estudio del estudiante · responde a todos los filtros · % sobre los casos con dato", icono: "bi-mortarboard", tipo: "doughnut" },
     { campo: "periodicidad", porCaso: "periodicidad", titulo: "Periodicidad", explica: "casos por periodicidad del programa del estudiante · responde a todos los filtros · % sobre los casos con dato", icono: "bi-calendar3", tipo: "doughnut" },
-    { campo: "beneficio", titulo: "Beneficiarios DigiCampus y Comfandi", explica: "casos de estudiantes con beneficio, por porcentaje DigiCampus o Comfandi · solo tipo de servicio y fechas · % sobre todos los casos con dato", icono: "bi-award", tipo: "bar", quitar: ["Sin beneficio"] },
-    { campo: "convocatoria", titulo: "Convocatoria DigiCampus", explica: "casos de beneficiarios DigiCampus por versión de la convocatoria · solo tipo de servicio y fechas · % sobre todos los casos con dato", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
+    { campo: "beneficio", porCaso: "beneficio", titulo: "Beneficiarios DigiCampus y Comfandi", explica: "casos de estudiantes con beneficio, por porcentaje DigiCampus o Comfandi · responde a todos los filtros · % sobre todos los casos con dato", icono: "bi-award", tipo: "bar", quitar: ["Sin beneficio"] },
+    { campo: "convocatoria", porCaso: "convocatoria", titulo: "Convocatoria DigiCampus", explica: "casos de beneficiarios DigiCampus por versión de la convocatoria · responde a todos los filtros · % sobre todos los casos con dato", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
     { campo: "plan", titulo: "Plan de estudio", explica: "casos por plan de estudio del estudiante, los 15 con más casos · solo tipo de servicio y fechas · % sobre los casos con dato", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
   ];
   function renderPerfil(prefijo, nivel1s, desde, hasta, registros) {
@@ -1335,7 +1340,7 @@
     const porCaso = !!(STATE.perfilCasos && registros);
     let vista = 0, vistaConDato = 0;
     if (porCaso) PERFIL_GRAFICOS.forEach(function (g) {
-      if (!g.porCaso) return;
+      if (!g.porCaso || !perfilCasoTiene(g.campo)) return;
       const cc = conteo[g.campo] = {};
       registros.forEach(function (r) { const v = r[g.porCaso] || SIN_DATO_PERFIL; cc[v] = (cc[v] || 0) + 1; });
     });
@@ -1343,7 +1348,7 @@
     const nota = document.getElementById(prefijo + "PerfilNota");
     if (nota) nota.textContent = porCaso
       ? vistaConDato.toLocaleString("es-CO") + " de " + vista.toLocaleString("es-CO") + " casos de la vista con datos del estudiante (" + (fmtPct(vistaConDato, vista) || "0%") +
-        ") · nivel y periodicidad responden a todos los filtros; beneficio, convocatoria y plan solo al tipo de servicio y a las fechas (por mes), porque por privacidad no se publican por caso"
+        ") · todos los gráficos responden a los filtros, salvo el plan de estudio: solo al tipo de servicio y a las fechas (por mes), porque por privacidad no se publica por caso"
       : conDato.toLocaleString("es-CO") + " de " + total.toLocaleString("es-CO") + " casos con datos del estudiante (" + (fmtPct(conDato, total) || "0%") +
         ") · solo responde al tipo de servicio y a las fechas (por mes): por privacidad no se publica el dato por caso · % sobre los casos con datos";
     PERFIL_GRAFICOS.forEach(function (g, i) {
@@ -1351,7 +1356,8 @@
       const id = prefijo + "Perfil" + i, wrap = document.getElementById(prefijo + "PerfilWrap" + i);
       if (g.tipo === "doughnut") { if (wrap) wrap.style.height = "240px"; renderChart(id, "doughnut", toChartDataDoughnut(c, null, null), doughnutOpts()); return; }
       const datos = toChartDataBar(c, "#8C0F13", g.top || 10);
-      datos.datasets[0].pctTotal = conDato;  // % sobre los casos con datos del estudiante
+      // % sobre los casos con datos del estudiante (de la vista si el gráfico es por caso).
+      datos.datasets[0].pctTotal = porCaso && g.porCaso && perfilCasoTiene(g.campo) ? vistaConDato : conDato;
       if (wrap) wrap.style.height = Math.max(160, datos.labels.length * 28 + 50) + "px";
       renderChart(id, "bar", datos, horizontalBarOpts());
     });
