@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-10-28T00:13:25.767704",
+  "generado_en": "2026-10-28T15:22:54.470907",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 41.7,
+  "avance_general": 45.8,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -86,8 +86,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 7,
-      "tareas_completas": 2,
-      "progreso": 28.6,
+      "tareas_completas": 3,
+      "progreso": 42.9,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -299,8 +299,8 @@
     {
       "id": "3f28758f4cc28003ae38d34e739f18d6",
       "nombre": "AGREGAR SERVICIO DE BIENESTAR",
-      "estado": "No iniciado",
-      "grupo": "pendiente",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Sin prioridad",
       "vencimiento": "2026-10-31",
       "asignados": [
