@@ -378,7 +378,21 @@ table.data-table thead th.th-dia{ background:#E9DFD3; color:var(--wine); }
 table.data-table thead th.th-cal{ background:#DDE7DA; color:#24572F; }
 table.data-table thead th.th-hoy{ background:#E3E6EC; color:#34495E; }
 table.data-table thead tr.resp-th-grupo th{ text-align:center; }
-.resp-kpi-grupo{ grid-column:1 / -1; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--t2); margin:6px 0 -6px; }
+.resp-graficos{ margin-top:18px; }
+#kpiRespDia{ grid-template-columns:repeat(6, minmax(0,1fr)); }
+@media (max-width:1200px){ #kpiRespDia{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+@media (max-width:640px){ #kpiRespDia{ grid-template-columns:1fr 1fr; } }
+#tableRespEval{ font-size:11.5px; }
+#tableRespEval th, #tableRespEval td{ padding:6px 4px !important; }
+#tableRespEval thead th{ font-size:9px; letter-spacing:0; white-space:normal; line-height:1.25; padding-right:12px !important; }
+#tableRespEval td{ white-space:nowrap; }
+#tableRespEval td:first-child{ white-space:normal; }
+#tableRespEval td:first-child{ min-width:115px; }
+.resp-graficos .panel{ margin-bottom:0; }
+.resp-como{ margin:0 0 12px; font-size:12px; color:var(--t2); }
+.resp-como summary{ cursor:pointer; font-weight:600; color:var(--wine); list-style:none; display:inline-flex; gap:6px; align-items:center; }
+.resp-como summary::-webkit-details-marker{ display:none; }
+.resp-como p{ margin:8px 0 0; line-height:1.5; }
 .resp-de{ font-size:11px; color:var(--t2); }
 table.resp-resumen-table td:first-child{ min-width:150px; }
 table.resp-resumen-table thead th{ font-size:10.5px; letter-spacing:.2px; }

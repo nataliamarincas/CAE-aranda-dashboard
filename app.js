@@ -812,7 +812,7 @@
 
           } else if (tipo === "bar") {
             const t = fmtPct(v, ds.pctTotal || sumar(ds.data)); if (!t) return;
-            const texto = enValor ? v.toLocaleString("es-CO") : v.toLocaleString("es-CO") + " (" + t + ")";
+            const texto = enValor ? v.toLocaleString("es-CO") + (ds.sufijo || "") : v.toLocaleString("es-CO") + " (" + t + ")";
             const b = el.getProps(["x", "y", "base"]);
             const dentro = textoSobre(colorDe(ds, j, "backgroundColor"));
             if (horizontal) poner(texto, b.x + 5, b.y, "#4A3F38", "left");  // siempre por fuera (margen en paddingPct)
@@ -2064,6 +2064,12 @@
   function esAsesorCAE(nombre) { return AUTORES_GESTORES.some(function (a) { return namesMatch(a, nombre); }); }
   // Mediana de atención (horas) con el mismo formato de los tiempos promedio: "0 d 2 h 15 min".
   function fmtHoras(h) { return h === null ? "—" : fmtDuracion(h / 24); }
+  // Versión corta para la tabla: "2 h 30 m" o "4 d 5 h".
+  function fmtHorasCorto(h) {
+    if (h === null) return "—";
+    const min = Math.round(h * 60), d = Math.floor(min / 1440), hh = Math.floor((min % 1440) / 60), mm = min % 60;
+    return d ? d + " d " + hh + " h" : hh + " h " + mm + " m";
+  }
 
   function populateRespFilterBar() {
     const bar = document.getElementById("respFilterBar"); if (!bar) return;
@@ -2154,27 +2160,18 @@
     const activos = evals.filter(function (e) { return e.actividad > 0; }).sort(function (a, b) { return b.actividad - a.actividad; });
     const atendidosAns = sum("ansCumplido") + sum("ansIncumplido");
     const hayHist = evals.some(function (e) { return e.modificados !== null; });
+    // Seis indicadores clave (rediseño pedido por Natalia, 2026-10-28); el resto está en la tabla.
     const grid = document.getElementById("kpiRespDia");
     if (grid) grid.innerHTML =
-      '<div class="resp-kpi-grupo">Lo que hizo en el período · ' + esc(rg.texto) + '</div>' +
-      kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", "casos distintos que registró, atendió, cerró o modificó") +
+      kpi("Casos gestionados", sum("gestionados"), "info", "bi-calendar-check", rg.texto + " · " + activos.length + " personas con gestión") +
       kpi("Clientes atendidos", clientesUnion(evals), "info", "bi-person-vcard", "clientes distintos detrás de esos casos") +
-      kpi("Registrados", sum("registrados"), "info", "bi-pencil-square", "creados como autor (resueltos o escalados)") +
-      kpi("Asignados", sum("asignados"), "info", "bi-person-check", "es responsable sin ser autor: los asignó Aranda u otra persona") +
-      kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", "como responsable: con atención real o cierre directo") +
-      kpi("Modificaciones", hayHist ? sum("modificados") : "—", "info", "bi-pencil", "veces que trabajó casos (historial), sin asignaciones") +
-      kpi("Tareas", sum("tareas"), "info", "bi-list-check", "tareas/eventos creados") +
-      '<div class="resp-kpi-grupo">Calidad en el período</div>' +
-      kpi("ANS cumplido", atendidosAns ? pct(sum("ansCumplido"), atendidosAns) + "%" : "—", "sla", "bi-stopwatch", "de los " + atendidosAns + " casos que atendió en el período") +
+      kpi("Desarrollados", sum("desarrollados"), "sla", "bi-check2-circle", sum("registrados") + " registrados · " + sum("asignados") + " asignados · " +
+        (hayHist ? sum("modificados") : "—") + " modificaciones · " + sum("tareas") + " tareas") +
+      kpi("ANS cumplido", atendidosAns ? pct(sum("ansCumplido"), atendidosAns) + "%" : "—", "sla", "bi-stopwatch",
+        "de " + atendidosAns + " atendidos · " + sum("fueraAns") + " de " + sum("cerrados") + " cerrados fuera de ANS") +
       kpi("Mediana de atención", fmtHoras(mediana(todasHoras)), "normal", "bi-clock-history", "del registro a la atención real (" + todasHoras.length + " casos)") +
-      kpi("Cerrados fuera de ANS", sum("fueraAns"), "vencido", "bi-archive", "de " + sum("cerrados") + " cerrados en el período (por fecha de cierre)") +
-      '<div class="resp-kpi-grupo">Carga hoy (no depende del período)</div>' +
-      kpi("Abiertos", sum("abiertos"), "info", "bi-folder2-open", "casos abiertos hoy") +
-      kpi("Vencidos abiertos", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "por Progreso o porque pasó la fecha estimada sin atención") +
-      kpi("Críticos abiertos", sum("criticos"), "critico", "bi-exclamation-triangle", "por Progreso") +
-      kpi("Tareas pendientes", sum("tareasPendientes"), "info", "bi-hourglass-split", "sin completar hoy") +
-      kpi("Con gestión", activos.length, "info", "bi-people",
-        activos.length ? "más activo: " + activos[0].nombre + " (" + activos[0].gestionados + " casos, " + activos[0].tareas + " tareas)" : "sin gestión registrada");
+      kpi("Vencidos abiertos hoy", sum("vencidosSinAtender"), "vencido", "bi-x-octagon", "de " + sum("abiertos") + " abiertos · " + sum("criticos") + " críticos · " + sum("tareasPendientes") + " tareas pendientes");
+    renderGraficosResp(evals);
 
     const sel = "#tableRespEval";
     if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (x) {} delete dtRegistry[sel]; }
@@ -2185,18 +2182,68 @@
       const rowCls = e.vencidosSinAtender > 0 ? " row--vencido" : (e.criticos > 0 ? " row--critico" : "");
       return '<tr class="resp-row' + rowCls + '" data-resp="' + esc(e.nombre) + '">' +
         '<td><strong>' + esc(e.nombre) + '</strong>' + (salidaAsesor(e.nombre) ? '<br><span class="tag-retirado" title="Ya no está en el CAE · último día: ' + esc(salidaAsesor(e.nombre)) + '">ya no está en el CAE</span>' : '') + '</td>' +
-        celda(e.gestionados, '<strong>' + e.gestionados + '</strong>') + celda(e.clientes) + celda(e.registrados) + celda(e.asignados) + celda(e.desarrollados) +
+        celda(e.gestionados, '<strong>' + e.gestionados + '</strong>') + celda(e.registrados) + celda(e.asignados) + celda(e.desarrollados) +
         celda(e.modificados === null ? -1 : e.modificados, e.modificados === null ? "—" : e.modificados) + celda(e.tareas) +
         celda(e.ansPct === null ? -1 : e.ansPct, e.ansPct === null ? "—" : e.ansPct + "%") +
-        celda(e.horasMediana === null ? 1e9 : e.horasMediana, fmtHoras(e.horasMediana)) +
+        celda(e.horasMediana === null ? 1e9 : e.horasMediana, fmtHorasCorto(e.horasMediana)) +
         celda(e.fueraAns, e.fueraAns + ' <span class="resp-de">de ' + e.cerrados + '</span>') +
         celda(e.abiertos) + celda(e.vencidosSinAtender, badge(e.vencidosSinAtender, "vencido")) + celda(e.criticos, badge(e.criticos, "critico")) +
-        celda(e.edadPromedio === null ? -1 : e.edadPromedio, e.edadPromedio === null ? "—" : Math.round(e.edadPromedio) + " d") +
-        celda(e.tareasPendientes) + '</tr>';
+        celda(e.edadPromedio === null ? -1 : e.edadPromedio, e.edadPromedio === null ? "—" : Math.round(e.edadPromedio) + " d") + '</tr>';
     }).join("");
-    dtRegistry[sel] = $(sel).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[1, "desc"]], dom: "frtipB",
+    dtRegistry[sel] = $(sel).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 15, order: [[1, "desc"]], dom: "frtipB", autoWidth: false,
       buttons: DT_BUTTONS.map(function (b) { return Object.assign({}, b, { title: "Responsables - " + rg.texto }); }) }));
     renderComparativaResponsables(evals);
+  }
+
+  /* Gráficos por persona del período (las mismas cifras de la tabla), hasta 12 personas cada uno:
+     casos gestionados, ANS de lo atendido, carga de hoy y mediana de atención. */
+  const RESP_TOP = 12, RESP_MIN_MEDIANA = 5;
+  function alturaBarras(canvasId, n) {
+    const cv = document.getElementById(canvasId);
+    if (cv && cv.parentElement) cv.parentElement.style.height = Math.max(150, n * 26 + 70) + "px";
+  }
+  function renderGraficosResp(evals) {
+    const top = function (fn, filtro) {
+      return evals.filter(filtro || function (e) { return fn(e) > 0; }).sort(function (a, b) { return fn(b) - fn(a); }).slice(0, RESP_TOP);
+    };
+    // Primer nombre y primer apellido ("Nombre1 Nombre2 Apellido1 Apellido2"); el tooltip no cambia el nombre.
+    const corto = function (e) { const t = e.nombre.split(/\s+/); return t.length >= 4 ? t[0] + " " + t[2] : t.slice(0, 2).join(" "); };
+    const apilado = function () { return Object.assign(stackedBarOpts(), { indexAxis: "y",
+      scales: { x: { stacked: true, beginAtZero: true, grid: gridOpts(), ticks: { precision: 0 } }, y: { stacked: true, grid: { display: false } } } }); };
+    const nota = function (id, lista, total) {
+      const el = document.getElementById(id); if (el) el.textContent = lista.length < total ? "las " + lista.length + " de más valor" : "";
+    };
+
+    const g = top(function (e) { return e.gestionados; });
+    alturaBarras("chartRespGestionados", g.length);
+    renderChart("chartRespGestionados", "bar", { labels: g.map(corto), datasets: [
+      { label: "Registrados (autor)", data: g.map(function (e) { return e.registrados; }), backgroundColor: "#8C0F13" },
+      { label: "Otros gestionados (atendidos, cerrados o modificados)", data: g.map(function (e) { return e.gestionados - Math.min(e.registrados, e.gestionados); }), backgroundColor: "#4A6B8C" }
+    ] }, apilado());
+    nota("respNotaGestionados", g, evals.filter(function (e) { return e.gestionados > 0; }).length);
+
+    const a = top(function (e) { return e.ansCumplido + e.ansIncumplido; });
+    alturaBarras("chartRespAns", a.length);
+    renderChart("chartRespAns", "bar", { labels: a.map(corto), datasets: [
+      { label: "Cumplido", data: a.map(function (e) { return e.ansCumplido; }), backgroundColor: ANS_REAL_COLORS.Cumplido },
+      { label: "Incumplido", data: a.map(function (e) { return e.ansIncumplido; }), backgroundColor: ANS_REAL_COLORS.Incumplido }
+    ] }, apilado());
+
+    const c = top(function (e) { return e.abiertos; });
+    alturaBarras("chartRespCarga", c.length);
+    renderChart("chartRespCarga", "bar", { labels: c.map(corto), datasets: [
+      { label: "Vencidos", data: c.map(function (e) { return e.vencidosSinAtender; }), backgroundColor: "#C0151A" },
+      { label: "Críticos", data: c.map(function (e) { return e.criticos; }), backgroundColor: "#D9A441" },
+      { label: "Al día", data: c.map(function (e) { return e.abiertos - e.vencidosSinAtender - e.criticos; }), backgroundColor: "#9C8C7E" }
+    ] }, apilado());
+
+    // Mediana en días, solo con al menos RESP_MIN_MEDIANA atenciones (con 1 o 2 casos la mediana no es representativa).
+    const m = top(function (e) { return e.horasMediana; }, function (e) { return e.horasMediana !== null && e.horas.length >= RESP_MIN_MEDIANA; });
+    alturaBarras("chartRespMediana", m.length);
+    renderChart("chartRespMediana", "bar", { labels: m.map(corto), datasets: [
+      { label: "Mediana de atención (días)", data: m.map(function (e) { return Math.round(e.horasMediana / 24 * 10) / 10; }), backgroundColor: "#4A6B8C", sufijo: " d" }
+    ] }, horizontalBarOpts({ plugins: { legend: { display: false }, pctLabels: { modo: "valor" },
+      tooltip: { callbacks: { label: function (x) { return "Mediana: " + fmtHoras(m[x.dataIndex].horasMediana) + " (" + m[x.dataIndex].horas.length + " casos)"; } } } } }));
   }
 
   function renderResponsablesContent() {
@@ -2393,7 +2440,7 @@
 
     const kpiGrid = document.getElementById("kpiRespDetalle");
     if (kpiGrid) kpiGrid.innerHTML =
-      kpi("Casos gestionados", ev.gestionados, "info", "bi-calendar-check", rg.texto + " · " + ev.registrados + " registrados · " + ev.asignados + " asignados · " +
+      kpi("Casos gestionados", ev.gestionados, "info", "bi-calendar-check", rg.texto + " · " + ev.clientes + " clientes · " + ev.registrados + " registrados · " + ev.asignados + " asignados · " +
         ev.desarrollados + " desarrollados · " + (ev.modificados === null ? "—" : ev.modificados) + " modificaciones") +
       kpi("Tareas", ev.tareas, "info", "bi-list-check", "creadas en el período · " + ev.tareasPendientes + " pendientes hoy") +
       kpi("ANS cumplido", ev.ansPct === null ? "—" : ev.ansPct + "%", "sla", "bi-stopwatch", (ev.ansCumplido + ev.ansIncumplido) + " atendidos en el período") +
