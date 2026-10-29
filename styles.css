@@ -105,7 +105,7 @@ button{ font-family:inherit; }
 .sync-pill.is-error{ background:rgba(192,21,26,0.25); color:#fff; }
 .sync-pill.is-partial{ background:rgba(217,164,65,0.25); color:#fff; }
 .sidebar-footer-meta{ font-size:10.5px; color:rgba(237,232,227,0.4); margin-top:8px; text-align:center; }
-.sidebar-footer-credit{ font-size:9px; color:#c9a0a2; margin-top:4px; text-align:center; }
+.sidebar-footer-credit{ font-size:12px; font-weight:600; line-height:1.4; color:#d9b3b5; margin-top:6px; text-align:center; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 
 .sidebar-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:999; }
