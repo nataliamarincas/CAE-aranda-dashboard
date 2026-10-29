@@ -1,6 +1,6 @@
 {
-  "generado_en": "2026-10-29T00:34:12.390456",
-  "total_tareas": 5711,
+  "generado_en": "2026-10-29T16:42:33.211744",
+  "total_tareas": 5717,
   "tareas": [
     {
       "asunto": "Paz y salvo financiero para grado",
@@ -74244,6 +74244,84 @@
       "tarea_id": "00TQl00001gW0p2",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Llamada",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-28",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001gWWDn",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-28",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001gWZRl",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo credito largo plazo",
+      "causa": "AF - Largo Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-29",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001gcNJF",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "Correo credito puente",
+      "causa": "AF - Crédito puente",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-29",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001gcea8",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "Primer llamada campañas",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-29",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001gckE8",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "Correo credito corto plazo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-10-29",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001gcrAh",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
     }
   ]
 }
