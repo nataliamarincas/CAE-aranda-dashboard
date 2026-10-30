@@ -103,16 +103,16 @@
   // otra cosa: el filtro "Condición".
   const CLASIFICACIONES = ["Vencido", "Crítico", "En riesgo", "A tiempo", "Sin dato"];
   const CASOS_FILTER = { nivel1: [], nivel2: [], nivel3: [], grupo: [], responsable: [], estado: [], fuente: [], tipoRegistro: [], condicion: [], ansReal: [],
-    clasificacion: [], autor: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
+    clasificacion: [], autor: [], nivelEstudio: [], periodicidad: [], planEstudio: [], fechaDesde: "", fechaHasta: "" };
   const TAREAS_FILTER = { tipoServicio: [], linea: [], causa: [], criterios: [], responsable: [], estado: [], fechaDesde: "", fechaHasta: "" };
-  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], tipoRegistro: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
-  const GRUPO_FILTER = { grupo: [], nivel1: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
+  const RESP_FILTER = { responsable: [], grupo: [], nivel1: [], tipoRegistro: [], nivelEstudio: [], periodicidad: [], planEstudio: [], fechaDesde: "", fechaHasta: "" };
+  const GRUPO_FILTER = { grupo: [], nivel1: [], nivelEstudio: [], periodicidad: [], planEstudio: [], fechaDesde: "", fechaHasta: "" };
   // Resumen ejecutivo: filtros propios (independientes de la pestaña Casos).
   // Las fechas también recortan las Tareas.
   const EXEC_FILTER = { nivel1: [], nivel2: [], clasificacion: [], autor: [], grupo: [], responsable: [], estado: [], condicion: [],
-    tipoRegistro: [], fuente: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
+    tipoRegistro: [], fuente: [], nivelEstudio: [], periodicidad: [], planEstudio: [], fechaDesde: "", fechaHasta: "" };
   // Atención Prioritaria: filtros propios sobre los casos abiertos vencidos o críticos.
-  const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], nivelEstudio: [], periodicidad: [], fechaDesde: "", fechaHasta: "" };
+  const ATENCION_FILTER = { clasificacion: [], nivel1: [], nivel2: [], grupo: [], responsable: [], estado: [], nivelEstudio: [], periodicidad: [], planEstudio: [], fechaDesde: "", fechaHasta: "" };
 
   // Todo estado que no esté aquí cuenta como abierto, p. ej. "Validación superior" (el caso lo
   // revisa el consejo u otra instancia de la universidad: aún no está resuelto; confirmado por
@@ -403,11 +403,11 @@
   // grupos, el segundo. Se toma el grupo responsable ACTUAL: un caso escalado cuenta en nivel 2.
   const GRUPOS_NIVEL1 = ["Gestores de CAE"];
   const NIVELES_ATENCION = ["Nivel 1 · CAE", "Nivel 2 · Otras áreas"];
-  /* Perfil del estudiante por caso (data/perfil_casos.json; decisión de Natalia el 2026-10-28 para
-     que todo responda a los filtros): nivel, periodicidad, beneficio y convocatoria. El plan de
-     estudio sigue solo en conteos. Sin dato del estudiante = "Sin dato". */
+  /* Perfil del estudiante por caso (data/perfil_casos.json; decisiones de Natalia del 2026-10-28 y
+     2026-10-30 para que todo responda a los filtros): nivel, periodicidad, beneficio, convocatoria
+     y plan de estudio. Sin dato del estudiante = "Sin dato". */
   const SIN_DATO_PERFIL = "Sin dato";
-  const CAMPO_PERFIL_CASO = { nivel: "nivel_estudio", periodicidad: "periodicidad", beneficio: "beneficio", convocatoria: "convocatoria" };
+  const CAMPO_PERFIL_CASO = { nivel: "nivel_estudio", periodicidad: "periodicidad", beneficio: "beneficio", convocatoria: "convocatoria", plan: "plan_estudio" };
   function anotarPerfilCasos() {
     const P = STATE.perfilCasos;
     const campos = P && P.campos ? P.campos : [];
@@ -424,12 +424,15 @@
   function pasaPerfilCaso(f, r) {
     if (f.nivelEstudio && f.nivelEstudio.length && f.nivelEstudio.indexOf(r.nivel_estudio) === -1) return false;
     if (f.periodicidad && f.periodicidad.length && f.periodicidad.indexOf(r.periodicidad) === -1) return false;
+    if (f.planEstudio && f.planEstudio.length && f.planEstudio.indexOf(r.plan_estudio) === -1) return false;
     return true;
   }
   function dropsPerfil(filterObj) {
     const P = STATE.perfilCasos; if (!P || !P.valores) return "";
-    return buildMsDropHTML("nivelEstudio", "Nivel de estudio", "bi-mortarboard", P.valores.nivel.slice().sort().concat([SIN_DATO_PERFIL]), filterObj) +
-      buildMsDropHTML("periodicidad", "Periodicidad", "bi-calendar3", P.valores.periodicidad.slice().sort().concat([SIN_DATO_PERFIL]), filterObj);
+    const opciones = function (k) { return P.valores[k].filter(function (v) { return v !== SIN_DATO_PERFIL; }).sort().concat([SIN_DATO_PERFIL]); };
+    return buildMsDropHTML("nivelEstudio", "Nivel de estudio", "bi-mortarboard", opciones("nivel"), filterObj) +
+      buildMsDropHTML("periodicidad", "Periodicidad", "bi-calendar3", opciones("periodicidad"), filterObj) +
+      (P.valores.plan ? buildMsDropHTML("planEstudio", "Plan de estudio", "bi-journal-text", opciones("plan"), filterObj) : "");
   }
   function nivelAtencion(r) { return GRUPOS_NIVEL1.indexOf(r.grupo_responsable) !== -1 ? NIVELES_ATENCION[0] : NIVELES_ATENCION[1]; }
   // "Fuera del reporte": el caso dejó de venir en el export de Aranda (normalmente porque
@@ -1301,17 +1304,15 @@
   }
   /* Perfil del estudiante (pedido de Natalia, 2026-10-28; opción A de privacidad): nivel de
      estudio, periodicidad, beneficio DigiCampus/Comfandi, convocatoria y plan de estudio.
-     - Nivel, periodicidad, beneficio y convocatoria (porCaso): se cuentan sobre los casos de la
-       vista (perfil_casos.json), así que responden a TODOS los filtros.
-     - Plan de estudio: data/perfil.json trae solo conteos por mes de registro y tipo de servicio
-       (por privacidad no se publica por caso): responde únicamente al tipo de servicio y a las
-       fechas (por mes). "Protegido" = celdas de menos de 5 casos que el pipeline no desglosa. */
+     - Todos (porCaso) se cuentan sobre los casos de la vista (perfil_casos.json), así que responden
+       a TODOS los filtros. Si el archivo por caso no trae un campo, ese gráfico usa los conteos de
+       data/perfil.json (solo tipo de servicio y fechas, por mes). */
   const PERFIL_GRAFICOS = [
     { campo: "nivel", porCaso: "nivel_estudio", titulo: "Nivel de estudio", explica: "casos por nivel de estudio del estudiante · responde a todos los filtros · % sobre los casos con dato", icono: "bi-mortarboard", tipo: "doughnut" },
     { campo: "periodicidad", porCaso: "periodicidad", titulo: "Periodicidad", explica: "casos por periodicidad del programa del estudiante · responde a todos los filtros · % sobre los casos con dato", icono: "bi-calendar3", tipo: "doughnut" },
     { campo: "beneficio", porCaso: "beneficio", titulo: "Beneficiarios DigiCampus y Comfandi", explica: "casos de estudiantes con beneficio, por porcentaje DigiCampus o Comfandi · responde a todos los filtros · % sobre todos los casos con dato", icono: "bi-award", tipo: "bar", quitar: ["Sin beneficio"] },
     { campo: "convocatoria", porCaso: "convocatoria", titulo: "Convocatoria DigiCampus", explica: "casos de beneficiarios DigiCampus por versión de la convocatoria · responde a todos los filtros · % sobre todos los casos con dato", icono: "bi-megaphone", tipo: "bar", quitar: ["No aplica"] },
-    { campo: "plan", titulo: "Plan de estudio", explica: "casos por plan de estudio del estudiante, los 15 con más casos · solo tipo de servicio y fechas · % sobre los casos con dato", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
+    { campo: "plan", porCaso: "plan_estudio", titulo: "Plan de estudio", explica: "casos por plan de estudio del estudiante, los 15 con más casos · responde a todos los filtros · % sobre los casos con dato", icono: "bi-journal-text", tipo: "bar", top: 15, ancho: true }
   ];
   function renderPerfil(prefijo, nivel1s, desde, hasta, registros) {
     const cont = document.getElementById(prefijo + "Perfil"); if (!cont) return;
@@ -1348,7 +1349,7 @@
     const nota = document.getElementById(prefijo + "PerfilNota");
     if (nota) nota.textContent = porCaso
       ? vistaConDato.toLocaleString("es-CO") + " de " + vista.toLocaleString("es-CO") + " casos de la vista con datos del estudiante (" + (fmtPct(vistaConDato, vista) || "0%") +
-        ") · todos los gráficos responden a los filtros, salvo el plan de estudio: solo al tipo de servicio y a las fechas (por mes), porque por privacidad no se publica por caso"
+        ") · todos los gráficos responden a los filtros · % sobre los casos con datos"
       : conDato.toLocaleString("es-CO") + " de " + total.toLocaleString("es-CO") + " casos con datos del estudiante (" + (fmtPct(conDato, total) || "0%") +
         ") · solo responde al tipo de servicio y a las fechas (por mes): por privacidad no se publica el dato por caso · % sobre los casos con datos";
     PERFIL_GRAFICOS.forEach(function (g, i) {
@@ -1895,7 +1896,7 @@
     if (RESP_FILTER.grupo.length && RESP_FILTER.grupo.indexOf(r.grupo_responsable) === -1) return false;
     return pasaPerfilCaso(RESP_FILTER, r);
   }
-  function hayFiltroCasoResp() { return !!(RESP_FILTER.nivel1.length || RESP_FILTER.tipoRegistro.length || RESP_FILTER.grupo.length || RESP_FILTER.nivelEstudio.length || RESP_FILTER.periodicidad.length); }
+  function hayFiltroCasoResp() { return !!(RESP_FILTER.nivel1.length || RESP_FILTER.tipoRegistro.length || RESP_FILTER.grupo.length || RESP_FILTER.nivelEstudio.length || RESP_FILTER.periodicidad.length || RESP_FILTER.planEstudio.length); }
 
   // Personas a evaluar: responsables de los casos filtrados y (sin filtros de casos) quienes solo
   // tienen tareas; con "Solo asesores del CAE", también los asesores sin casos en la vista.
@@ -2140,7 +2141,7 @@
     wireFilterBar("respFilterBar", "respFilterDrops", RESP_FILTER, function () { renderResponsablesContent(); }, []);
     const clearBtn = document.getElementById("respFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = []; RESP_FILTER.nivelEstudio = []; RESP_FILTER.periodicidad = [];
+      RESP_FILTER.responsable = []; RESP_FILTER.grupo = []; RESP_FILTER.nivel1 = []; RESP_FILTER.tipoRegistro = []; RESP_FILTER.nivelEstudio = []; RESP_FILTER.periodicidad = []; RESP_FILTER.planEstudio = [];
       populateRespFilterBar(); renderResponsablesContent();
     });
   }
@@ -2623,7 +2624,7 @@
     wireFilterBar("gruposFilterBar", "gruposFilterDrops", GRUPO_FILTER, function () { renderGruposContent(); }, ["gruposFechaDesde", "gruposFechaHasta"]);
     const clearBtn = document.getElementById("gruposFilterClear");
     if (clearBtn) clearBtn.addEventListener("click", function () {
-      GRUPO_FILTER.grupo = []; GRUPO_FILTER.nivel1 = []; GRUPO_FILTER.nivelEstudio = []; GRUPO_FILTER.periodicidad = []; GRUPO_FILTER.fechaDesde = ""; GRUPO_FILTER.fechaHasta = "";
+      GRUPO_FILTER.grupo = []; GRUPO_FILTER.nivel1 = []; GRUPO_FILTER.nivelEstudio = []; GRUPO_FILTER.periodicidad = []; GRUPO_FILTER.planEstudio = []; GRUPO_FILTER.fechaDesde = ""; GRUPO_FILTER.fechaHasta = "";
       populateGrupoFilterBar(); renderGruposContent();
     });
   }
