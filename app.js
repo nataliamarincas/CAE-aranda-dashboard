@@ -42,6 +42,7 @@
     eventosSource: "data/eventos.json",
     perfilSource: "data/perfil.json",
     perfilCasosSource: "data/perfil_casos.json",
+    ejecucionSource: "data/ejecucion.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
 
@@ -987,7 +988,7 @@
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos(), loadEjecucion()]).then(function () {
       anotarPerfilCasos();
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
@@ -1020,10 +1021,27 @@
     const icon = document.getElementById("syncIcon"), text = document.getElementById("syncText");
     pill.classList.remove("is-syncing", "is-error", "is-partial");
     if (state === "syncing") { pill.classList.add("is-syncing"); icon.className = "bi bi-arrow-repeat"; text.textContent = "Sincronizando…"; }
-    else if (state === "ok") { icon.className = "bi bi-check-circle"; text.textContent = "Datos al día"; }
+    else if (state === "ok") { icon.className = "bi bi-check-circle"; text.textContent = textoFechaDatos(); }
     else if (state === "partial") { pill.classList.add("is-partial"); icon.className = "bi bi-exclamation-circle"; text.textContent = "Sincronización parcial"; }
     else if (state === "error") { pill.classList.add("is-error"); icon.className = "bi bi-x-circle"; text.textContent = "Sin conexión a los orígenes"; }
     if (state !== "syncing") updateLastUpdatedUI();
+  }
+  /* "Datos a la fecha de …": la última vez que Natalia ejecutó el flujo a mano (data/ejecucion.json,
+     lo escribe el workflow del pipeline solo en las ejecuciones manuales; pedido del 2026-10-30).
+     Sin ese archivo, la fecha en que se generaron los casos. */
+  function textoFechaDatos() {
+    let iso = (STATE.ejecucion && STATE.ejecucion.ultima_manual) || STATE.genCasos;
+    // generado_en de casos.json viene sin zona y en UTC (hora del servidor de GitHub).
+    if (iso && !/[zZ]|[+-]\d\d:?\d\d$/.test(iso)) iso += "Z";
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d)) return "Datos a la fecha";
+    return "Datos a la fecha de " + d.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) + ", " +
+      d.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+  }
+  function loadEjecucion() {
+    return fetch(CONFIG.ejecucionSource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) { STATE.ejecucion = json; })
+      .catch(function () { /* sin ejecucion.json todavía: se usa la fecha de los casos */ });
   }
   function updateLastUpdatedUI() {
     const el = document.getElementById("lastUpdateValue"); if (!el || !STATE.lastUpdated) return;
