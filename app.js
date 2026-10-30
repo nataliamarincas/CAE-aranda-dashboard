@@ -1028,13 +1028,11 @@
   }
   /* "Datos a la fecha de …": la última vez que Natalia ejecutó el flujo a mano (data/ejecucion.json,
      lo escribe el workflow del pipeline solo en las ejecuciones manuales; pedido del 2026-10-30).
-     Sin ese archivo, la fecha en que se generaron los casos. */
+     Sin ese archivo no se muestra otra fecha: la de los casos también cambia con las automáticas. */
   function textoFechaDatos() {
-    let iso = (STATE.ejecucion && STATE.ejecucion.ultima_manual) || STATE.genCasos;
-    // generado_en de casos.json viene sin zona y en UTC (hora del servidor de GitHub).
-    if (iso && !/[zZ]|[+-]\d\d:?\d\d$/.test(iso)) iso += "Z";
+    const iso = STATE.ejecucion && STATE.ejecucion.ultima_manual;
     const d = iso ? new Date(iso) : null;
-    if (!d || isNaN(d)) return "Datos a la fecha";
+    if (!d || isNaN(d)) return "Datos a la fecha: sin ejecución manual registrada";
     return "Datos a la fecha de " + d.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) + ", " +
       d.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
   }
