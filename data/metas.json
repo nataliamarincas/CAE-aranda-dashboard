@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-03T02:44:34.813084",
+  "generado_en": "2026-11-03T15:10:34.900856",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 54.2,
+  "avance_general": 58.3,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -86,8 +86,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 7,
-      "tareas_completas": 4,
-      "progreso": 57.1,
+      "tareas_completas": 5,
+      "progreso": 71.4,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -261,8 +261,8 @@
     {
       "id": "3ff8758f4cc2801d9eb3e1d0a3c7b9ef",
       "nombre": "ACTUALIZACION INFORMACION GUIA DE MATRICULA",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Sin prioridad",
       "vencimiento": "2026-11-30",
       "asignados": [
