@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-03T20:19:37.775953",
+  "generado_en": "2026-11-03T21:19:45.065340",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 58.3,
+  "avance_general": 66.7,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -44,8 +44,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 3,
-      "tareas_completas": 0,
-      "progreso": 0.0,
+      "tareas_completas": 2,
+      "progreso": 66.7,
       "url": "https://app.notion.com/p/RE-MATR-CULA-2027-1S-2027-1C-3de8758f4cc28041811bc315ae889f03"
     },
     {
@@ -336,8 +336,8 @@
     {
       "id": "3de8758f4cc2806f9bddfa17c37c2e72",
       "nombre": "CREACIÓN DE PIEZAS (REINTEGRO)",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Alta",
       "vencimiento": "2026-09-30",
       "asignados": [
@@ -355,8 +355,8 @@
     {
       "id": "3de8758f4cc28053bf9cc5f5bcdffc65",
       "nombre": "BASE ESTUDIANTES REINTEGRO 1S - 1C (2027)",
-      "estado": "En espera de aprobación",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Alta",
       "vencimiento": "2026-10-22",
       "asignados": [
@@ -734,8 +734,8 @@
     {
       "id": "3df8758f4cc280d797c0c2658006b67e",
       "nombre": "Creación de Bases",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
+      "estado": "En curso",
+      "grupo": "en_curso",
       "fecha": null,
       "tareas": [
         "a3e8758f4cc283ccaa79818f76e4d6a3"
@@ -767,8 +767,8 @@
     {
       "id": "3df8758f4cc280129020de4dc357ddb6",
       "nombre": "Creación de Bases",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
+      "estado": "En curso",
+      "grupo": "en_curso",
       "fecha": null,
       "tareas": [
         "3de8758f4cc280c9a9f2c1a51875d003"
@@ -778,8 +778,8 @@
     {
       "id": "3de8758f4cc2808d8e64c9fbd7bf93af",
       "nombre": "Creación de Bases",
-      "estado": "Sin empezar",
-      "grupo": "pendiente",
+      "estado": "En curso",
+      "grupo": "en_curso",
       "fecha": null,
       "tareas": [
         "3de8758f4cc2807085a5f2b55a6a7503"
