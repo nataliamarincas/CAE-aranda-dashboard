@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-06T21:08:27.431843",
+  "generado_en": "2026-11-06T21:45:58.210988",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 66.7,
+  "avance_general": 70.8,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -44,8 +44,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 3,
-      "tareas_completas": 2,
-      "progreso": 66.7,
+      "tareas_completas": 3,
+      "progreso": 100.0,
       "url": "https://app.notion.com/p/RE-MATR-CULA-2027-1S-2027-1C-3de8758f4cc28041811bc315ae889f03"
     },
     {
@@ -317,8 +317,8 @@
     {
       "id": "3de8758f4cc280b7bca1c76200ff9d6e",
       "nombre": "ORGANIZACIÓN Y GESTIÓN CAMPAÑAS",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Sin prioridad",
       "vencimiento": "2026-11-30",
       "asignados": [
