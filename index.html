@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1793372442">
+<link rel="stylesheet" href="styles.css?v=1794263343">
 </head>
 <body>
 
@@ -66,6 +66,10 @@
       <button class="nav-link nav-link--alert" data-view="metas" title="Tareas de Notion vencidas">
         <i class="bi bi-bullseye"></i><span>Metas y progreso</span>
         <span class="nav-badge" id="navBadgeMetas" style="display:none">0</span>
+      </button>
+      <button class="nav-link nav-link--alert" data-view="journey" title="Actividades del journey vencidas sin enviar">
+        <i class="bi bi-signpost-split"></i><span>Journey estudiantes</span>
+        <span class="nav-badge" id="navBadgeJourney" style="display:none">0</span>
       </button>
       <button class="nav-link nav-link--alert" data-view="gestion" title="Casos vencidos + críticos">
         <i class="bi bi-people-fill"></i><span>Seguimiento operativo</span>
@@ -405,6 +409,56 @@
 
       </section>
 
+      <!-- ============ VISTA: JOURNEY ESTUDIANTES ANTIGUOS (Notion · Cronograma Journey) ============ -->
+      <section class="view" id="view-journey" data-view="journey">
+
+        <div class="panel" id="journeySinDatos" style="display:none">
+          <div class="panel-header"><h2><i class="bi bi-plug"></i> Journey aún sin datos</h2></div>
+          <p style="margin:0">Esta sección se alimenta de la base <strong>Cronograma Journey · Estudiantes Antiguos</strong> de Notion
+            (página JOURNEY MAP ESTUDIANTES ANTIGUOS) a través del pipeline. Cuando esa página esté conectada a la integración
+            de Notion del workflow, las actividades aparecerán aquí en la siguiente ejecución.</p>
+        </div>
+
+        <div id="journeyContenido">
+          <div class="metas-fuente" id="journeyFuente"></div>
+          <div class="global-filter-bar" id="journeyFilterBar"></div>
+          <div class="kpi-grid" id="kpiJourneyGrid" style="margin-top:20px"></div>
+
+          <div class="panel" style="margin-bottom:18px">
+            <div class="panel-header">
+              <h2><i class="bi bi-calendar-week"></i> Próximas 2 semanas</h2>
+              <span class="panel-sub">Actividades sin enviar o realizar que empiezan, siguen en curso o se vencieron · más urgentes primero</span>
+            </div>
+            <div class="journey-proximas" id="journeyProximas"></div>
+          </div>
+
+          <div class="grid-2col">
+            <div class="panel">
+              <div class="panel-header"><h2><i class="bi bi-bar-chart"></i> Actividades por mes</h2><span class="panel-sub">según la fecha de inicio · por periodicidad</span></div>
+              <div class="chart-wrap"><canvas id="chartJourneyMes" class="chart-skeleton"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header"><h2><i class="bi bi-pie-chart"></i> Actividades por estado</h2></div>
+              <div class="chart-wrap"><canvas id="chartJourneyEstado" class="chart-skeleton"></canvas></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2><i class="bi bi-list-ol"></i> Cronograma</h2>
+              <span class="panel-sub">Ordenado por fecha · "Situación" se calcula con la fecha de hoy</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table data-table" id="tableJourney" style="width:100%">
+                <thead><tr><th>Fecha</th><th>Actividad</th><th>Categoría</th><th>Periodicidad</th><th>Nivel</th><th>Periodo</th><th>Estado</th><th>Situación</th><th>Responsable</th><th>Pieza</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
       <!-- ============ VISTA: SEGUIMIENTO OPERATIVO ============
            Reúne Atención Prioritaria, Gestión de Responsables y Comparativa por
            Grupos como sub-pestañas de una misma vista. -->
@@ -704,6 +758,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1793372442"></script>
+<script src="app.js?v=1794263343"></script>
 </body>
 </html>

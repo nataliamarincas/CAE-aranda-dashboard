@@ -257,6 +257,18 @@ button{ font-family:inherit; }
 /* Metas y progreso (Notion) */
 .metas-fuente{ font-size:12px; color:var(--t3); margin-bottom:12px; }
 .metas-fuente a{ color:var(--wine); font-weight:600; text-decoration:none; }
+/* Journey estudiantes antiguos: próximas actividades */
+.journey-proximas{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+.journey-item{ border:1px solid var(--border); border-left:4px solid #9C8C7E; border-radius:8px; padding:10px 12px; background:var(--card); }
+.journey-item--vencida{ border-left-color:#C0151A; }
+.journey-item--hoy, .journey-item--en_curso{ border-left-color:#D9A441; }
+.journey-item--proxima{ border-left-color:#4A6B8C; }
+.journey-item-fecha{ font-size:11.5px; color:var(--t3); font-weight:600; }
+.journey-item-nombre{ font-size:13px; font-weight:600; margin:4px 0 6px; line-height:1.35; }
+.journey-item-nombre a{ color:inherit; text-decoration:none; }
+.journey-item-nombre a:hover{ color:var(--wine); text-decoration:underline; }
+.journey-item-meta{ display:flex; flex-wrap:wrap; gap:4px 10px; font-size:11.5px; color:var(--t2); align-items:center; }
+.journey-sin-resp{ color:#C0151A; }
 .metas-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
 .meta-card{ border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--card); display:flex; flex-direction:column; gap:8px; }
 .meta-card-top{ display:flex; justify-content:space-between; align-items:center; }
@@ -380,9 +392,9 @@ table.data-table thead th.th-cal{ background:#DDE7DA; color:#24572F; }
 table.data-table thead th.th-hoy{ background:#E3E6EC; color:#34495E; }
 table.data-table thead tr.resp-th-grupo th{ text-align:center; }
 .resp-graficos{ margin-top:18px; }
-#kpiRespDia{ grid-template-columns:repeat(6, minmax(0,1fr)); }
-@media (max-width:1200px){ #kpiRespDia{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
-@media (max-width:640px){ #kpiRespDia{ grid-template-columns:1fr 1fr; } }
+#kpiRespDia, #kpiJourneyGrid{ grid-template-columns:repeat(6, minmax(0,1fr)); }
+@media (max-width:1200px){ #kpiRespDia, #kpiJourneyGrid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+@media (max-width:640px){ #kpiRespDia, #kpiJourneyGrid{ grid-template-columns:1fr 1fr; } }
 #tableRespEval{ font-size:11.5px; }
 #tableRespEval th, #tableRespEval td{ padding:6px 4px !important; }
 #tableRespEval thead th{ font-size:9px; letter-spacing:0; white-space:normal; line-height:1.25; padding-right:12px !important; }

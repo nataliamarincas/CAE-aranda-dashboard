@@ -43,6 +43,7 @@
     perfilSource: "data/perfil.json",
     perfilCasosSource: "data/perfil_casos.json",
     ejecucionSource: "data/ejecucion.json",
+    journeySource: "data/journey.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
 
@@ -64,6 +65,7 @@
     casos: "Casos",
     tareas: "Tareas",
     metas: "Metas y progreso",
+    journey: "Journey estudiantes antiguos",
     gestion: "Seguimiento operativo"
   };
 
@@ -961,6 +963,14 @@
       })
       .catch(function () { /* sin metas.json todavía */ });
   }
+  // Journey (Notion): opcional, como metas.
+  function loadJourney() {
+    return fetch(CONFIG.journeySource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) {
+        if (json && json.generado_en !== STATE.genJourney) { STATE.journey = json; STATE.genJourney = json.generado_en; STATE.datosCambiaron = true; }
+      })
+      .catch(function () { /* sin journey.json todavía */ });
+  }
   function loadEventos() {
     return fetch(CONFIG.eventosSource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function (json) {
@@ -988,7 +998,7 @@
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos(), loadEjecucion()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos(), loadEjecucion(), loadJourney()]).then(function () {
       anotarPerfilCasos();
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
@@ -1117,6 +1127,7 @@
     casos: [["Casos", renderCasosView]],
     tareas: [["Tareas", renderTareasView]],
     metas: [["Metas y progreso", renderMetas]],
+    journey: [["Journey estudiantes", renderJourney]],
     gestion: [["Atención Prioritaria", renderAttention], ["Responsables", renderResponsables], ["Grupos", renderGrupos], ["Fuera del reporte", renderFueraReporte]]
   };
   let _vistasPendientes = {};
@@ -1154,6 +1165,11 @@
     if (navMetas) {
       const venc = STATE.metas ? STATE.metas.tareas.filter(function (t) { return situacionTarea(t) === "vencida"; }).length : 0;
       navMetas.textContent = venc; navMetas.style.display = venc ? "" : "none";
+    }
+    const navJourney = document.getElementById("navBadgeJourney");
+    if (navJourney) {
+      const vj = STATE.journey ? STATE.journey.actividades.filter(function (a) { return situacionJourney(a) === "vencida"; }).length : 0;
+      navJourney.textContent = vj; navJourney.style.display = vj ? "" : "none";
     }
     const navTareas = document.getElementById("navBadgeTareas");
     if (navTareas) navTareas.textContent = STATE.statsTareas.pendientes;
@@ -2874,6 +2890,148 @@
       if (fila.child.isShown()) { fila.child.hide(); this.classList.remove("is-open"); return; }
       fila.child(subtareasHTML(id), "meta-subs-row").show(); this.classList.add("is-open");
     });
+  }
+
+  /* ---------------------- JOURNEY ESTUDIANTES ANTIGUOS (Notion · Cronograma Journey) ----------------------
+     Pedido de Natalia, 2026-11-09. Datos: data/journey.json, que arma el pipeline desde la base
+     "Cronograma Journey · Estudiantes Antiguos" (correos, llamadas, preparación, recordatorios y
+     pausas por periodicidad y nivel). Situación con la fecha de hoy:
+       - realizada: estado "Enviado / Realizado";
+       - vencida: sin realizar y ya pasó su fecha (la de fin si es un rango);
+       - en curso: rango que incluye hoy; hoy: empieza hoy; proxima: empieza en 1-7 días;
+       - programada: más adelante. Las pausas (p. ej. Semana Santa) no cuentan como pendientes. */
+  const JOURNEY_FILTER = { periodicidad: [], nivel: [], periodo: [], categoria: [], secuencia: [], estado: [] };
+  const JOURNEY_COLOR_PERIODICIDAD = { "Semestral": "#8C0F13", "Cuatrimestral": "#D9A441", "Bimestral": "#4A6B8C", "Todas": "#9C8C7E" };
+  const JOURNEY_COLOR_ESTADO = { "Pendiente por enviar": "#D9CFC6", "En preparación": "#D9A441", "Listo para enviar": "#4A6B8C", "Enviado / Realizado": "#2a7a3b" };
+  const JOURNEY_SIT = { realizada: ["Realizada", ""], vencida: ["Vencida", "vencido"], en_curso: ["En curso", "riesgo"], hoy: ["Hoy", "riesgo"],
+    proxima: ["Próxima", "normal"], programada: ["Programada", ""], pausa: ["Pausa", ""] };
+  const JOURNEY_ICONO = { "Correo": "bi-envelope", "Llamadas": "bi-telephone", "Preparación": "bi-tools", "Recordatorio": "bi-bell", "Pausa": "bi-pause-circle" };
+
+  function situacionJourney(a) {
+    if (a.categoria === "Pausa") return "pausa";
+    if (a.grupo === "completo") return "realizada";
+    const di = diasHasta(a.inicio), df = diasHasta(a.fin || a.inicio);
+    if (di === null) return "programada";
+    if (df < 0) return "vencida";
+    if (di < 0) return "en_curso";
+    if (di === 0) return "hoy";
+    if (di <= 7) return "proxima";
+    return "programada";
+  }
+  function journeyFiltradas() {
+    const f = JOURNEY_FILTER;
+    return (STATE.journey ? STATE.journey.actividades : []).filter(function (a) {
+      return Object.keys(f).every(function (k) { return !f[k].length || f[k].indexOf(a[k]) !== -1; });
+    });
+  }
+  function fechaCorta(iso) {
+    if (!iso) return "";
+    const d = new Date(iso + "T00:00:00");
+    return d.getDate() + " " + MESES_CORTOS[d.getMonth()] + " " + d.getFullYear();
+  }
+  function fechaJourney(a) { return a.fin && a.fin !== a.inicio ? fechaCorta(a.inicio) + " – " + fechaCorta(a.fin) : fechaCorta(a.inicio); }
+
+  function populateJourneyFilterBar() {
+    const bar = document.getElementById("journeyFilterBar"); if (!bar || !STATE.journey) return;
+    const acts = STATE.journey.actividades;
+    const uniq = function (k) { return Array.from(new Set(acts.map(function (a) { return a[k]; }).filter(Boolean))).sort(); };
+    const dropsHtml =
+      buildMsDropHTML("periodicidad", "Periodicidad", "bi-calendar3", uniq("periodicidad"), JOURNEY_FILTER) +
+      buildMsDropHTML("nivel", "Nivel", "bi-mortarboard", uniq("nivel"), JOURNEY_FILTER) +
+      buildMsDropHTML("periodo", "Periodo", "bi-calendar-range", uniq("periodo"), JOURNEY_FILTER) +
+      buildMsDropHTML("categoria", "Categoría", "bi-tag", uniq("categoria"), JOURNEY_FILTER) +
+      buildMsDropHTML("secuencia", "Secuencia", "bi-diagram-3", uniq("secuencia"), JOURNEY_FILTER) +
+      buildMsDropHTML("estado", "Estado", "bi-circle-half", uniq("estado"), JOURNEY_FILTER);
+    bar.innerHTML = '<div class="gfb-inner"><span class="gfb-title"><i class="bi bi-funnel-fill"></i> Filtros</span>' +
+      '<div class="gfb-drops" id="journeyFilterDrops">' + dropsHtml + '</div>' +
+      '<button class="gfb-clear" id="journeyFilterClear"><i class="bi bi-x-circle"></i> Limpiar</button></div>';
+    wireFilterBar("journeyFilterBar", "journeyFilterDrops", JOURNEY_FILTER, function () { renderJourneyContent(); }, []);
+    const clearBtn = document.getElementById("journeyFilterClear");
+    if (clearBtn) clearBtn.addEventListener("click", function () {
+      Object.keys(JOURNEY_FILTER).forEach(function (k) { JOURNEY_FILTER[k] = []; });
+      populateJourneyFilterBar(); renderJourneyContent();
+    });
+  }
+
+  function renderJourney() {
+    const vacio = document.getElementById("journeySinDatos"), contenido = document.getElementById("journeyContenido");
+    if (!STATE.journey) { if (vacio) vacio.style.display = ""; if (contenido) contenido.style.display = "none"; return; }
+    if (vacio) vacio.style.display = "none"; if (contenido) contenido.style.display = "";
+    const fuente = document.getElementById("journeyFuente");
+    if (fuente) {
+      const g = STATE.journey.generado_en ? new Date(STATE.journey.generado_en + (/[zZ]|[+-]\d\d:?\d\d$/.test(STATE.journey.generado_en) ? "" : "Z")) : null;
+      fuente.innerHTML = 'Fuente: <a href="' + esc(STATE.journey.fuente_url) + '" target="_blank" rel="noopener">' + esc(STATE.journey.fuente) +
+        ' <i class="bi bi-box-arrow-up-right"></i></a>' + (g && !isNaN(g) ? ' · actualizado ' + g.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" }) : '');
+    }
+    populateJourneyFilterBar();
+    renderJourneyContent();
+  }
+
+  function renderJourneyContent() {
+    if (!STATE.journey) return;
+    const acts = journeyFiltradas();
+    const sit = {}; acts.forEach(function (a) { sit[a.url || a.actividad + a.inicio] = situacionJourney(a); });
+    const S = function (a) { return sit[a.url || a.actividad + a.inicio]; };
+    const trabajo = acts.filter(function (a) { return S(a) !== "pausa"; });
+    const hechas = trabajo.filter(function (a) { return S(a) === "realizada"; }).length;
+    const cuenta = function (s) { return trabajo.filter(function (a) { return S(a) === s; }).length; };
+    const listas = trabajo.filter(function (a) { return a.estado === "Listo para enviar"; }).length;
+    const correos = trabajo.filter(function (a) { return a.categoria === "Correo"; }).length;
+
+    const grid = document.getElementById("kpiJourneyGrid");
+    if (grid) grid.innerHTML =
+      kpi("Avance del journey", pct(hechas, trabajo.length) + "%", "sla", "bi-signpost-split", hechas + " de " + trabajo.length + " actividades enviadas o realizadas") +
+      kpi("Actividades", trabajo.length, "info", "bi-list-ol", correos + " correos · " + (trabajo.length - correos) + " llamadas, preparación y recordatorios") +
+      kpi("Vencidas sin realizar", cuenta("vencida"), "vencido", "bi-calendar-x", "ya pasó su fecha") +
+      kpi("Hoy y en curso", cuenta("hoy") + cuenta("en_curso"), "riesgo", "bi-calendar-check", cuenta("hoy") + " empiezan hoy · " + cuenta("en_curso") + " en un rango que incluye hoy") +
+      kpi("Próximos 7 días", cuenta("proxima"), "info", "bi-calendar-event", "empiezan en la próxima semana") +
+      kpi("Listas para enviar", listas, "normal", "bi-send-check", "preparadas, aún sin enviar");
+
+    // Próximas 2 semanas: vencidas, hoy, en curso y las que empiezan en 14 días, sin realizar.
+    const URG = { vencida: 0, hoy: 1, en_curso: 2, proxima: 3, programada: 4 };
+    const prox = trabajo.filter(function (a) {
+      const s = S(a); return s === "vencida" || s === "hoy" || s === "en_curso" || (s !== "realizada" && diasHasta(a.inicio) !== null && diasHasta(a.inicio) <= 14);
+    }).sort(function (a, b) { return (URG[S(a)] - URG[S(b)]) || String(a.inicio).localeCompare(String(b.inicio)); });
+    const cont = document.getElementById("journeyProximas");
+    if (cont) cont.innerHTML = prox.length ? prox.map(function (a) {
+      const s = JOURNEY_SIT[S(a)], d = diasHasta(a.inicio);
+      const cuando = S(a) === "vencida" ? "venció " + fechaCorta(a.fin || a.inicio) : S(a) === "en_curso" ? "hasta " + fechaCorta(a.fin) : d === 0 ? "hoy" : "en " + d + " días";
+      return '<div class="journey-item journey-item--' + S(a) + '">' +
+        '<div class="journey-item-fecha"><i class="bi ' + (JOURNEY_ICONO[a.categoria] || "bi-dot") + '"></i> ' + esc(fechaJourney(a)) + '</div>' +
+        '<div class="journey-item-nombre">' + (a.url ? '<a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.actividad) + '</a>' : esc(a.actividad)) + '</div>' +
+        '<div class="journey-item-meta"><span class="status-pill status-pill--' + (s[1] || "normal") + '">' + s[0] + (S(a) === "hoy" ? "" : ' · ' + esc(cuando)) + '</span>' +
+        '<span>' + esc(a.estado) + '</span><span>' + esc(a.periodo) + '</span>' +
+        (a.responsables.length ? '<span><i class="bi bi-person"></i> ' + esc(a.responsables.join(", ")) + '</span>' : '<span class="journey-sin-resp">Sin responsable</span>') + '</div></div>';
+    }).join("") : '<div class="spotlight-empty">Nada pendiente en las próximas 2 semanas con los filtros aplicados</div>';
+
+    // Actividades por mes (fecha de inicio), apiladas por periodicidad.
+    const meses = Array.from(new Set(trabajo.map(function (a) { return (a.inicio || "").slice(0, 7); }).filter(Boolean))).sort();
+    const pers = Object.keys(JOURNEY_COLOR_PERIODICIDAD).filter(function (p) { return trabajo.some(function (a) { return a.periodicidad === p; }); });
+    renderChart("chartJourneyMes", "bar", { labels: meses.map(function (m) { return MESES_CORTOS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4); }),
+      datasets: pers.map(function (p) {
+        return { label: p, backgroundColor: JOURNEY_COLOR_PERIODICIDAD[p], data: meses.map(function (m) { return trabajo.filter(function (a) { return a.periodicidad === p && (a.inicio || "").slice(0, 7) === m; }).length; }) };
+      }) }, Object.assign(stackedBarOpts(), { plugins: Object.assign(stackedBarOpts().plugins, { pctLabels: { modo: "valor" } }) }));
+    renderChart("chartJourneyEstado", "doughnut", toChartDataDoughnut(countBy(trabajo, "estado"), null, JOURNEY_COLOR_ESTADO), doughnutOpts());
+
+    // Cronograma completo.
+    const sel = "#tableJourney";
+    if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (e) {} delete dtRegistry[sel]; }
+    const tbody = document.querySelector(sel + " tbody");
+    if (tbody) tbody.innerHTML = acts.map(function (a) {
+      const s = JOURNEY_SIT[S(a)];
+      const pill = s[1] ? '<span class="status-pill status-pill--' + s[1] + '">' + s[0] + '</span>' : '<span class="area-chip">' + s[0] + '</span>';
+      return '<tr class="' + (S(a) === "vencida" ? "row--vencido" : "") + '">' +
+        '<td data-order="' + esc(a.inicio || "9999") + '">' + esc(fechaJourney(a)) + (a.semana ? '<span class="progress-text">' + esc(a.semana.replace(/^[A-Z]+\d+(\s*y\s*[A-Z]+\d+)?\s*·\s*/, "")) + '</span>' : '') + '</td>' +
+        '<td><strong>' + esc(a.actividad) + '</strong>' + (a.secuencia ? '<span class="progress-text">' + esc(a.secuencia) + (a.variante ? " · variante " + esc(a.variante) : "") + '</span>' : '') + '</td>' +
+        '<td><i class="bi ' + (JOURNEY_ICONO[a.categoria] || "bi-dot") + '"></i> ' + esc(a.categoria) + '</td>' +
+        '<td>' + esc(a.periodicidad) + '</td><td>' + esc(a.nivel) + '</td><td>' + esc(a.periodo) + '</td>' +
+        '<td>' + esc(a.estado) + '</td><td>' + pill + '</td>' +
+        '<td>' + esc(a.responsables.join(", ") || "—") + '</td>' +
+        '<td>' + (a.pieza ? '<a href="' + esc(a.pieza) + '" target="_blank" rel="noopener" title="Ver el texto del correo en Notion"><i class="bi bi-envelope-paper"></i> Ver</a>' : '—') + '</td>' +
+        '<td>' + (a.url ? '<a href="' + esc(a.url) + '" target="_blank" rel="noopener" title="Abrir en Notion"><i class="bi bi-box-arrow-up-right"></i></a>' : '') + '</td></tr>';
+    }).join("");
+    dtRegistry[sel] = $(sel).DataTable({ language: DT_LANG_ES, paging: true, pageLength: 20, order: [[0, "asc"]], dom: "frtipB", buttons: DT_BUTTONS,
+      columnDefs: [{ targets: [9, 10], orderable: false }] });
   }
 
   /* ====================== BÚSQUEDA GLOBAL ====================== */
