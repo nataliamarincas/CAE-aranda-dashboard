@@ -1,6 +1,6 @@
 {
-  "generado_en": "2026-11-09T00:26:41.653770",
-  "total_tareas": 5956,
+  "generado_en": "2026-11-09T16:49:18.319757",
+  "total_tareas": 5963,
   "tareas": [
     {
       "asunto": "Paz y salvo financiero para grado",
@@ -77405,6 +77405,19 @@
       "tipo_servicio": "Pregrado"
     },
     {
+      "asunto": "Se brinda información de credito CP y se envia correo 04/11/2026.-OE",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-06",
+      "linea_atencion": "Presencial",
+      "responsable": "Oscar Eduardo Cucuñame Otero",
+      "tarea_id": "00TQl00001hldMU",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
       "asunto": "correo",
       "causa": "AF - Corto Plazo",
       "criterios": "Proceso de matricula Apoyo financiero",
@@ -77429,6 +77442,84 @@
       "tarea_id": "00TQl00001hlqeb",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "llamada campaña",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-06",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001hlrcL",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "llamada campaña",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-09",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001htrp6",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-09",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001huLgb",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "llamada campaña",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-09",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001hunTC",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "llamada campaña",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-09",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001huucY",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-09",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001hv274",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
     }
   ]
 }
