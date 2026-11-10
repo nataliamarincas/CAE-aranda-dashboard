@@ -2935,7 +2935,7 @@
      categoría o periodo), los días en horizontal (JT_DIA_PX por día) y cada actividad en su
      fecha: barra si es un rango, rombo si es una fecha. Dentro de un grupo, las que se cruzan van
      en carriles distintos. Las pausas se dibujan como franjas sobre todas las filas. */
-  let _journeyAgrupar = "secuencia";
+  let _journeyAgrupar = "periodicidad";
   const JT_DIA_PX = 9, JT_CARRIL_PX = 26, JT_PUNTO_DIAS = 2, JT_ETIQUETA_PX = 210;  // un punto "ocupa" 2 días (18 px) para no taparse con el siguiente
   const JOURNEY_AGRUPAR_NOMBRE = { secuencia: "Secuencia", periodicidad: "Periodicidad", categoria: "Categoría", periodo: "Periodo" };
   const JT_ORDEN = { periodicidad: ["Semestral", "Cuatrimestral", "Bimestral", "Todas"], categoria: ["Correo", "Llamadas", "Recordatorio", "Preparación", "Pausa"] };
