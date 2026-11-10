@@ -2936,7 +2936,8 @@
      fecha: barra si es un rango, rombo si es una fecha. Dentro de un grupo, las que se cruzan van
      en carriles distintos. Las pausas se dibujan como franjas sobre todas las filas. */
   let _journeyAgrupar = "periodicidad";
-  const JT_DIA_PX = 9, JT_CARRIL_PX = 26, JT_PUNTO_DIAS = 2, JT_ETIQUETA_PX = 210;  // un punto "ocupa" 2 días (18 px) para no taparse con el siguiente
+  const JT_DIA_PX = 18, JT_CARRIL_PX = 26, JT_PUNTO_DIAS = 1, JT_ETIQUETA_PX = 210;  // 18 px por día para que quepan la letra y el número del día
+  const JT_LETRA_DIA = ["D", "L", "M", "M", "J", "V", "S"];  // por getDay(): domingo = 0
   const JOURNEY_AGRUPAR_NOMBRE = { secuencia: "Secuencia", periodicidad: "Periodicidad", categoria: "Categoría", periodo: "Periodo" };
   const JT_ORDEN = { periodicidad: ["Semestral", "Cuatrimestral", "Bimestral", "Todas"], categoria: ["Correo", "Llamadas", "Recordatorio", "Preparación", "Pausa"] };
   function isoLocal(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -2966,8 +2967,9 @@
     const dias = diasEntre(ini, fin) + 1, ancho = dias * JT_DIA_PX;
     const x = function (iso) { return diasEntre(ini, iso) * JT_DIA_PX; };
 
-    // Encabezado: meses y semanas (lunes).
+    // Encabezado: meses y, debajo, cada día con su letra (L M M J V S D) y su número.
     let meses = "", semanas = "", rejilla = "", nMes = 0;
+    const hoyIso = isoToday();
     for (let i = 0; i < dias; i++) {
       const iso = isoMasDias(ini, i), d = new Date(iso + "T00:00:00");
       if (i === 0 || d.getDate() === 1) {
@@ -2976,17 +2978,17 @@
         meses += '<div class="jt-mes" style="' + pos + '">' + MESES_CORTOS[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
         if (nMes++ % 2) rejilla += '<div class="jt-mes-fondo" style="' + pos + '"></div>';  // meses alternos con fondo tenue
       }
-      if (d.getDay() === 1) {
-        semanas += '<div class="jt-semana" style="left:' + i * JT_DIA_PX + 'px">' + d.getDate() + '</div>';
-        rejilla += '<div class="jt-linea" style="left:' + i * JT_DIA_PX + 'px"></div>';
-      }
+      const finde = d.getDay() === 0 || d.getDay() === 6;
+      semanas += '<div class="jt-dia' + (finde ? ' jt-dia--finde' : '') + (d.getDay() === 1 ? ' jt-dia--lunes' : '') + (iso === hoyIso ? ' jt-dia--hoy' : '') +
+        '" style="left:' + i * JT_DIA_PX + 'px;width:' + JT_DIA_PX + 'px" title="' + esc(fechaCorta(iso)) + '"><b>' + JT_LETRA_DIA[d.getDay()] + '</b><span>' + d.getDate() + '</span></div>';
+      if (finde) rejilla += '<div class="jt-finde" style="left:' + i * JT_DIA_PX + 'px;width:' + JT_DIA_PX + 'px"></div>';
+      if (d.getDay() === 1) rejilla += '<div class="jt-linea" style="left:' + i * JT_DIA_PX + 'px"></div>';
     }
     const pausas = acts.filter(function (a) { return a.categoria === "Pausa" && a.inicio; }).map(function (a) {
       return '<div class="jt-pausa" style="left:' + x(a.inicio) + 'px;width:' + (diasEntre(a.inicio, a.fin || a.inicio) + 1) * JT_DIA_PX + 'px" title="' + esc(a.actividad + " · " + fechaJourney(a)) + '"></div>';
     }).join("");
     const xHoy = x(hoy) + JT_DIA_PX / 2;
     const lineaHoy = '<div class="jt-hoy" style="left:' + xHoy + 'px" title="Hoy"></div>';
-    const pildoraHoy = '<div class="jt-hoy-pildora" style="left:' + xHoy + 'px">Hoy</div>';
     // Grupo con nombre legible (las secuencias de rematrícula vienen como "2.1", "3"…).
     const nombreGrupo = function (k) { return _journeyAgrupar === "secuencia" && /^\d/.test(k) ? "Correo " + k + " · rematrícula" : k; };
     // En la barra, el nombre corto de la actividad: "Correo 2.1 (1 de 3) · Bimestral · Pre y Pos" -> "Correo 2.1 (1 de 3)".
@@ -3026,7 +3028,7 @@
     }).join("");
 
     cont.innerHTML = '<div class="jt-interior" style="width:' + (ancho + JT_ETIQUETA_PX) + 'px">' +
-      '<div class="jt-encabezado"><div class="jt-etiqueta jt-etiqueta--vacia">' + esc(JOURNEY_AGRUPAR_NOMBRE[_journeyAgrupar]) + '</div><div class="jt-escala" style="width:' + ancho + 'px">' + meses + semanas + pildoraHoy + '</div></div>' +
+      '<div class="jt-encabezado"><div class="jt-etiqueta jt-etiqueta--vacia">' + esc(JOURNEY_AGRUPAR_NOMBRE[_journeyAgrupar]) + '</div><div class="jt-escala" style="width:' + ancho + 'px">' + meses + semanas + '</div></div>' +
       '<div class="jt-cuerpo"><div class="jt-fondo" style="width:' + ancho + 'px">' + rejilla + pausas + lineaHoy + '</div>' + filas + '</div></div>';
     // Arranca mostrando la semana anterior a hoy.
     requestAnimationFrame(function () { cont.scrollLeft = Math.max(0, x(hoy) - 7 * JT_DIA_PX); });
