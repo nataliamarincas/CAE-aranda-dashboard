@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-10T17:17:05.670170",
+  "generado_en": "2026-11-10T21:30:28.939278",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 0.0,
+  "avance": 1.5,
   "actividades": [
     {
       "actividad": "Llamadas Reintegro · Semestral · Pre y Pos",
@@ -11,7 +11,7 @@
       "grupo": "pendiente",
       "inicio": "2026-11-09",
       "fin": "2027-02-12",
-      "fecha_exacta": false,
+      "fecha_exacta": true,
       "nivel": "Pregrado y Posgrado",
       "periodicidad": "Semestral",
       "periodo": "2027 1S",
@@ -25,8 +25,8 @@
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-10",
       "fin": null,
       "fecha_exacta": true,
@@ -45,8 +45,8 @@
     {
       "actividad": "Correo Reintegro · Semestral · Pre",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-10",
       "fin": null,
       "fecha_exacta": true,
