@@ -28,7 +28,7 @@
 <!-- Bootstrap Icons -->
 <link href="lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="styles.css?v=1794263343">
+<link rel="stylesheet" href="styles.css?v=1794321555">
 </head>
 <body>
 
@@ -426,6 +426,21 @@
 
           <div class="panel" style="margin-bottom:18px">
             <div class="panel-header">
+              <h2><i class="bi bi-calendar-range"></i> Línea de tiempo</h2>
+              <div class="filter-group">
+                <span class="panel-sub" style="margin-right:6px">Agrupar por</span>
+                <div class="tend-period-btns" id="journeyAgruparBtns">
+                  <button class="tend-btn tend-btn--active" data-agrupar="secuencia">Secuencia</button><button class="tend-btn" data-agrupar="periodicidad">Periodicidad</button><button class="tend-btn" data-agrupar="categoria">Categoría</button><button class="tend-btn" data-agrupar="periodo">Periodo</button>
+                </div>
+              </div>
+            </div>
+            <div class="jt-leyenda" id="journeyLeyenda"></div>
+            <div class="jt-scroll" id="journeyTimeline"></div>
+            <p class="panel-sub" style="margin:8px 0 0">Barra = actividad con rango de fechas · rombo = fecha exacta · color = periodicidad · borde rojo = vencida sin realizar · atenuada con ✓ = enviada o realizada · franja gris = pausa. Pase el cursor para ver el detalle; clic para abrir en Notion. Deslice a los lados para ver otras semanas.</p>
+          </div>
+
+          <div class="panel" style="margin-bottom:18px">
+            <div class="panel-header">
               <h2><i class="bi bi-calendar-week"></i> Próximas 2 semanas</h2>
               <span class="panel-sub">Actividades sin enviar o realizar que empiezan, siguen en curso o se vencieron · más urgentes primero</span>
             </div>
@@ -758,6 +773,6 @@
 <script src="lib/jszip.min.js"></script>
 <script src="lib/buttons.html5.min.js"></script>
 
-<script src="app.js?v=1794263343"></script>
+<script src="app.js?v=1794321555"></script>
 </body>
 </html>

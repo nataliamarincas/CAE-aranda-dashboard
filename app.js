@@ -2931,6 +2931,96 @@
   }
   function fechaJourney(a) { return a.fin && a.fin !== a.inicio ? fechaCorta(a.inicio) + " – " + fechaCorta(a.fin) : fechaCorta(a.inicio); }
 
+  /* Línea de tiempo (pedido de Natalia, 2026-11-10): una fila por grupo (secuencia, periodicidad,
+     categoría o periodo), los días en horizontal (JT_DIA_PX por día) y cada actividad en su
+     fecha: barra si es un rango, rombo si es una fecha. Dentro de un grupo, las que se cruzan van
+     en carriles distintos. Las pausas se dibujan como franjas sobre todas las filas. */
+  let _journeyAgrupar = "secuencia";
+  const JT_DIA_PX = 9, JT_CARRIL_PX = 22, JT_PUNTO_DIAS = 2;  // un rombo "ocupa" 2 días (18 px) para no taparse con el siguiente
+  const JT_ORDEN = { periodicidad: ["Semestral", "Cuatrimestral", "Bimestral", "Todas"], categoria: ["Correo", "Llamadas", "Recordatorio", "Preparación", "Pausa"] };
+  function isoLocal(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function isoMasDias(iso, n) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n); return isoLocal(d); }
+  function diasEntre(a, b) { return Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / DIA_MS); }
+
+  function renderJourneyTimeline(acts, S) {
+    const cont = document.getElementById("journeyTimeline"); if (!cont) return;
+    const btns = document.getElementById("journeyAgruparBtns");
+    if (btns) btns.querySelectorAll(".tend-btn").forEach(function (b) {
+      b.classList.toggle("tend-btn--active", b.getAttribute("data-agrupar") === _journeyAgrupar);
+      if (!b._wired) { b._wired = true; b.addEventListener("click", function () { _journeyAgrupar = this.getAttribute("data-agrupar"); renderJourneyContent(); }); }
+    });
+    const ley = document.getElementById("journeyLeyenda");
+    if (ley) ley.innerHTML = Object.keys(JOURNEY_COLOR_PERIODICIDAD).map(function (p) {
+      return '<span><i style="background:' + JOURNEY_COLOR_PERIODICIDAD[p] + '"></i>' + esc(p) + '</span>';
+    }).join("") + '<span><i class="jt-ley-hoy"></i>Hoy</span><span><i class="jt-ley-pausa"></i>Pausa</span>';
+
+    const conFecha = acts.filter(function (a) { return a.inicio; });
+    if (!conFecha.length) { cont.innerHTML = '<div class="spotlight-empty" style="padding:16px">Sin actividades con fecha con los filtros aplicados</div>'; return; }
+    const hoy = isoToday();
+    let ini = conFecha.reduce(function (m, a) { return a.inicio < m ? a.inicio : m; }, hoy);
+    let fin = conFecha.reduce(function (m, a) { const f = a.fin || a.inicio; return f > m ? f : m; }, hoy);
+    ini = isoMasDias(ini, -((new Date(ini + "T00:00:00").getDay() + 6) % 7));  // al lunes
+    fin = isoMasDias(fin, 7);
+    const dias = diasEntre(ini, fin) + 1, ancho = dias * JT_DIA_PX;
+    const x = function (iso) { return diasEntre(ini, iso) * JT_DIA_PX; };
+
+    // Encabezado: meses y semanas (lunes).
+    let meses = "", semanas = "", rejilla = "";
+    for (let i = 0; i < dias; i++) {
+      const iso = isoMasDias(ini, i), d = new Date(iso + "T00:00:00");
+      if (i === 0 || d.getDate() === 1) {
+        const finMes = Math.min(dias, i + (new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate() + 1));
+        meses += '<div class="jt-mes" style="left:' + i * JT_DIA_PX + 'px;width:' + (finMes - i) * JT_DIA_PX + 'px">' + MESES_CORTOS[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
+      }
+      if (d.getDay() === 1) {
+        semanas += '<div class="jt-semana" style="left:' + i * JT_DIA_PX + 'px">' + d.getDate() + '</div>';
+        rejilla += '<div class="jt-linea" style="left:' + i * JT_DIA_PX + 'px"></div>';
+      }
+    }
+    const pausas = acts.filter(function (a) { return a.categoria === "Pausa" && a.inicio; }).map(function (a) {
+      return '<div class="jt-pausa" style="left:' + x(a.inicio) + 'px;width:' + (diasEntre(a.inicio, a.fin || a.inicio) + 1) * JT_DIA_PX + 'px" title="' + esc(a.actividad + " · " + fechaJourney(a)) + '"></div>';
+    }).join("");
+    const lineaHoy = '<div class="jt-hoy" style="left:' + (x(hoy) + JT_DIA_PX / 2) + 'px" title="Hoy"></div>';
+
+    // Grupos y carriles.
+    const grupos = {};
+    conFecha.filter(function (a) { return a.categoria !== "Pausa"; }).forEach(function (a) { (grupos[a[_journeyAgrupar] || "—"] = grupos[a[_journeyAgrupar] || "—"] || []).push(a); });
+    const orden = JT_ORDEN[_journeyAgrupar];
+    const claves = Object.keys(grupos).sort(function (a, b) {
+      if (orden) return (orden.indexOf(a) + 1 || 99) - (orden.indexOf(b) + 1 || 99);
+      const pa = grupos[a].reduce(function (m, x) { return x.inicio < m ? x.inicio : m; }, "9999"), pb = grupos[b].reduce(function (m, x) { return x.inicio < m ? x.inicio : m; }, "9999");
+      return pa.localeCompare(pb) || a.localeCompare(b);
+    });
+    const filas = claves.map(function (k) {
+      const items = grupos[k].slice().sort(function (a, b) { return a.inicio.localeCompare(b.inicio); });
+      const carriles = [];  // último día ocupado de cada carril
+      const html = items.map(function (a) {
+        const ultimo = a.fin && a.fin !== a.inicio ? a.fin : isoMasDias(a.inicio, JT_PUNTO_DIAS - 1);
+        let c = carriles.findIndex(function (u) { return u < a.inicio; });
+        if (c === -1) { c = carriles.length; carriles.push(ultimo); } else carriles[c] = ultimo;
+        const s = S(a), color = JOURNEY_COLOR_PERIODICIDAD[a.periodicidad] || "#9C8C7E";
+        const rango = a.fin && a.fin !== a.inicio;
+        const titulo = a.actividad + "\n" + fechaJourney(a) + "\n" + a.estado + " · " + JOURNEY_SIT[s][0] + "\n" + a.periodicidad + " · " + a.nivel + " · " + a.periodo +
+          "\nResponsable: " + (a.responsables.join(", ") || "sin asignar");
+        const cls = "jt-item " + (rango ? "jt-barra" : "jt-punto") + " jt-item--" + s;
+        const estilo = "left:" + x(a.inicio) + "px;top:" + (c * JT_CARRIL_PX + 4) + "px;" +
+          (rango ? "width:" + (diasEntre(a.inicio, a.fin) + 1) * JT_DIA_PX + "px;" : "") + "--jt-color:" + color;
+        const texto = rango ? '<span>' + (s === "realizada" ? "✓ " : "") + esc(a.actividad) + '</span>' : (s === "realizada" ? '<span class="jt-check">✓</span>' : "");
+        return a.url ? '<a class="' + cls + '" style="' + estilo + '" href="' + esc(a.url) + '" target="_blank" rel="noopener" title="' + esc(titulo) + '">' + texto + '</a>'
+          : '<div class="' + cls + '" style="' + estilo + '" title="' + esc(titulo) + '">' + texto + '</div>';
+      }).join("");
+      const alto = Math.max(1, carriles.length) * JT_CARRIL_PX + 8;
+      return '<div class="jt-fila" style="height:' + alto + 'px"><div class="jt-etiqueta" title="' + esc(k) + '">' + esc(k) + ' <span>' + items.length + '</span></div>' +
+        '<div class="jt-pista" style="width:' + ancho + 'px">' + html + '</div></div>';
+    }).join("");
+
+    cont.innerHTML = '<div class="jt-interior" style="width:' + (ancho + 190) + 'px">' +
+      '<div class="jt-encabezado"><div class="jt-etiqueta jt-etiqueta--vacia"></div><div class="jt-escala" style="width:' + ancho + 'px">' + meses + semanas + '</div></div>' +
+      '<div class="jt-cuerpo"><div class="jt-fondo" style="width:' + ancho + 'px">' + rejilla + pausas + lineaHoy + '</div>' + filas + '</div></div>';
+    // Arranca mostrando la semana anterior a hoy.
+    requestAnimationFrame(function () { cont.scrollLeft = Math.max(0, x(hoy) - 7 * JT_DIA_PX); });
+  }
+
   function populateJourneyFilterBar() {
     const bar = document.getElementById("journeyFilterBar"); if (!bar || !STATE.journey) return;
     const acts = STATE.journey.actividades;
@@ -2986,6 +3076,8 @@
       kpi("Hoy y en curso", cuenta("hoy") + cuenta("en_curso"), "riesgo", "bi-calendar-check", cuenta("hoy") + " empiezan hoy · " + cuenta("en_curso") + " en un rango que incluye hoy") +
       kpi("Próximos 7 días", cuenta("proxima"), "info", "bi-calendar-event", "empiezan en la próxima semana") +
       kpi("Listas para enviar", listas, "normal", "bi-send-check", "preparadas, aún sin enviar");
+
+    renderJourneyTimeline(acts, S);
 
     // Próximas 2 semanas: vencidas, hoy, en curso y las que empiezan en 14 días, sin realizar.
     const URG = { vencida: 0, hoy: 1, en_curso: 2, proxima: 3, programada: 4 };

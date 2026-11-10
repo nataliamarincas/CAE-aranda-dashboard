@@ -269,6 +269,37 @@ button{ font-family:inherit; }
 .journey-item-nombre a:hover{ color:var(--wine); text-decoration:underline; }
 .journey-item-meta{ display:flex; flex-wrap:wrap; gap:4px 10px; font-size:11.5px; color:var(--t2); align-items:center; }
 .journey-sin-resp{ color:#C0151A; }
+/* Journey: línea de tiempo */
+.jt-leyenda{ display:flex; flex-wrap:wrap; gap:4px 16px; font-size:11.5px; color:var(--t2); margin:-4px 0 10px; }
+.jt-leyenda span{ display:inline-flex; align-items:center; gap:6px; }
+.jt-leyenda i{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+.jt-leyenda i.jt-ley-hoy{ width:2px; height:14px; border-radius:0; background:#C0151A; }
+.jt-leyenda i.jt-ley-pausa{ background:repeating-linear-gradient(45deg, #E3DED8, #E3DED8 3px, #F4F1EE 3px, #F4F1EE 6px); }
+.jt-scroll{ overflow-x:auto; overflow-y:hidden; border:1px solid var(--border); border-radius:8px; max-height:none; }
+.jt-interior{ position:relative; }
+.jt-encabezado{ display:flex; position:sticky; top:0; z-index:3; background:var(--card); border-bottom:1px solid var(--border); }
+.jt-escala{ position:relative; height:38px; }
+.jt-mes{ position:absolute; top:0; height:19px; line-height:19px; padding-left:6px; font-size:11px; font-weight:700; color:var(--t2); text-transform:capitalize; border-left:1px solid var(--border); white-space:nowrap; overflow:hidden; }
+.jt-semana{ position:absolute; top:19px; height:19px; line-height:19px; padding-left:3px; font-size:10px; color:var(--t3); border-left:1px solid #EEEBE7; }
+.jt-cuerpo{ position:relative; }
+.jt-fondo{ position:absolute; left:190px; top:0; bottom:0; pointer-events:none; }
+.jt-linea{ position:absolute; top:0; bottom:0; width:1px; background:#F1EEEA; }
+.jt-pausa{ position:absolute; top:0; bottom:0; background:repeating-linear-gradient(45deg, rgba(156,140,126,.16), rgba(156,140,126,.16) 4px, transparent 4px, transparent 8px); pointer-events:auto; }
+.jt-hoy{ position:absolute; top:0; bottom:0; width:2px; background:#C0151A; z-index:2; }
+.jt-fila{ display:flex; border-bottom:1px solid #F1EEEA; position:relative; }
+.jt-etiqueta{ position:sticky; left:0; z-index:2; flex:0 0 190px; width:190px; padding:6px 10px; font-size:11.5px; font-weight:600; color:var(--t1, #2E2420); background:var(--card); border-right:1px solid var(--border); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.jt-etiqueta span{ font-weight:400; color:var(--t3); margin-left:4px; }
+.jt-etiqueta--vacia{ padding:0; }
+.jt-pista{ position:relative; flex:0 0 auto; }
+.jt-item{ position:absolute; height:16px; z-index:1; text-decoration:none; }
+.jt-barra{ background:var(--jt-color); border-radius:4px; color:#fff; font-size:10px; line-height:16px; padding:0 5px; overflow:hidden; white-space:nowrap; }
+.jt-barra span{ display:block; overflow:hidden; text-overflow:ellipsis; }
+.jt-punto{ width:12px; height:12px; margin-top:2px; margin-left:-1px; background:var(--jt-color); transform:rotate(45deg); border-radius:2px; }
+.jt-check{ display:block; transform:rotate(-45deg); color:#fff; font-size:9px; line-height:12px; text-align:center; }
+.jt-item:hover{ filter:brightness(1.15); box-shadow:0 0 0 2px rgba(0,0,0,.18); z-index:4; }
+.jt-item--realizada{ opacity:.45; }
+.jt-item--vencida{ box-shadow:0 0 0 2px #C0151A; }
+.jt-item--hoy, .jt-item--en_curso{ box-shadow:0 0 0 2px #D9A441; }
 .metas-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
 .meta-card{ border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--card); display:flex; flex-direction:column; gap:8px; }
 .meta-card-top{ display:flex; justify-content:space-between; align-items:center; }
