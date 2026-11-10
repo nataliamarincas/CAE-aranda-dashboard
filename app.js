@@ -2936,7 +2936,8 @@
      fecha: barra si es un rango, rombo si es una fecha. Dentro de un grupo, las que se cruzan van
      en carriles distintos. Las pausas se dibujan como franjas sobre todas las filas. */
   let _journeyAgrupar = "secuencia";
-  const JT_DIA_PX = 9, JT_CARRIL_PX = 22, JT_PUNTO_DIAS = 2;  // un rombo "ocupa" 2 días (18 px) para no taparse con el siguiente
+  const JT_DIA_PX = 9, JT_CARRIL_PX = 26, JT_PUNTO_DIAS = 2, JT_ETIQUETA_PX = 210;  // un punto "ocupa" 2 días (18 px) para no taparse con el siguiente
+  const JOURNEY_AGRUPAR_NOMBRE = { secuencia: "Secuencia", periodicidad: "Periodicidad", categoria: "Categoría", periodo: "Periodo" };
   const JT_ORDEN = { periodicidad: ["Semestral", "Cuatrimestral", "Bimestral", "Todas"], categoria: ["Correo", "Llamadas", "Recordatorio", "Preparación", "Pausa"] };
   function isoLocal(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function isoMasDias(iso, n) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n); return isoLocal(d); }
@@ -2952,7 +2953,8 @@
     const ley = document.getElementById("journeyLeyenda");
     if (ley) ley.innerHTML = Object.keys(JOURNEY_COLOR_PERIODICIDAD).map(function (p) {
       return '<span><i style="background:' + JOURNEY_COLOR_PERIODICIDAD[p] + '"></i>' + esc(p) + '</span>';
-    }).join("") + '<span><i class="jt-ley-hoy"></i>Hoy</span><span><i class="jt-ley-pausa"></i>Pausa</span>';
+    }).join("") + '<span class="jt-ley-sep"></span><span><i class="jt-ley-barra"></i>Rango de fechas</span><span><i class="jt-ley-punto"></i>Fecha exacta</span>' +
+      '<span><i class="jt-ley-hoy"></i>Hoy</span><span><i class="jt-ley-pausa"></i>Pausa</span>';
 
     const conFecha = acts.filter(function (a) { return a.inicio; });
     if (!conFecha.length) { cont.innerHTML = '<div class="spotlight-empty" style="padding:16px">Sin actividades con fecha con los filtros aplicados</div>'; return; }
@@ -2965,12 +2967,14 @@
     const x = function (iso) { return diasEntre(ini, iso) * JT_DIA_PX; };
 
     // Encabezado: meses y semanas (lunes).
-    let meses = "", semanas = "", rejilla = "";
+    let meses = "", semanas = "", rejilla = "", nMes = 0;
     for (let i = 0; i < dias; i++) {
       const iso = isoMasDias(ini, i), d = new Date(iso + "T00:00:00");
       if (i === 0 || d.getDate() === 1) {
         const finMes = Math.min(dias, i + (new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate() + 1));
-        meses += '<div class="jt-mes" style="left:' + i * JT_DIA_PX + 'px;width:' + (finMes - i) * JT_DIA_PX + 'px">' + MESES_CORTOS[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
+        const pos = 'left:' + i * JT_DIA_PX + 'px;width:' + (finMes - i) * JT_DIA_PX + 'px';
+        meses += '<div class="jt-mes" style="' + pos + '">' + MESES_CORTOS[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
+        if (nMes++ % 2) rejilla += '<div class="jt-mes-fondo" style="' + pos + '"></div>';  // meses alternos con fondo tenue
       }
       if (d.getDay() === 1) {
         semanas += '<div class="jt-semana" style="left:' + i * JT_DIA_PX + 'px">' + d.getDate() + '</div>';
@@ -2980,7 +2984,13 @@
     const pausas = acts.filter(function (a) { return a.categoria === "Pausa" && a.inicio; }).map(function (a) {
       return '<div class="jt-pausa" style="left:' + x(a.inicio) + 'px;width:' + (diasEntre(a.inicio, a.fin || a.inicio) + 1) * JT_DIA_PX + 'px" title="' + esc(a.actividad + " · " + fechaJourney(a)) + '"></div>';
     }).join("");
-    const lineaHoy = '<div class="jt-hoy" style="left:' + (x(hoy) + JT_DIA_PX / 2) + 'px" title="Hoy"></div>';
+    const xHoy = x(hoy) + JT_DIA_PX / 2;
+    const lineaHoy = '<div class="jt-hoy" style="left:' + xHoy + 'px" title="Hoy"></div>';
+    const pildoraHoy = '<div class="jt-hoy-pildora" style="left:' + xHoy + 'px">Hoy</div>';
+    // Grupo con nombre legible (las secuencias de rematrícula vienen como "2.1", "3"…).
+    const nombreGrupo = function (k) { return _journeyAgrupar === "secuencia" && /^\d/.test(k) ? "Correo " + k + " · rematrícula" : k; };
+    // En la barra, el nombre corto de la actividad: "Correo 2.1 (1 de 3) · Bimestral · Pre y Pos" -> "Correo 2.1 (1 de 3)".
+    const corto = function (a) { return a.actividad.split(" · ")[0]; };
 
     // Grupos y carriles.
     const grupos = {};
@@ -3003,19 +3013,20 @@
         const titulo = a.actividad + "\n" + fechaJourney(a) + "\n" + a.estado + " · " + JOURNEY_SIT[s][0] + "\n" + a.periodicidad + " · " + a.nivel + " · " + a.periodo +
           "\nResponsable: " + (a.responsables.join(", ") || "sin asignar");
         const cls = "jt-item " + (rango ? "jt-barra" : "jt-punto") + " jt-item--" + s;
-        const estilo = "left:" + x(a.inicio) + "px;top:" + (c * JT_CARRIL_PX + 4) + "px;" +
+        const estilo = "left:" + x(a.inicio) + "px;top:" + (c * JT_CARRIL_PX + 7) + "px;" +
           (rango ? "width:" + (diasEntre(a.inicio, a.fin) + 1) * JT_DIA_PX + "px;" : "") + "--jt-color:" + color;
-        const texto = rango ? '<span>' + (s === "realizada" ? "✓ " : "") + esc(a.actividad) + '</span>' : (s === "realizada" ? '<span class="jt-check">✓</span>' : "");
+        const texto = rango ? '<span>' + (s === "realizada" ? "✓ " : "") + esc(corto(a)) + '</span>' : (s === "realizada" ? '<span class="jt-check">✓</span>' : "");
         return a.url ? '<a class="' + cls + '" style="' + estilo + '" href="' + esc(a.url) + '" target="_blank" rel="noopener" title="' + esc(titulo) + '">' + texto + '</a>'
           : '<div class="' + cls + '" style="' + estilo + '" title="' + esc(titulo) + '">' + texto + '</div>';
       }).join("");
-      const alto = Math.max(1, carriles.length) * JT_CARRIL_PX + 8;
-      return '<div class="jt-fila" style="height:' + alto + 'px"><div class="jt-etiqueta" title="' + esc(k) + '">' + esc(k) + ' <span>' + items.length + '</span></div>' +
-        '<div class="jt-pista" style="width:' + ancho + 'px">' + html + '</div></div>';
+      const alto = Math.max(1, carriles.length) * JT_CARRIL_PX + 12;
+      return '<div class="jt-fila" style="min-height:' + alto + 'px"><div class="jt-etiqueta" title="' + esc(nombreGrupo(k)) + '">' +
+        '<span class="jt-et-nombre">' + esc(nombreGrupo(k)) + '</span><span class="jt-et-n">' + items.length + '</span></div>' +
+        '<div class="jt-pista" style="width:' + ancho + 'px;height:' + alto + 'px">' + html + '</div></div>';
     }).join("");
 
-    cont.innerHTML = '<div class="jt-interior" style="width:' + (ancho + 190) + 'px">' +
-      '<div class="jt-encabezado"><div class="jt-etiqueta jt-etiqueta--vacia"></div><div class="jt-escala" style="width:' + ancho + 'px">' + meses + semanas + '</div></div>' +
+    cont.innerHTML = '<div class="jt-interior" style="width:' + (ancho + JT_ETIQUETA_PX) + 'px">' +
+      '<div class="jt-encabezado"><div class="jt-etiqueta jt-etiqueta--vacia">' + esc(JOURNEY_AGRUPAR_NOMBRE[_journeyAgrupar]) + '</div><div class="jt-escala" style="width:' + ancho + 'px">' + meses + semanas + pildoraHoy + '</div></div>' +
       '<div class="jt-cuerpo"><div class="jt-fondo" style="width:' + ancho + 'px">' + rejilla + pausas + lineaHoy + '</div>' + filas + '</div></div>';
     // Arranca mostrando la semana anterior a hoy.
     requestAnimationFrame(function () { cont.scrollLeft = Math.max(0, x(hoy) - 7 * JT_DIA_PX); });
