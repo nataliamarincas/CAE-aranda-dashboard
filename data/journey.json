@@ -1,27 +1,9 @@
 {
-  "generado_en": "2026-11-11T14:04:38.310941",
+  "generado_en": "2026-11-11T22:12:15.468597",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
   "avance": 1.5,
   "actividades": [
-    {
-      "actividad": "Llamadas Reintegro · Semestral · Pre y Pos",
-      "categoria": "Llamadas",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
-      "inicio": "2026-11-09",
-      "fin": "2027-02-12",
-      "fecha_exacta": true,
-      "nivel": "Pregrado y Posgrado",
-      "periodicidad": "Semestral",
-      "periodo": "2027 1S",
-      "secuencia": "",
-      "variante": "",
-      "responsables": [],
-      "pieza": null,
-      "semana": "D4 · Semana 2 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Llamadas-Reintegro-Semestral-Pre-y-Pos-4138758f4cc28170b91deecce67a2794"
-    },
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
       "categoria": "Correo",
@@ -63,24 +45,22 @@
       "url": "https://app.notion.com/p/Correo-Reintegro-Semestral-Pre-4138758f4cc28135aa86fb4aa23e1844"
     },
     {
-      "actividad": "Renovación ICETEX · envío 1 de 3 · Semestral · Pre y Pos",
-      "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
-      "inicio": "2026-11-12",
-      "fin": null,
+      "actividad": "Llamadas Reintegro · Semestral · Pre y Pos",
+      "categoria": "Llamadas",
+      "estado": "En progreso",
+      "grupo": "pendiente",
+      "inicio": "2026-11-11",
+      "fin": "2027-02-02",
       "fecha_exacta": true,
       "nivel": "Pregrado y Posgrado",
       "periodicidad": "Semestral",
       "periodo": "2027 1S",
       "secuencia": "",
       "variante": "",
-      "responsables": [
-        "NATALIA MARIN CASTRO"
-      ],
-      "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
-      "semana": "D7 y D9 · Semana 2 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-1-de-3-Semestral-Pre-y-Pos-4138758f4cc2819c97f4e17f1e39f1a7"
+      "responsables": [],
+      "pieza": null,
+      "semana": "D4 · Semana 2 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Llamadas-Reintegro-Semestral-Pre-y-Pos-4138758f4cc28170b91deecce67a2794"
     },
     {
       "actividad": "Renovación crédito corto plazo · envío 1 de 3 · Semestral · Pre y Pos",
@@ -123,6 +103,26 @@
       "url": "https://app.notion.com/p/Renovaci-n-cr-dito-largo-plazo-env-o-1-de-3-Semestral-Pre-y-Pos-4138758f4cc281aea282dfde251fa435"
     },
     {
+      "actividad": "Renovación ICETEX · envío 1 de 3 · Semestral · Pre y Pos",
+      "categoria": "Correo",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
+      "inicio": "2026-11-17",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado y Posgrado",
+      "periodicidad": "Semestral",
+      "periodo": "2027 1S",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
+      "semana": "D7 y D9 · Semana 2 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-1-de-3-Semestral-Pre-y-Pos-4138758f4cc2819c97f4e17f1e39f1a7"
+    },
+    {
       "actividad": "Preparación equipo de monitores ·",
       "categoria": "Preparación",
       "estado": "En preparación",
@@ -141,26 +141,6 @@
       "pieza": null,
       "semana": "E5 · Semana 3 · Noviembre 2026",
       "url": "https://app.notion.com/p/Preparaci-n-equipo-de-monitores-4138758f4cc28152b54dc9d0519330dd"
-    },
-    {
-      "actividad": "Renovación ICETEX · envío 2 de 3 · Semestral · Pre y Pos",
-      "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
-      "inicio": "2026-11-18",
-      "fin": null,
-      "fecha_exacta": true,
-      "nivel": "Pregrado y Posgrado",
-      "periodicidad": "Semestral",
-      "periodo": "2027 1S",
-      "secuencia": "",
-      "variante": "",
-      "responsables": [
-        "NATALIA MARIN CASTRO"
-      ],
-      "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
-      "semana": "F6 y F9 · Semana 3 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-2-de-3-Semestral-Pre-y-Pos-4138758f4cc281339315f44de3ee498b"
     },
     {
       "actividad": "Renovación crédito corto plazo · envío 2 de 3 · Semestral · Pre y Pos",
@@ -297,7 +277,7 @@
       "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-1-de-2-Cuatrimestral-Pre-4138758f4cc2819a88c4f927411504f9"
     },
     {
-      "actividad": "Renovación ICETEX · envío 3 de 3 · Semestral · Pre y Pos",
+      "actividad": "Renovación ICETEX · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
       "estado": "Pendiente por enviar",
       "grupo": "pendiente",
@@ -313,8 +293,8 @@
         "NATALIA MARIN CASTRO"
       ],
       "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
-      "semana": "G7 y G10 · Semana 4 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-3-de-3-Semestral-Pre-y-Pos-4138758f4cc281c6a0f5e1b298bad1c2"
+      "semana": "F6 y F9 · Semana 3 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-2-de-3-Semestral-Pre-y-Pos-4138758f4cc281339315f44de3ee498b"
     },
     {
       "actividad": "Renovación crédito corto plazo · envío 1 de 2 · Bimestral · Pre y Pos",
@@ -455,6 +435,26 @@
       "pieza": "https://app.notion.com/p/ABORDAMIENTO-PROCESO-REINTEGRO-3ff8758f4cc280118185e71eb1233be0",
       "semana": "G19 · Semana 4 · Noviembre 2026",
       "url": "https://app.notion.com/p/Correo-Reintegro-Bimestral-Pre-y-Pos-4138758f4cc2811ea54fd1891038069a"
+    },
+    {
+      "actividad": "Renovación ICETEX · envío 3 de 3 · Semestral · Pre y Pos",
+      "categoria": "Correo",
+      "estado": "Pendiente por enviar",
+      "grupo": "pendiente",
+      "inicio": "2026-11-30",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado y Posgrado",
+      "periodicidad": "Semestral",
+      "periodo": "2027 1S",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
+      "semana": "G7 y G10 · Semana 4 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-3-de-3-Semestral-Pre-y-Pos-4138758f4cc281c6a0f5e1b298bad1c2"
     },
     {
       "actividad": "Correo Reintegro · Cuatrimestral · Pre",
