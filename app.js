@@ -2521,6 +2521,7 @@
   // Sale de evaluarPersona() con las mismas reglas que los números (para revisar contra Aranda).
   const ORDEN_INDICADOR = ["Registrado", "Asignado", "Desarrollado", "Modificación", "Cerrado fuera de ANS", "Tarea"];
   let _respEvalIndicador = "";  // "" = todos; si no, solo las filas de ese indicador
+  let _respTareasAlcance = "periodo";  // pestaña Tareas del detalle: "periodo" | "todas"
   function renderDetalleEvaluacion(nombre) {
     const rg = rangoGestion(), todas = [];
     const ev = evaluarPersona(nombre, rg, todas);
@@ -2609,8 +2610,19 @@
     if (tbodyCasos) tbodyCasos.innerHTML = casosResp.map(function (r) { return buildCaseRow(r, true); }).join("");
     dtRegistry[selCasos] = $(selCasos).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [], dom: "frtip" }));
 
-    const tareasResp = STATE.rawTareas.filter(function (t) { return namesMatch(t.responsable, d.nombre); })
-      .sort(function (a, b) { return (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""); });
+    // Tareas: por defecto solo las creadas en el período elegido (día, semana, mes o rango); "Todas" muestra el histórico.
+    const todasTareas = STATE.rawTareas.filter(function (t) { return namesMatch(t.responsable, d.nombre); });
+    const delPeriodo = todasTareas.filter(function (t) { return enRango(t.fecha_creacion, rg); });
+    const tareasResp = (_respTareasAlcance === "periodo" ? delPeriodo : todasTareas)
+      .slice().sort(function (a, b) { return (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""); });
+    const alcBtns = document.getElementById("respTareasAlcance");
+    if (alcBtns) {
+      alcBtns.innerHTML = '<button class="tend-btn' + (_respTareasAlcance === "periodo" ? " tend-btn--active" : "") + '" data-alc="periodo">Del período: ' + esc(rg.texto) + ' <span class="resp-eval-n">' + delPeriodo.length + '</span></button>' +
+        '<button class="tend-btn' + (_respTareasAlcance === "todas" ? " tend-btn--active" : "") + '" data-alc="todas">Todas <span class="resp-eval-n">' + todasTareas.length + '</span></button>';
+      alcBtns.querySelectorAll("button").forEach(function (b) {
+        b.addEventListener("click", function () { _respTareasAlcance = this.getAttribute("data-alc"); renderResponsableDetalle(ev); });
+      });
+    }
     const selTareasResp = "#tableRespTareas";
     if (dtRegistry[selTareasResp]) { try { dtRegistry[selTareasResp].destroy(); } catch (e) {} delete dtRegistry[selTareasResp]; }
     const tbodyT = document.querySelector(selTareasResp + " tbody");
