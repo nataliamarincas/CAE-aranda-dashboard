@@ -2265,16 +2265,20 @@
     if (dtRegistry[sel]) { try { dtRegistry[sel].destroy(); } catch (x) {} delete dtRegistry[sel]; }
     const tbody = document.querySelector(sel + " tbody");
     const celda = function (v, texto) { return '<td data-order="' + v + '">' + (texto === undefined ? v : texto) + '</td>'; };
+    // Las cifras que tienen filas en el detalle se pueden abrir: clic -> detalle filtrado por ese indicador.
+    const celdaVer = function (v, ind, texto) {
+      return '<td data-order="' + v + '" data-ind="' + esc(ind) + '" class="resp-ver" title="Ver los casos de “' + esc(ind || "todos") + '”">' + (texto === undefined ? v : texto) + '</td>';
+    };
     const badge = function (v, cls) { return v ? '<span class="resp-badge resp-badge--' + cls + '">' + v + '</span>' : "0"; };
     if (tbody) tbody.innerHTML = evals.map(function (e) {
       const rowCls = e.vencidosSinAtender > 0 ? " row--vencido" : (e.criticos > 0 ? " row--critico" : "");
       return '<tr class="resp-row' + rowCls + '" data-resp="' + esc(e.nombre) + '">' +
         '<td><strong>' + esc(e.nombre) + '</strong>' + (salidaAsesor(e.nombre) ? '<br><span class="tag-retirado" title="Ya no está en el CAE · último día: ' + esc(salidaAsesor(e.nombre)) + '">ya no está en el CAE</span>' : '') + '</td>' +
-        celda(e.gestionados, '<strong>' + e.gestionados + '</strong>') + celda(e.registrados) + celda(e.asignados) + celda(e.desarrollados) +
-        celda(e.modificados === null ? -1 : e.modificados, e.modificados === null ? "—" : e.modificados) + celda(e.tareas) +
+        celdaVer(e.gestionados, "", '<strong>' + e.gestionados + '</strong>') + celdaVer(e.registrados, "Registrado") + celdaVer(e.asignados, "Asignado") + celdaVer(e.desarrollados, "Desarrollado") +
+        celdaVer(e.modificados === null ? -1 : e.modificados, "Modificación", e.modificados === null ? "—" : e.modificados) + celdaVer(e.tareas, "Tarea") +
         celda(e.ansPct === null ? -1 : e.ansPct, e.ansPct === null ? "—" : e.ansPct + "%") +
         celda(e.horasMediana === null ? 1e9 : e.horasMediana, fmtHorasCorto(e.horasMediana)) +
-        celda(e.fueraAns, e.fueraAns + ' <span class="resp-de">de ' + e.cerrados + '</span>') +
+        celdaVer(e.fueraAns, "Cerrado fuera de ANS", e.fueraAns + ' <span class="resp-de">de ' + e.cerrados + '</span>') +
         celda(e.abiertos) + celda(e.vencidosSinAtender, badge(e.vencidosSinAtender, "vencido")) + celda(e.criticos, badge(e.criticos, "critico")) +
         celda(e.edadPromedio === null ? -1 : e.edadPromedio, e.edadPromedio === null ? "—" : Math.round(e.edadPromedio) + " d") + '</tr>';
     }).join("");
@@ -2368,9 +2372,15 @@
       .sort(function (a, b) { return (b.gestionados - a.gestionados) || (b.abiertos - a.abiertos); });
     renderEvaluacion(evals, rg);
 
-    $("#tableRespEval tbody").off("click.resp").on("click.resp", "tr.resp-row", function () {
+    $("#tableRespEval tbody").off("click.resp").on("click.resp", "tr.resp-row", function (ev) {
       const nombre = $(this).attr("data-resp");
-      if (nombre && evalDe[nombre]) { _respDetalleActual = nombre; renderResponsableDetalle(evalDe[nombre]); }
+      if (!nombre || !evalDe[nombre]) return;
+      // Clic en una cifra (registrados, modificaciones, tareas…): abre "Detalle de la evaluación" filtrado.
+      const td = ev.target.closest ? ev.target.closest("td.resp-ver") : null;
+      if (td) { _respEvalIndicador = td.getAttribute("data-ind") || ""; _respDetalleTab = "evaluacion"; }
+      else if (nombre !== _respDetalleActual) _respEvalIndicador = "";
+      _respDetalleActual = nombre; renderResponsableDetalle(evalDe[nombre]);
+      const p = document.getElementById("panelRespDetalle"); if (td && p) p.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     const closeBtn = document.getElementById("btnCerrarRespDetalle");
     if (closeBtn && !closeBtn._wired) { closeBtn._wired = true; closeBtn.addEventListener("click", function () { const p = document.getElementById("panelRespDetalle"); if (p) p.style.display = "none"; _respDetalleActual = null; }); }
@@ -2510,10 +2520,25 @@
   // Detalle de la evaluación: cada caso o tarea que cuenta en los indicadores del período y por qué.
   // Sale de evaluarPersona() con las mismas reglas que los números (para revisar contra Aranda).
   const ORDEN_INDICADOR = ["Registrado", "Asignado", "Desarrollado", "Modificación", "Cerrado fuera de ANS", "Tarea"];
+  let _respEvalIndicador = "";  // "" = todos; si no, solo las filas de ese indicador
   function renderDetalleEvaluacion(nombre) {
-    const rg = rangoGestion(), filas = [];
-    const ev = evaluarPersona(nombre, rg, filas);
-    filas.sort(function (a, b) { return (ORDEN_INDICADOR.indexOf(a.indicador) - ORDEN_INDICADOR.indexOf(b.indicador)) || String(a.fecha).localeCompare(String(b.fecha)); });
+    const rg = rangoGestion(), todas = [];
+    const ev = evaluarPersona(nombre, rg, todas);
+    todas.sort(function (a, b) { return (ORDEN_INDICADOR.indexOf(a.indicador) - ORDEN_INDICADOR.indexOf(b.indicador)) || String(a.fecha).localeCompare(String(b.fecha)); });
+    // Botones por indicador con su conteo, para no tener que pasar páginas buscando (p. ej. las modificaciones).
+    const conteo = {}; todas.forEach(function (f) { conteo[f.indicador] = (conteo[f.indicador] || 0) + 1; });
+    const filas = _respEvalIndicador ? todas.filter(function (f) { return f.indicador === _respEvalIndicador; }) : todas;
+    const btns = document.getElementById("respEvalIndicadores");
+    if (btns) {
+      btns.innerHTML = [""].concat(ORDEN_INDICADOR).map(function (ind) {
+        const n = ind ? (conteo[ind] || 0) : todas.length;
+        return '<button class="tend-btn' + (ind === _respEvalIndicador ? ' tend-btn--active' : '') + '" data-ind="' + esc(ind) + '"' + (n || !ind || ind === _respEvalIndicador ? '' : ' disabled') + '>' +
+          esc(ind ? (ind === "Modificación" ? "Modificaciones" : ind === "Tarea" ? "Tareas" : ind === "Cerrado fuera de ANS" ? ind : ind + "s") : "Todos") + ' <span class="resp-eval-n">' + n + '</span></button>';
+      }).join("");
+      btns.querySelectorAll("button").forEach(function (b) {
+        b.addEventListener("click", function () { _respEvalIndicador = this.getAttribute("data-ind") || ""; renderDetalleEvaluacion(nombre); });
+      });
+    }
     const res = document.getElementById("respEvalDetalleResumen");
     if (res) res.innerHTML = "<strong>" + esc(nombre) + "</strong> · " + esc(rg.texto) + " · " +
       ev.registrados + " registrados · " + ev.asignados + " asignados · " + ev.desarrollados + " desarrollados · " +
