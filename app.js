@@ -131,6 +131,9 @@
   let _respPeriodo = "dia";        // "dia" | "semana" (lunes a domingo) | "mes" que contiene _respDia
   let _respSoloDia = false;        // Responsables: mostrar solo quienes tuvieron gestión en el período
   let _respSoloAsesores = false;   // Responsables: mostrar solo a los asesores del CAE (AUTORES_GESTORES)
+  let _respConFallidas = true;     // Responsables: contar las tareas con causa "Llamadas fallidas" (pedido de Natalia, 2026-11-11)
+  function esLlamadaFallida(t) { return /llamadas? fallidas?/i.test(t.causa || ""); }
+  function tareaCuentaResp(t) { return _respConFallidas || !esLlamadaFallida(t); }
   let _respDetalleTab = "casos";  // "casos" | "tareas" | "evaluacion" dentro del panel de detalle
   let TENDENCY_PERIOD = "mes";  // por meses se ve el año de histórico completo
 
@@ -2063,7 +2066,7 @@
     const n = normalizeName(nombre), hoy = new Date(isoToday() + "T00:00:00");
     const e = { nombre: nombre, registrados: 0, asignados: 0, desarrollados: 0, modificados: 0, gestionados: 0, tareas: 0, clientesSet: new Set(),
       ansCumplido: 0, ansIncumplido: 0, horas: [], abiertos: 0, vencidosSinAtender: 0, criticos: 0, edades: [],
-      cerrados: 0, fueraAns: 0, tareasPendientes: 0, categorias: {} };
+      cerrados: 0, fueraAns: 0, tareasPendientes: 0, tareasFallidas: 0, categorias: {} };
     const llaves = new Set();
     STATE.rawCasos.forEach(function (r) {
       if (!pasaFiltroCasoResp(r)) return;
@@ -2121,10 +2124,13 @@
     });
     STATE.rawTareas.forEach(function (t) {
       if (!mismaPersona(nombreNorm(t), n)) return;
+      const fallida = esLlamadaFallida(t);
+      if (fallida && enRango(t.fecha_creacion, rg)) e.tareasFallidas++;  // siempre se informa cuántas hay, se cuenten o no
+      if (!tareaCuentaResp(t)) return;
       if (!tareaCompletada(t)) e.tareasPendientes++;  // carga de hoy, no del período
       if (!enRango(t.fecha_creacion, rg)) return;
       e.tareas++;
-      if (filas) filas.push({ indicador: "Tarea", caso: "(tarea)", fecha: t.fecha_creacion, detalle: [t.linea_atencion, t.causa, t.asunto].filter(function (v) { return v && v !== "N/A"; }).join(" · "),
+      if (filas) filas.push({ indicador: "Tarea", caso: fallida ? "(tarea · llamada fallida)" : "(tarea)", fecha: t.fecha_creacion, detalle: [t.linea_atencion, t.causa, t.asunto].filter(function (v) { return v && v !== "N/A"; }).join(" · "),
         gestiona: false, estado: t.estado, n1: "", categoria: t.criterios && t.criterios !== "N/A" ? t.criterios : "" });
     });
     e.gestionados = llaves.size;
@@ -2235,6 +2241,11 @@
       asesores.checked = _respSoloAsesores;
       if (!asesores._wired) { asesores._wired = true; asesores.addEventListener("change", function () { _respSoloAsesores = this.checked; renderResponsablesContent(); }); }
     }
+    const fallidas = document.getElementById("respConFallidas");
+    if (fallidas) {
+      fallidas.checked = _respConFallidas;
+      if (!fallidas._wired) { fallidas._wired = true; fallidas.addEventListener("change", function () { _respConFallidas = this.checked; renderResponsablesContent(); }); }
+    }
   }
 
   // KPIs y tabla única de la sección. Los KPIs son la suma de la tabla (salvo Clientes, que no
@@ -2275,7 +2286,8 @@
       return '<tr class="resp-row' + rowCls + '" data-resp="' + esc(e.nombre) + '">' +
         '<td><strong>' + esc(e.nombre) + '</strong>' + (salidaAsesor(e.nombre) ? '<br><span class="tag-retirado" title="Ya no está en el CAE · último día: ' + esc(salidaAsesor(e.nombre)) + '">ya no está en el CAE</span>' : '') + '</td>' +
         celdaVer(e.gestionados, "", '<strong>' + e.gestionados + '</strong>') + celdaVer(e.registrados, "Registrado") + celdaVer(e.asignados, "Asignado") + celdaVer(e.desarrollados, "Desarrollado") +
-        celdaVer(e.modificados === null ? -1 : e.modificados, "Modificación", e.modificados === null ? "—" : e.modificados) + celdaVer(e.tareas, "Tarea") +
+        celdaVer(e.modificados === null ? -1 : e.modificados, "Modificación", e.modificados === null ? "—" : e.modificados) +
+        celdaVer(e.tareas, "Tarea", e.tareas + (e.tareasFallidas ? ' <span class="resp-de" title="Llamadas fallidas del período">' + (_respConFallidas ? "incl. " : "sin ") + e.tareasFallidas + ' fallida' + (e.tareasFallidas === 1 ? "" : "s") + '</span>' : "")) +
         celda(e.ansPct === null ? -1 : e.ansPct, e.ansPct === null ? "—" : e.ansPct + "%") +
         celda(e.horasMediana === null ? 1e9 : e.horasMediana, fmtHorasCorto(e.horasMediana)) +
         celdaVer(e.fueraAns, "Cerrado fuera de ANS", e.fueraAns + ' <span class="resp-de">de ' + e.cerrados + '</span>') +
@@ -2439,7 +2451,7 @@
       const s = lunesDe(g.fecha); suma(por[nm].modificaciones, s); verSem(s); gestionado(nm, s, g.llave);
     });
     STATE.rawTareas.forEach(function (t) {
-      const tn = nombreNorm(t); if (!tn) return;
+      const tn = nombreNorm(t); if (!tn || !tareaCuentaResp(t)) return;
       const nm = Object.keys(idx).find(function (n) { return mismaPersona(tn, n); });
       if (nm) { const s = lunesDe(t.fecha_creacion); suma(por[idx[nm]].tareas, s); verSem(s); }
     });
@@ -2522,6 +2534,15 @@
   const ORDEN_INDICADOR = ["Registrado", "Asignado", "Desarrollado", "Modificación", "Cerrado fuera de ANS", "Tarea"];
   let _respEvalIndicador = "";  // "" = todos; si no, solo las filas de ese indicador
   let _respTareasAlcance = "periodo";  // pestaña Tareas del detalle: "periodo" | "todas"
+  // Casilla "Incluir llamadas fallidas" repetida en el detalle; es la misma opción del panel de arriba.
+  function checkFallidasHTML(n) {
+    return '<label class="resp-dia-solo resp-fallidas-check" title="Tareas con causa “Llamadas fallidas”"><input type="checkbox"' + (_respConFallidas ? " checked" : "") +
+      '> Incluir llamadas fallidas <span class="resp-eval-n">' + (n || 0) + '</span></label>';
+  }
+  function wireCheckFallidas(cont) {
+    const c = cont.querySelector(".resp-fallidas-check input"); if (!c) return;
+    c.addEventListener("change", function () { _respConFallidas = this.checked; renderResponsablesContent(); });
+  }
   function renderDetalleEvaluacion(nombre) {
     const rg = rangoGestion(), todas = [];
     const ev = evaluarPersona(nombre, rg, todas);
@@ -2535,10 +2556,11 @@
         const n = ind ? (conteo[ind] || 0) : todas.length;
         return '<button class="tend-btn' + (ind === _respEvalIndicador ? ' tend-btn--active' : '') + '" data-ind="' + esc(ind) + '"' + (n || !ind || ind === _respEvalIndicador ? '' : ' disabled') + '>' +
           esc(ind ? (ind === "Modificación" ? "Modificaciones" : ind === "Tarea" ? "Tareas" : ind === "Cerrado fuera de ANS" ? ind : ind + "s") : "Todos") + ' <span class="resp-eval-n">' + n + '</span></button>';
-      }).join("");
+      }).join("") + checkFallidasHTML(ev.tareasFallidas);
       btns.querySelectorAll("button").forEach(function (b) {
         b.addEventListener("click", function () { _respEvalIndicador = this.getAttribute("data-ind") || ""; renderDetalleEvaluacion(nombre); });
       });
+      wireCheckFallidas(btns);
     }
     const res = document.getElementById("respEvalDetalleResumen");
     if (res) res.innerHTML = "<strong>" + esc(nombre) + "</strong> · " + esc(rg.texto) + " · " +
@@ -2611,17 +2633,21 @@
     dtRegistry[selCasos] = $(selCasos).DataTable(Object.assign({ language: DT_LANG_ES }, { paging: true, pageLength: 10, order: [], dom: "frtip" }));
 
     // Tareas: por defecto solo las creadas en el período elegido (día, semana, mes o rango); "Todas" muestra el histórico.
-    const todasTareas = STATE.rawTareas.filter(function (t) { return namesMatch(t.responsable, d.nombre); });
+    const todasTareas = STATE.rawTareas.filter(function (t) { return namesMatch(t.responsable, d.nombre) && tareaCuentaResp(t); });
     const delPeriodo = todasTareas.filter(function (t) { return enRango(t.fecha_creacion, rg); });
     const tareasResp = (_respTareasAlcance === "periodo" ? delPeriodo : todasTareas)
       .slice().sort(function (a, b) { return (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""); });
     const alcBtns = document.getElementById("respTareasAlcance");
     if (alcBtns) {
       alcBtns.innerHTML = '<button class="tend-btn' + (_respTareasAlcance === "periodo" ? " tend-btn--active" : "") + '" data-alc="periodo">Del período: ' + esc(rg.texto) + ' <span class="resp-eval-n">' + delPeriodo.length + '</span></button>' +
-        '<button class="tend-btn' + (_respTareasAlcance === "todas" ? " tend-btn--active" : "") + '" data-alc="todas">Todas <span class="resp-eval-n">' + todasTareas.length + '</span></button>';
+        '<button class="tend-btn' + (_respTareasAlcance === "todas" ? " tend-btn--active" : "") + '" data-alc="todas">Todas <span class="resp-eval-n">' + todasTareas.length + '</span></button>' +
+        checkFallidasHTML(STATE.rawTareas.filter(function (t) {
+          return esLlamadaFallida(t) && namesMatch(t.responsable, d.nombre) && (_respTareasAlcance !== "periodo" || enRango(t.fecha_creacion, rg));
+        }).length);
       alcBtns.querySelectorAll("button").forEach(function (b) {
         b.addEventListener("click", function () { _respTareasAlcance = this.getAttribute("data-alc"); renderResponsableDetalle(ev); });
       });
+      wireCheckFallidas(alcBtns);
     }
     const selTareasResp = "#tableRespTareas";
     if (dtRegistry[selTareasResp]) { try { dtRegistry[selTareasResp].destroy(); } catch (e) {} delete dtRegistry[selTareasResp]; }
