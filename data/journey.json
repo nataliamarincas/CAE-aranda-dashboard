@@ -1,5 +1,5 @@
 {
-  "generado_en": "2026-11-12T17:39:15.789977",
+  "generado_en": "2026-11-12T21:10:53.120429",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
   "avance": 3.7,
@@ -185,8 +185,8 @@
     {
       "actividad": "Renovación ICETEX · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-18",
       "fin": null,
       "fecha_exacta": true,
@@ -225,11 +225,11 @@
     {
       "actividad": "Renovación crédito largo plazo · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-18",
       "fin": null,
-      "fecha_exacta": false,
+      "fecha_exacta": true,
       "nivel": "Pregrado y Posgrado",
       "periodicidad": "Semestral",
       "periodo": "2027 1S",
