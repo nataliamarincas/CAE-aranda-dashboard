@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-12T02:06:20.095920",
+  "generado_en": "2026-11-12T17:39:15.789977",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 1.5,
+  "avance": 3.7,
   "actividades": [
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
@@ -63,10 +63,30 @@
       "url": "https://app.notion.com/p/Llamadas-Reintegro-Semestral-Pre-y-Pos-4138758f4cc28170b91deecce67a2794"
     },
     {
+      "actividad": "Gente Milagro Icetex (envio 1 de 2)",
+      "categoria": "Correo",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
+      "inicio": "2026-11-12",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado",
+      "periodicidad": "Semestral",
+      "periodo": "2027 1S",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": "https://app.notion.com/p/Financiaci-n-Gente-Milagro-4168758f4cc280aeac52e6ad8c9e36ba",
+      "semana": "",
+      "url": "https://app.notion.com/p/Gente-Milagro-Icetex-envio-1-de-2-4168758f4cc280ceaefcf31bdf75f902"
+    },
+    {
       "actividad": "Renovación crédito corto plazo · envío 1 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-12",
       "fin": null,
       "fecha_exacta": true,
@@ -85,8 +105,8 @@
     {
       "actividad": "Renovación crédito largo plazo · envío 1 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-12",
       "fin": null,
       "fecha_exacta": true,
@@ -107,7 +127,7 @@
       "categoria": "Correo",
       "estado": "Listo para enviar",
       "grupo": "en_curso",
-      "inicio": "2026-11-17",
+      "inicio": "2026-11-13",
       "fin": null,
       "fecha_exacta": true,
       "nivel": "Pregrado y Posgrado",
@@ -121,6 +141,26 @@
       "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
       "semana": "D7 y D9 · Semana 2 · Noviembre 2026",
       "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-1-de-3-Semestral-Pre-y-Pos-4138758f4cc2819c97f4e17f1e39f1a7"
+    },
+    {
+      "actividad": "Gente Milagro Icetex (envio 2 de 2)",
+      "categoria": "Correo",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
+      "inicio": "2026-11-17",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado",
+      "periodicidad": "Semestral",
+      "periodo": "2027 1S",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": null,
+      "semana": "",
+      "url": "https://app.notion.com/p/Gente-Milagro-Icetex-envio-2-de-2-4168758f4cc280a9b96dd0094f90e5d9"
     },
     {
       "actividad": "Preparación equipo de monitores ·",
@@ -143,10 +183,30 @@
       "url": "https://app.notion.com/p/Preparaci-n-equipo-de-monitores-4138758f4cc28152b54dc9d0519330dd"
     },
     {
-      "actividad": "Renovación crédito corto plazo · envío 2 de 3 · Semestral · Pre y Pos",
+      "actividad": "Renovación ICETEX · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
       "estado": "Pendiente por enviar",
       "grupo": "pendiente",
+      "inicio": "2026-11-18",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado y Posgrado",
+      "periodicidad": "Semestral",
+      "periodo": "2027 1S",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
+      "semana": "F6 y F9 · Semana 3 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-2-de-3-Semestral-Pre-y-Pos-4138758f4cc281339315f44de3ee498b"
+    },
+    {
+      "actividad": "Renovación crédito corto plazo · envío 2 de 3 · Semestral · Pre y Pos",
+      "categoria": "Correo",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-18",
       "fin": null,
       "fecha_exacta": true,
@@ -239,8 +299,8 @@
     {
       "actividad": "Renovación ICETEX · envío 1 de 2 · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -259,8 +319,8 @@
     {
       "actividad": "Renovación ICETEX · envío 1 de 2 · Cuatrimestral · Pre",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -277,10 +337,10 @@
       "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-1-de-2-Cuatrimestral-Pre-4138758f4cc2819a88c4f927411504f9"
     },
     {
-      "actividad": "Renovación ICETEX · envío 2 de 3 · Semestral · Pre y Pos",
+      "actividad": "Renovación ICETEX · envío 3 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -293,14 +353,14 @@
         "NATALIA MARIN CASTRO"
       ],
       "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
-      "semana": "F6 y F9 · Semana 3 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-2-de-3-Semestral-Pre-y-Pos-4138758f4cc281339315f44de3ee498b"
+      "semana": "G7 y G10 · Semana 4 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-3-de-3-Semestral-Pre-y-Pos-4138758f4cc281c6a0f5e1b298bad1c2"
     },
     {
       "actividad": "Renovación crédito corto plazo · envío 1 de 2 · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -319,8 +379,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 1 de 2 · Cuatrimestral · Pre",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -339,8 +399,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 3 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -359,8 +419,8 @@
     {
       "actividad": "Renovación crédito largo plazo · envío 3 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -437,26 +497,6 @@
       "url": "https://app.notion.com/p/Correo-Reintegro-Bimestral-Pre-y-Pos-4138758f4cc2811ea54fd1891038069a"
     },
     {
-      "actividad": "Renovación ICETEX · envío 3 de 3 · Semestral · Pre y Pos",
-      "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
-      "inicio": "2026-11-30",
-      "fin": null,
-      "fecha_exacta": true,
-      "nivel": "Pregrado y Posgrado",
-      "periodicidad": "Semestral",
-      "periodo": "2027 1S",
-      "secuencia": "",
-      "variante": "",
-      "responsables": [
-        "NATALIA MARIN CASTRO"
-      ],
-      "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-ICETEX-Correo-10-3fc8758f4cc280ed9681ed82166c8063",
-      "semana": "G7 y G10 · Semana 4 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Renovaci-n-ICETEX-env-o-3-de-3-Semestral-Pre-y-Pos-4138758f4cc281c6a0f5e1b298bad1c2"
-    },
-    {
       "actividad": "Correo Reintegro · Cuatrimestral · Pre",
       "categoria": "Correo",
       "estado": "Listo para enviar",
@@ -499,8 +539,8 @@
     {
       "actividad": "Renovación ICETEX · envío 2 de 2 · Cuatrimestral · Pre",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-12-02",
       "fin": null,
       "fecha_exacta": true,
@@ -519,8 +559,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 2 de 2 · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-12-02",
       "fin": null,
       "fecha_exacta": true,
@@ -539,8 +579,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 2 de 2 · Cuatrimestral · Pre",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-12-02",
       "fin": null,
       "fecha_exacta": true,
