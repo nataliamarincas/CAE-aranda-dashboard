@@ -2029,12 +2029,12 @@
         const r = casoPorLlave(g.llave);
         creadoTrabajado = !!(r && autorNorm(r) && autorNorm(r) === normalizeName(g.responsable));
       }
-      // El cierre lo hace el sistema, no el asesor (Natalia, 2026-10-28): un cambio a "Cerrado" (desde
-      // cualquier estado) o que solo trae la fecha de cierre no es trabajo, salvo que en la misma
-      // sincronización también llegue la atención real.
-      const cierreSistema = g.cambios.some(function (x) { return x.campo === "estado" && x.despues === "Cerrado"; });
-      const trabajo = cierreSistema ? !!g.campos.fecha_atencion_real
-        : (creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return c !== "fecha_cierre" && g.campos[c]; }));
+      // El cierre lo hace el sistema, no el asesor (Natalia, 2026-10-28 y 2026-11-12): una sincronización
+      // que trae un cambio a "Cerrado" (desde cualquier estado) o un caso que aparece ya Cerrado nunca
+      // es una modificación, aunque traiga también la atención real. Esa atención ya cuenta como
+      // "Desarrollado" en su propia fecha; acreditarla aquí la contaba otra vez, en la fecha del cierre.
+      const cierreSistema = g.estadoCreado === "Cerrado" || g.cambios.some(function (x) { return x.campo === "estado" && x.despues === "Cerrado"; });
+      const trabajo = !cierreSistema && (creadoTrabajado || CAMPOS_TRABAJO.some(function (c) { return c !== "fecha_cierre" && g.campos[c]; }));
       const asignacion = CAMPOS_ASIGNACION.some(function (c) { return g.campos[c]; });
       if (!trabajo || asignacion || !g.responsable) return;
       // Sin fecha de Aranda, la del día en que se detectó (hora local).
