@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-13T01:38:24.213692",
+  "generado_en": "2026-11-13T14:50:34.788715",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 3.7,
+  "avance": 4.5,
   "actividades": [
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
@@ -125,8 +125,8 @@
     {
       "actividad": "Renovación ICETEX · envío 1 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-13",
       "fin": null,
       "fecha_exacta": true,

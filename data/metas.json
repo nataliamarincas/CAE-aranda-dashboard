@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-13T01:38:23.227847",
+  "generado_en": "2026-11-13T14:50:33.908045",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
-  "avance_general": 70.8,
+  "avance_general": 75.0,
   "proyectos": [
     {
       "id": "3de8758f4cc280278444eb334b5461c5",
@@ -86,8 +86,8 @@
       "responsables": [],
       "documentos": "",
       "tareas_total": 7,
-      "tareas_completas": 5,
-      "progreso": 71.4,
+      "tareas_completas": 6,
+      "progreso": 85.7,
       "url": "https://app.notion.com/p/GU-A-DE-MATR-CULA-3de8758f4cc280698d93ee43ceb42d69"
     },
     {
@@ -421,8 +421,8 @@
       "proyecto": "JOURNEY MAP",
       "descripcion": "El jueves 19 de nov revisar journey bimestral completo y hecho (qué piezas y cuándo vamos a enviar)",
       "subtareas_total": 4,
-      "subtareas_listas": 0,
-      "progreso": 0.0,
+      "subtareas_listas": 1,
+      "progreso": 25.0,
       "url": "https://app.notion.com/p/JOURNEY-BIMESTRAL-3de8758f4cc280c9a9f2c1a51875d003"
     },
     {
@@ -439,8 +439,8 @@
       "proyecto": "JOURNEY MAP",
       "descripcion": "El jueves 29 de OCT se revisará journey completo (piezas creadas y fechas de envío).",
       "subtareas_total": 3,
-      "subtareas_listas": 2,
-      "progreso": 66.7,
+      "subtareas_listas": 3,
+      "progreso": 100.0,
       "url": "https://app.notion.com/p/JOURNEY-SEMESTRAL-3de8758f4cc2807085a5f2b55a6a7503"
     },
     {
@@ -457,8 +457,8 @@
       "proyecto": "JOURNEY MAP",
       "descripcion": "El jueves 19 de nov revisar journey cuatrimestral completo y hecho (qué piezas y cuándo vamos a enviar)",
       "subtareas_total": 3,
-      "subtareas_listas": 2,
-      "progreso": 66.7,
+      "subtareas_listas": 3,
+      "progreso": 100.0,
       "url": "https://app.notion.com/p/JOURNEY-CUATRIMESTRAL-a3e8758f4cc283ccaa79818f76e4d6a3"
     },
     {
@@ -519,8 +519,8 @@
     {
       "id": "b028758f4cc28299bee001e905aa1b10",
       "nombre": "VÍDEOS CÓMO FUNCIONA ARANDA (cliente)",
-      "estado": "En proceso",
-      "grupo": "en_curso",
+      "estado": "Finalizado",
+      "grupo": "completo",
       "prioridad": "Urgente",
       "vencimiento": "2026-10-02",
       "asignados": [
@@ -734,8 +734,8 @@
     {
       "id": "3df8758f4cc280d797c0c2658006b67e",
       "nombre": "Creación de Bases",
-      "estado": "En curso",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": null,
       "tareas": [
         "a3e8758f4cc283ccaa79818f76e4d6a3"
@@ -767,8 +767,8 @@
     {
       "id": "3df8758f4cc280129020de4dc357ddb6",
       "nombre": "Creación de Bases",
-      "estado": "En curso",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": null,
       "tareas": [
         "3de8758f4cc280c9a9f2c1a51875d003"
@@ -778,8 +778,8 @@
     {
       "id": "3de8758f4cc2808d8e64c9fbd7bf93af",
       "nombre": "Creación de Bases",
-      "estado": "En curso",
-      "grupo": "en_curso",
+      "estado": "Listo",
+      "grupo": "completo",
       "fecha": null,
       "tareas": [
         "3de8758f4cc2807085a5f2b55a6a7503"

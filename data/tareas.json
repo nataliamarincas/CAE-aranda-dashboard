@@ -1,6 +1,6 @@
 {
-  "generado_en": "2026-11-13T01:38:20.024254",
-  "total_tareas": 6181,
+  "generado_en": "2026-11-13T14:50:30.390166",
+  "total_tareas": 6195,
   "tareas": [
     {
       "asunto": "Paz y salvo financiero para grado",
@@ -80265,6 +80265,32 @@
       "tipo_servicio": "Pregrado"
     },
     {
+      "asunto": "Apoyo financiero - correo 1",
+      "causa": "AF - Crédito puente",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iTJ0l",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001iTJQJ",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
       "asunto": "Apoyo financiero",
       "causa": "Llamadas fallidas",
       "criterios": "Proceso de matricula",
@@ -80289,6 +80315,32 @@
       "tarea_id": "00TQl00001iTMZb",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "Solicita información de credito puente y se envia correo 12/11/2026.-OE",
+      "causa": "AF - Crédito puente",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Presencial",
+      "responsable": "Oscar Eduardo Cucuñame Otero",
+      "tarea_id": "00TQl00001iTS7F",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "Apoyo financiero - correo 2",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iTYPX",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
     },
     {
       "asunto": "Apoyo financiero",
@@ -80343,6 +80395,32 @@
       "tipo_servicio": "Pregrado"
     },
     {
+      "asunto": "Atención",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001iU0FJ",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Reintegro",
+      "causa": "Llamadas fallidas",
+      "criterios": "Proceso de matricula",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Harold Vanegas Muñoz",
+      "tarea_id": "00TQl00001iU3DY",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
       "asunto": "Apoyo financiero",
       "causa": "Llamadas fallidas",
       "criterios": "Proceso de matricula",
@@ -80354,6 +80432,110 @@
       "tarea_id": "00TQl00001iU4p7",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero - Correo 1",
+      "causa": "AF - Largo Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUAxq",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero",
+      "causa": "AF - Crédito puente",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUBKM",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUBln",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero - Correo 3",
+      "causa": "AF - Largo Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUFJ7",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUIVX",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero - Correo 2",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUMxJ",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Apoyo financiero - Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001iUQpd",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Solicita información de credito puente y se envia correo 12/11/2026.-OE",
+      "causa": "AF - Crédito puente",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-12",
+      "linea_atencion": "Presencial",
+      "responsable": "Oscar Eduardo Cucuñame Otero",
+      "tarea_id": "00TQl00001iUfzy",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Posgrado"
     }
   ]
 }
