@@ -2011,7 +2011,19 @@
     if (!ev || !ev.eventos) return [];
     if (STATE._gestionesDe === ev.generado_en) return STATE._gestiones;
     const grupos = {};
+    // Una fecha (modificación o atención real) cuenta como cambio solo si trae una fecha nueva y posterior:
+    // si la exportación la trae vacía ("N/A") o vuelve a traer una fecha vieja, no es trabajo de nadie
+    // (2026-11-12 la exportación vació la fecha de modificación de 150 casos cerrados).
+    const fechaNueva = function (x) {
+      if (["fecha_modificacion", "fecha_modificacion_dt", "fecha_atencion_real"].indexOf(x.campo) === -1) return true;
+      if (!fechaValida(x.despues)) return false;
+      const nueva = String(x.despues).slice(0, 10);
+      if (fechaValida(x.antes)) return String(x.despues) > String(x.antes);
+      const det = new Date(x.detectado_en), lim = new Date(det.getTime() - 3 * 86400000);
+      return nueva >= lim.getFullYear() + "-" + String(lim.getMonth() + 1).padStart(2, "0") + "-" + String(lim.getDate()).padStart(2, "0");
+    };
     ev.eventos.forEach(function (x) {
+      if (!fechaNueva(x)) return;
       const k = x.llave + "|" + x.detectado_en;
       if (!grupos[k]) grupos[k] = { llave: x.llave, campos: {}, cambios: [], responsable: x.responsable, fecha: null, detectado: x.detectado_en, estadoCreado: null, origen: x.origen };
       if (x.campo === "creado") grupos[k].estadoCreado = x.despues;
