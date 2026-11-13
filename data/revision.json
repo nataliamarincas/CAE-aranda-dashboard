@@ -1,9 +1,36 @@
 {
-  "generado_en": "2026-11-13T21:42:25.591324+00:00",
-  "ultima_sincronizacion": "2026-11-13 09:50",
-  "estado": "ok",
+  "generado_en": "2026-11-13T21:52:46.171693+00:00",
+  "ultima_sincronizacion": "2026-11-13 16:52",
+  "estado": "aviso",
   "dias_revisados": 7,
   "hallazgos": [
+    {
+      "id": "persona_masiva",
+      "nivel": "aviso",
+      "sync": "2026-11-13 16:52",
+      "n": 70,
+      "casos": [
+        "RQ1022",
+        "RQ347",
+        "RQ348",
+        "RQ357",
+        "RQ369",
+        "RQ374",
+        "RQ378",
+        "RQ379",
+        "RQ381",
+        "RQ382",
+        "RQ383",
+        "RQ384",
+        "RQ389",
+        "RQ390",
+        "RQ397"
+      ],
+      "persona": "Santiago Gomez Murcia",
+      "titulo": "Santiago Gomez Murcia: 70 casos con cambios en una sincronización",
+      "detalle": "Muchos casos de una misma persona a la vez. Verifique en Aranda si fue trabajo real o un proceso del sistema.",
+      "reciente": true
+    },
     {
       "id": "fechas_vaciadas",
       "nivel": "alerta",
