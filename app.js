@@ -43,6 +43,7 @@
     perfilSource: "data/perfil.json",
     perfilCasosSource: "data/perfil_casos.json",
     ejecucionSource: "data/ejecucion.json",
+    revisionSource: "data/revision.json",
     journeySource: "data/journey.json",
     refreshIntervalMs: 5 * 60 * 1000
   };
@@ -1001,7 +1002,7 @@
   function loadAllData(isManual) {
     setSyncStatus("syncing");
     STATE.datosCambiaron = false;
-    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos(), loadEjecucion(), loadJourney()]).then(function () {
+    return Promise.all([loadCasos(), loadTareas(), loadMetas(), loadEventos(), loadPerfil(), loadPerfilCasos(), loadEjecucion(), loadJourney(), loadRevision()]).then(function () {
       anotarPerfilCasos();
       STATE.lastUpdated = new Date();
       const hasError = !!(STATE.errorCasos || STATE.errorTareas);
@@ -1066,7 +1067,44 @@
     if (STATE.errorRender && STATE.errorRender.length) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Error al dibujar:</strong> ' + esc(STATE.errorRender.join(" · ")) + ' — el resto del tablero sí se actualizó.</div>';
     if (STATE.errorCasos) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Casos:</strong> ' + esc(STATE.errorCasos) + ' — mostrando los últimos datos disponibles.</div>';
     if (STATE.errorTareas) html += '<div class="error-banner"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Tareas:</strong> ' + esc(STATE.errorTareas) + ' — mostrando los últimos datos disponibles.</div>';
+    html += bannerRevision();
     stack.innerHTML = html;
+    renderEstadoRevision();
+  }
+
+  /* Revisión de los datos (pedido de Natalia, 2026-11-13): el pipeline revisa cada sincronización
+     (fechas vaciadas, cambios masivos, archivos sin actualizar) y publica data/revision.json. Si la
+     última sincronización trae algo raro, aparece un aviso arriba con el detalle de la semana. */
+  function loadRevision() {
+    return fetch(CONFIG.revisionSource + "?_=" + Date.now(), { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (json) { STATE.revision = json; })
+      .catch(function () { STATE.revision = null; });
+  }
+  function bannerRevision() {
+    const rv = STATE.revision; if (!rv || rv.estado === "ok" || !rv.hallazgos) return "";
+    const recientes = rv.hallazgos.filter(function (h) { return h.reciente; });
+    if (!recientes.length) return "";
+    const item = function (h) {
+      return '<li><strong>' + esc(h.titulo) + '</strong>' + (h.sync ? ' · sincronización del ' + esc(h.sync) : '') + '<br>' + esc(h.detalle) +
+        (h.casos && h.casos.length ? '<br><span class="rev-casos">Casos: ' + esc(h.casos.join(", ")) + (h.n > h.casos.length ? " y " + (h.n - h.casos.length) + " más" : "") + '</span>' : '') + '</li>';
+    };
+    const anteriores = rv.hallazgos.filter(function (h) { return !h.reciente; });
+    return '<details class="rev-banner rev-banner--' + esc(rv.estado) + '"><summary><i class="bi bi-shield-exclamation"></i> <strong>Revisión de datos:</strong> ' +
+      esc(recientes.map(function (h) { return h.titulo; }).join(" · ")) + ' <span class="rev-ver">ver detalle</span></summary>' +
+      '<ul>' + recientes.map(item).join("") + '</ul>' +
+      (anteriores.length ? '<p class="rev-sub">En los últimos ' + (rv.dias_revisados || 7) + ' días también:</p><ul>' + anteriores.map(item).join("") + '</ul>' : '') +
+      '<p class="rev-sub">Las reglas de gestión ya ignoran fechas vaciadas, fechas que retroceden y cierres del sistema. Este aviso es para confirmar en Aranda que la exportación salió bien.</p></details>';
+  }
+  function renderEstadoRevision() {
+    const el = document.getElementById("revisionEstado"); if (!el) return;
+    const rv = STATE.revision;
+    if (!rv) { el.innerHTML = ""; return; }
+    const n = (rv.hallazgos || []).filter(function (h) { return h.reciente; }).length;
+    el.className = "revision-estado revision-estado--" + rv.estado;
+    el.innerHTML = rv.estado === "ok"
+      ? '<i class="bi bi-shield-check"></i> Revisión de datos: sin problemas'
+      : '<i class="bi bi-shield-exclamation"></i> Revisión de datos: ' + n + (rv.estado === "alerta" ? " alerta" : " aviso") + (n === 1 ? "" : "s");
+    el.title = "Revisado el " + new Date(rv.generado_en).toLocaleString("es-CO") + (rv.ultima_sincronizacion ? " · última sincronización con cambios: " + rv.ultima_sincronizacion : "");
   }
   function showToast(message) {
     const stack = document.getElementById("toastStack"); if (!stack) return;

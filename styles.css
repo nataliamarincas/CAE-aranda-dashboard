@@ -138,6 +138,21 @@ button{ font-family:inherit; }
 .error-banner{ display:flex; align-items:center; gap:10px; background:#FBEAEA; border:1px solid #EFC9C9; color:var(--wine); border-radius:8px; padding:10px 16px; font-size:13px; margin-top:14px; }
 .error-banner i{ font-size:15px; }
 .error-banner strong{ font-weight:600; }
+/* Revisión de datos (data/revision.json) */
+.rev-banner{ border-radius:8px; padding:10px 16px; font-size:13px; margin-top:14px; border:1px solid #EFC9C9; background:#FBEAEA; color:var(--wine); }
+.rev-banner--aviso{ background:#FFF6E0; border-color:#F0D9A0; color:#7A5A12; }
+.rev-banner summary{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.rev-banner summary::-webkit-details-marker{ display:none; }
+.rev-banner .rev-ver{ margin-left:auto; font-size:11.5px; text-decoration:underline; opacity:.8; }
+.rev-banner[open] .rev-ver{ display:none; }
+.rev-banner ul{ margin:10px 0 0; padding-left:20px; line-height:1.5; }
+.rev-banner li{ margin-bottom:6px; }
+.rev-banner .rev-casos{ font-size:11.5px; opacity:.85; }
+.rev-banner .rev-sub{ margin:10px 0 0; font-size:12px; opacity:.85; }
+.revision-estado{ font-size:11px; margin-top:8px; text-align:center; color:rgba(237,232,227,0.7); }
+.revision-estado:empty{ display:none; }
+.revision-estado--alerta{ color:#FFB4B4; font-weight:700; }
+.revision-estado--aviso{ color:#F3D58A; font-weight:600; }
 
 .view-container{ flex:1; padding:24px 28px 48px; }
 .view{ display:none; }
