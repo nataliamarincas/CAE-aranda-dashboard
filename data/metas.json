@@ -1,5 +1,5 @@
 {
-  "generado_en": "2026-11-17T03:21:49.237611",
+  "generado_en": "2026-11-17T16:33:14.170523",
   "fuente": "Notion · TAREAS CAE",
   "fuente_url": "https://app.notion.com/p/7ef8758f4cc28306bc7a81f9de2fa83b",
   "avance_general": 75.0,
@@ -51,15 +51,15 @@
     {
       "id": "3de8758f4cc280ccb0d8c15e958d454b",
       "nombre": "SALESFORCE - APOYO EN PROCESOS RE MATRÍCULA",
-      "estado": "No iniciado",
-      "grupo": "pendiente",
+      "estado": "En curso",
+      "grupo": "en_curso",
       "plazo_inicio": null,
       "plazo_fin": null,
       "responsables": [],
       "documentos": "",
-      "tareas_total": 0,
-      "tareas_completas": 0,
-      "progreso": 0.0,
+      "tareas_total": 1,
+      "tareas_completas": 1,
+      "progreso": 100.0,
       "url": "https://app.notion.com/p/SALESFORCE-APOYO-EN-PROCESOS-RE-MATR-CULA-3de8758f4cc280ccb0d8c15e958d454b"
     },
     {

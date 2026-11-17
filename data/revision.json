@@ -1,9 +1,35 @@
 {
-  "generado_en": "2026-11-17T03:21:50.316820+00:00",
-  "ultima_sincronizacion": "2026-11-13 16:52",
-  "estado": "aviso",
+  "generado_en": "2026-11-17T16:33:15.316116+00:00",
+  "ultima_sincronizacion": "2026-11-17 11:33",
+  "estado": "ok",
   "dias_revisados": 7,
   "hallazgos": [
+    {
+      "id": "fechas_vaciadas",
+      "nivel": "alerta",
+      "sync": "2026-11-12 17:15",
+      "n": 150,
+      "casos": [
+        "RQ-4851",
+        "RQ-4852",
+        "RQ-4853",
+        "RQ-4856",
+        "RQ-4858",
+        "RQ-4862",
+        "RQ-4863",
+        "RQ-4865",
+        "RQ-4866",
+        "RQ-4868",
+        "RQ-4870",
+        "RQ-4871",
+        "RQ-4872",
+        "RQ-4873",
+        "RQ-4874"
+      ],
+      "titulo": "La exportación trajo vacías fechas de 150 casos",
+      "detalle": "Casos que tenían fecha de modificación o de atención real y llegaron en blanco. El tablero no los cuenta como gestión, pero conviene revisar si el archivo de Aranda de esa hora salió incompleto.",
+      "reciente": false
+    },
     {
       "id": "persona_masiva",
       "nivel": "aviso",
@@ -29,32 +55,6 @@
       "persona": "Santiago Gomez Murcia",
       "titulo": "Santiago Gomez Murcia: 70 casos con cambios en una sincronización",
       "detalle": "Muchos casos de una misma persona a la vez. Verifique en Aranda si fue trabajo real o un proceso del sistema.",
-      "reciente": true
-    },
-    {
-      "id": "fechas_vaciadas",
-      "nivel": "alerta",
-      "sync": "2026-11-12 17:15",
-      "n": 150,
-      "casos": [
-        "RQ-4851",
-        "RQ-4852",
-        "RQ-4853",
-        "RQ-4856",
-        "RQ-4858",
-        "RQ-4862",
-        "RQ-4863",
-        "RQ-4865",
-        "RQ-4866",
-        "RQ-4868",
-        "RQ-4870",
-        "RQ-4871",
-        "RQ-4872",
-        "RQ-4873",
-        "RQ-4874"
-      ],
-      "titulo": "La exportación trajo vacías fechas de 150 casos",
-      "detalle": "Casos que tenían fecha de modificación o de atención real y llegaron en blanco. El tablero no los cuenta como gestión, pero conviene revisar si el archivo de Aranda de esa hora salió incompleto.",
       "reciente": false
     }
   ]

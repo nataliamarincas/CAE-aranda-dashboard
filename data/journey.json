@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-17T03:21:50.270338",
+  "generado_en": "2026-11-17T16:33:15.238947",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 4.5,
+  "avance": 5.2,
   "actividades": [
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
@@ -145,8 +145,8 @@
     {
       "actividad": "Gente Milagro Icetex (envio 2 de 2)",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-17",
       "fin": null,
       "fecha_exacta": true,
@@ -241,6 +241,26 @@
       "pieza": "https://app.notion.com/p/Recordatorio-Renovaci-n-Cr-dito-UAO-Largo-Plazo-Correo-9-3fc8758f4cc2809d8a97df2f4312b462",
       "semana": "F6 y F9 · Semana 3 · Noviembre 2026",
       "url": "https://app.notion.com/p/Renovaci-n-cr-dito-largo-plazo-env-o-2-de-3-Semestral-Pre-y-Pos-4138758f4cc28167b003d867c45300f5"
+    },
+    {
+      "actividad": "Correo Reintegro · Bimestral · Pre y Pos",
+      "categoria": "Correo",
+      "estado": "Pendiente por enviar",
+      "grupo": "pendiente",
+      "inicio": "2026-11-23",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado y Posgrado",
+      "periodicidad": "Bimestral",
+      "periodo": "2027 1B",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": "https://app.notion.com/p/ABORDAMIENTO-PROCESO-REINTEGRO-3ff8758f4cc280118185e71eb1233be0",
+      "semana": "G19 · Semana 4 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Correo-Reintegro-Bimestral-Pre-y-Pos-4138758f4cc2811ea54fd1891038069a"
     },
     {
       "actividad": "Llamadas Reintegro · Bimestral · Pre y Pos",
@@ -475,26 +495,6 @@
       "pieza": "https://app.notion.com/p/Estudiante-Antiguo-Semestral-POS-Correo-0-CAE-fechas-aviso-3e28758f4cc280339245e04703681e02",
       "semana": "G9 · Semana 4 · Noviembre 2026",
       "url": "https://app.notion.com/p/Correo-0B-Semestral-Pos-4138758f4cc281158807c671628b8438"
-    },
-    {
-      "actividad": "Correo Reintegro · Bimestral · Pre y Pos",
-      "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
-      "inicio": "2026-11-24",
-      "fin": null,
-      "fecha_exacta": true,
-      "nivel": "Pregrado y Posgrado",
-      "periodicidad": "Bimestral",
-      "periodo": "2027 1B",
-      "secuencia": "",
-      "variante": "",
-      "responsables": [
-        "NATALIA MARIN CASTRO"
-      ],
-      "pieza": "https://app.notion.com/p/ABORDAMIENTO-PROCESO-REINTEGRO-3ff8758f4cc280118185e71eb1233be0",
-      "semana": "G19 · Semana 4 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Correo-Reintegro-Bimestral-Pre-y-Pos-4138758f4cc2811ea54fd1891038069a"
     },
     {
       "actividad": "Correo Reintegro · Cuatrimestral · Pre",
