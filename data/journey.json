@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-18T02:42:32.672384",
+  "generado_en": "2026-11-18T17:14:31.707102",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 5.2,
+  "avance": 7.5,
   "actividades": [
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
@@ -163,30 +163,10 @@
       "url": "https://app.notion.com/p/Gente-Milagro-Icetex-envio-2-de-2-4168758f4cc280a9b96dd0094f90e5d9"
     },
     {
-      "actividad": "Preparación equipo de monitores ·",
-      "categoria": "Preparación",
-      "estado": "En preparación",
-      "grupo": "en_curso",
-      "inicio": "2026-11-18",
-      "fin": null,
-      "fecha_exacta": true,
-      "nivel": "Pregrado y Posgrado",
-      "periodicidad": "Todas",
-      "periodo": "2027 1S",
-      "secuencia": "",
-      "variante": "",
-      "responsables": [
-        "NATALIA MARIN CASTRO"
-      ],
-      "pieza": null,
-      "semana": "E5 · Semana 3 · Noviembre 2026",
-      "url": "https://app.notion.com/p/Preparaci-n-equipo-de-monitores-4138758f4cc28152b54dc9d0519330dd"
-    },
-    {
       "actividad": "Renovación ICETEX · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-18",
       "fin": null,
       "fecha_exacta": true,
@@ -205,8 +185,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-18",
       "fin": null,
       "fecha_exacta": true,
@@ -225,8 +205,8 @@
     {
       "actividad": "Renovación crédito largo plazo · envío 2 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-18",
       "fin": null,
       "fecha_exacta": true,
@@ -495,6 +475,26 @@
       "pieza": "https://app.notion.com/p/Estudiante-Antiguo-Semestral-POS-Correo-0-CAE-fechas-aviso-3e28758f4cc280339245e04703681e02",
       "semana": "G9 · Semana 4 · Noviembre 2026",
       "url": "https://app.notion.com/p/Correo-0B-Semestral-Pos-4138758f4cc281158807c671628b8438"
+    },
+    {
+      "actividad": "Preparación equipo de monitores ·",
+      "categoria": "Preparación",
+      "estado": "En preparación",
+      "grupo": "en_curso",
+      "inicio": "2026-11-24",
+      "fin": null,
+      "fecha_exacta": true,
+      "nivel": "Pregrado y Posgrado",
+      "periodicidad": "Todas",
+      "periodo": "2027 1S",
+      "secuencia": "",
+      "variante": "",
+      "responsables": [
+        "NATALIA MARIN CASTRO"
+      ],
+      "pieza": null,
+      "semana": "E5 · Semana 3 · Noviembre 2026",
+      "url": "https://app.notion.com/p/Preparaci-n-equipo-de-monitores-4138758f4cc28152b54dc9d0519330dd"
     },
     {
       "actividad": "Correo Reintegro · Cuatrimestral · Pre",
