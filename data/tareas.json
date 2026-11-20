@@ -1,6 +1,6 @@
 {
-  "generado_en": "2026-11-20T01:59:31.202606",
-  "total_tareas": 6434,
+  "generado_en": "2026-11-20T16:33:09.376632",
+  "total_tareas": 6445,
   "tareas": [
     {
       "asunto": "Paz y salvo financiero para grado",
@@ -83606,6 +83606,19 @@
       "tipo_servicio": "Pregrado"
     },
     {
+      "asunto": "Llamada reintegro",
+      "causa": "Reintegro",
+      "criterios": "Proceso de matricula",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-19",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001jHCaS",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
       "asunto": "Llamada de reintegro",
       "causa": "Reintegro",
       "criterios": "Proceso de matricula",
@@ -83617,6 +83630,19 @@
       "tarea_id": "00TQl00001jHKCp",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Posgrado"
+    },
+    {
+      "asunto": "Llamada reintegro",
+      "causa": "Reintegro",
+      "criterios": "Proceso de matricula",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-19",
+      "linea_atencion": "Telefónico",
+      "responsable": "Apoyo Gestor CAE",
+      "tarea_id": "00TQl00001jHU48",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
     },
     {
       "asunto": "Llamada reintegro",
@@ -83641,6 +83667,123 @@
       "linea_atencion": "Telefónico",
       "responsable": "Apoyo Gestor CAE",
       "tarea_id": "00TQl00001jHYqs",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Llamada",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-19",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jHanq",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jL4vq",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jLCn5",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jLUtb",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Reintegro",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jLYsT",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Llamada",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jLroT",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "créditos",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Miguel Angel Chavarro Chamorro",
+      "tarea_id": "00TQl00001jLxm7",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "créditas",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Correo electrónico",
+      "responsable": "Miguel Angel Chavarro Chamorro",
+      "tarea_id": "00TQl00001jM25a",
+      "tipo_registro": "Unidad de Atención Integral",
+      "tipo_servicio": "Pregrado"
+    },
+    {
+      "asunto": "Correo",
+      "causa": "AF - Corto Plazo",
+      "criterios": "Proceso de matricula Apoyo financiero",
+      "estado": "Completada",
+      "estado_raw": "Completada",
+      "fecha_creacion": "2026-11-20",
+      "linea_atencion": "Telefónico",
+      "responsable": "Yuddy Suleima Rayo Arias",
+      "tarea_id": "00TQl00001jMQfm",
       "tipo_registro": "Unidad de Atención Integral",
       "tipo_servicio": "Pregrado"
     }
