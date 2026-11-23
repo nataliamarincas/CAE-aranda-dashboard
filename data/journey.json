@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-23T01:21:49.753218",
+  "generado_en": "2026-11-23T18:51:01.468617",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 7.5,
+  "avance": 12.7,
   "actividades": [
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
@@ -225,8 +225,8 @@
     {
       "actividad": "Correo Reintegro · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Listo para enviar",
+      "grupo": "en_curso",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -299,8 +299,8 @@
     {
       "actividad": "Renovación ICETEX · envío 1 de 2 · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -319,8 +319,8 @@
     {
       "actividad": "Renovación ICETEX · envío 1 de 2 · Cuatrimestral · Pre",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -339,8 +339,8 @@
     {
       "actividad": "Renovación ICETEX · envío 3 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -359,8 +359,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 1 de 2 · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -379,8 +379,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 1 de 2 · Cuatrimestral · Pre",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -399,8 +399,8 @@
     {
       "actividad": "Renovación crédito corto plazo · envío 3 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -419,8 +419,8 @@
     {
       "actividad": "Renovación crédito largo plazo · envío 3 de 3 · Semestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
