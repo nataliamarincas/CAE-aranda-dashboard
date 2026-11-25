@@ -1,7 +1,7 @@
 {
-  "generado_en": "2026-11-25T18:59:20.162902+00:00",
-  "ultima_sincronizacion": "2026-11-25 13:59",
-  "estado": "aviso",
+  "generado_en": "2026-11-25T22:33:19.961471+00:00",
+  "ultima_sincronizacion": "2026-11-25 17:33",
+  "estado": "ok",
   "dias_revisados": 7,
   "hallazgos": [
     {
@@ -28,7 +28,7 @@
       ],
       "titulo": "55 casos dejaron de venir en la exportación",
       "detalle": "Revise si el reporte de Aranda cambió de filtro o de rango de fechas.",
-      "reciente": true
+      "reciente": false
     }
   ]
 }

@@ -1,8 +1,8 @@
 {
-  "generado_en": "2026-11-25T18:59:20.113923",
+  "generado_en": "2026-11-25T22:33:19.913795",
   "fuente": "Notion · Cronograma Journey · Estudiantes Antiguos",
   "fuente_url": "https://app.notion.com/p/3ce8758f4cc280daa475da39fcd1a557",
-  "avance": 12.7,
+  "avance": 14.9,
   "actividades": [
     {
       "actividad": "Correo Reintegro · Semestral · Pos",
@@ -225,8 +225,8 @@
     {
       "actividad": "Correo Reintegro · Bimestral · Pre y Pos",
       "categoria": "Correo",
-      "estado": "Listo para enviar",
-      "grupo": "en_curso",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-23",
       "fin": null,
       "fecha_exacta": true,
@@ -439,8 +439,8 @@
     {
       "actividad": "Correo 0A · Semestral · Pre",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-24",
       "fin": null,
       "fecha_exacta": true,
@@ -459,8 +459,8 @@
     {
       "actividad": "Correo 0B · Semestral · Pos",
       "categoria": "Correo",
-      "estado": "Pendiente por enviar",
-      "grupo": "pendiente",
+      "estado": "Enviado / Realizado",
+      "grupo": "completo",
       "inicio": "2026-11-24",
       "fin": null,
       "fecha_exacta": true,
