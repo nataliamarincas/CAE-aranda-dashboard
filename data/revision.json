@@ -1,7 +1,34 @@
 {
-  "generado_en": "2026-11-25T03:55:57.962674+00:00",
-  "ultima_sincronizacion": "2026-11-24 12:57",
-  "estado": "ok",
+  "generado_en": "2026-11-25T18:59:20.162902+00:00",
+  "ultima_sincronizacion": "2026-11-25 13:59",
+  "estado": "aviso",
   "dias_revisados": 7,
-  "hallazgos": []
+  "hallazgos": [
+    {
+      "id": "salieron_del_export",
+      "nivel": "aviso",
+      "sync": "2026-11-25 13:59",
+      "n": 55,
+      "casos": [
+        "RQ-1560",
+        "RQ-1815",
+        "RQ-1853",
+        "RQ-1962",
+        "RQ-2178",
+        "RQ-2187",
+        "RQ-2227",
+        "RQ-2300",
+        "RQ-2369",
+        "RQ-2419",
+        "RQ-2582",
+        "RQ-2616",
+        "RQ-2717",
+        "RQ-2739",
+        "RQ-2844"
+      ],
+      "titulo": "55 casos dejaron de venir en la exportación",
+      "detalle": "Revise si el reporte de Aranda cambió de filtro o de rango de fechas.",
+      "reciente": true
+    }
+  ]
 }
